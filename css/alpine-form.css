@@ -1,0 +1,164 @@
+/*! AlpineForm — CSS mínimo opcional. Não depende de framework CSS. */
+:root {
+    --af-danger: #b42318;
+    --af-danger-bg: #fef3f2;
+    --af-success: #067647;
+    --af-muted: #475467;
+    --af-border: #d0d5dd;
+    --af-accent: #1d4ed8;
+    --af-radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --af-danger: #fda29b;
+        --af-danger-bg: #3b1714;
+        --af-success: #75e0a7;
+        --af-muted: #c0c5cf;
+        --af-border: #475467;
+        --af-accent: #84adff;
+    }
+}
+
+.af-invalid {
+    border-color: var(--af-danger) !important;
+    outline-color: var(--af-danger);
+}
+
+.af-valid {
+    border-color: var(--af-success) !important;
+}
+
+.af-error {
+    color: var(--af-danger);
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+.af-error__item {
+    display: block;
+}
+
+.af-error__item::before {
+    content: "⚠ ";
+    speak: never;
+}
+
+.af-error--pending {
+    color: var(--af-muted);
+}
+
+.af-error--pending .af-error__item::before {
+    content: "";
+}
+
+.af-summary {
+    border: 1px solid var(--af-danger);
+    background: var(--af-danger-bg);
+    color: var(--af-danger);
+    border-radius: var(--af-radius);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.af-summary:focus {
+    outline: 3px solid var(--af-accent);
+    outline-offset: 2px;
+}
+
+.af-summary__title {
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+}
+
+.af-summary__list {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.af-summary a {
+    color: inherit;
+}
+
+.af-files {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.af-file {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--af-border);
+    border-radius: var(--af-radius);
+    padding: 0.5rem 0.75rem;
+}
+
+.af-file--invalid {
+    border-color: var(--af-danger);
+}
+
+.af-file__thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.af-file__name {
+    overflow-wrap: anywhere;
+}
+
+.af-file__size {
+    color: var(--af-muted);
+    font-size: 0.875em;
+}
+
+.af-file__errors {
+    color: var(--af-danger);
+    font-size: 0.875em;
+}
+
+.af-file__remove {
+    margin-left: auto;
+}
+
+.af-existing--removed {
+    opacity: 0.55;
+    text-decoration: line-through;
+}
+
+.af-dropzone--over {
+    outline: 2px dashed var(--af-accent);
+    outline-offset: 4px;
+}
+
+/* Progresso: data-form-state é escrito pela biblioteca no contêiner [data-form-progress]. */
+[data-form-progress][data-form-state="idle"] {
+    display: none;
+}
+
+[data-form-progress-bar][data-indeterminate="true"]:not(progress) {
+    width: 30% !important;
+    animation: af-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes af-indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(340%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-form-progress-bar][data-indeterminate="true"]:not(progress) {
+        animation: none;
+        width: 100% !important;
+        opacity: 0.5;
+    }
+}
+
+form[aria-busy="true"] [type="submit"] {
+    cursor: progress;
+}

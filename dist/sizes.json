@@ -1,0 +1,32 @@
+[
+  {
+    "module": "alpine-form",
+    "min": 147288,
+    "gzip": 45934,
+    "esm": 237338
+  },
+  {
+    "module": "alpine-form-masks",
+    "min": 22203,
+    "gzip": 8002,
+    "esm": 36456
+  },
+  {
+    "module": "alpine-form-chunks",
+    "min": 19981,
+    "gzip": 6888,
+    "esm": 30876
+  },
+  {
+    "module": "alpine-form-inspectors",
+    "min": 9307,
+    "gzip": 3828,
+    "esm": 15645
+  },
+  {
+    "module": "alpine-form-bootstrap",
+    "min": 1593,
+    "gzip": 812,
+    "esm": 2317
+  }
+]

@@ -1,0 +1,444 @@
+<?php
+
+declare(strict_types=1);
+
+namespace AlpineForm\Server;
+
+/**
+ * Endpoints de REFERÊNCIA usados pelos exemplos e testes E2E.
+ * Contrato de resposta: { success, message, errors: {campo: [..]}, data, request_id }.
+ * Cada handler retorna [status, corpo|null, cabeçalhos].
+ */
+final class Api
+{
+    private string $storage;
+    private string $requestId;
+
+    /** @param array<string, mixed> $config */
+    public function __construct(private array $config)
+    {
+        $this->storage = $config['storage'];
+        $this->requestId = Fs::randomId(8);
+    }
+
+    public function requestId(): string
+    {
+        return $this->requestId;
+    }
+
+    private function chunks(): ChunkStore
+    {
+        return new ChunkStore($this->storage, $this->config['chunks']);
+    }
+
+    private function jobs(): JobQueue
+    {
+        return new JobQueue($this->storage);
+    }
+
+    /** @return array{0: int, 1: array<string, mixed>|null, 2: array<string, string>} */
+    private function ok(array $data = [], string $message = 'Operação concluída.', int $status = 200): array
+    {
+        return [$status, ['success' => true, 'message' => $message, 'errors' => new \stdClass(), 'data' => $data, 'request_id' => $this->requestId], []];
+    }
+
+    /** @param array<string, list<string>> $errors @return array{0: int, 1: array<string, mixed>, 2: array<string, string>} */
+    private function invalid(array $errors, string $message = 'Confira os campos destacados.', int $status = 422): array
+    {
+        return [$status, ['success' => false, 'message' => $message, 'errors' => $errors ?: new \stdClass(), 'data' => null, 'request_id' => $this->requestId], []];
+    }
+
+    /** @return array{0: int, 1: array<string, mixed>|null, 2: array<string, string>} */
+    public function handle(Request $request): array
+    {
+        $method = $request->method;
+        $path = rtrim($request->path, '/') ?: '/';
+        if ($method === 'GET' && $path === '/api/csrf') {
+            return [200, ['token' => Session::csrf()], []];
+        }
+        $owner = Session::owner();
+        if (!in_array($method, ['GET', 'HEAD'], true)) {
+            Session::verifyCsrf($request);
+        }
+        Session::release();
+
+        $routes = [
+            ['POST', '#^/api/cadastro$#', fn () => $this->cadastro($request, $owner)],
+            ['POST', '#^/api/validar-email$#', fn () => $this->validarEmail($request)],
+            ['POST', '#^/api/upload$#', fn () => $this->upload($request, $owner)],
+            ['POST', '#^/api/perfil$#', fn () => $this->perfil($request, $owner)],
+            ['POST', '#^/api/pedido$#', fn () => $this->pedido($request)],
+            ['POST', '#^/api/pagamento$#', fn () => $this->pagamento($request)],
+            ['POST', '#^/api/preferencias$#', fn () => $this->preferencias($request)],
+            ['POST', '#^/api/documentos$#', fn () => $this->documentos($request, $owner)],
+            ['POST', '#^/api/importacoes$#', fn () => $this->importacao($request, $owner)],
+            ['GET', '#^/api/jobs/([a-f0-9]{32})$#', fn ($m) => [200, JobQueue::publicView($this->jobs()->get($owner, $m[1])), []]],
+            ['DELETE', '#^/api/jobs/([a-f0-9]{32})$#', fn ($m) => [202, JobQueue::publicView($this->jobs()->requestCancel($owner, $m[1])), []]],
+            ['POST', '#^/api/uploads$#', fn () => [201, $this->chunks()->create($owner, $request->json()), []]],
+            ['GET', '#^/api/uploads/([a-f0-9]{32})$#', fn ($m) => [200, $this->chunks()->status($owner, $m[1]), []]],
+            ['DELETE', '#^/api/uploads/([a-f0-9]{32})$#', function ($m) use ($owner) {
+                $this->chunks()->cancel($owner, $m[1]);
+                return [204, null, []];
+            }],
+            ['PUT', '#^/api/uploads/([a-f0-9]{32})/parts/(\d{1,5})$#', fn ($m) => $this->putPart($request, $owner, $m[1], (int) $m[2])],
+            ['POST', '#^/api/uploads/([a-f0-9]{32})/complete$#', function ($m) use ($request, $owner) {
+                $body = $request->json();
+                $manifest = is_string($body['manifest'] ?? null) ? $body['manifest'] : null;
+                return [200, $this->chunks()->complete($owner, $m[1], $manifest), []];
+            }],
+            ['ANY', '#^/api/demo/([a-z0-9-]+)$#', fn ($m) => $this->demo($m[1], $request)],
+        ];
+        foreach ($routes as [$verb, $pattern, $handler]) {
+            if (preg_match($pattern, $path, $matches) === 1) {
+                if ($verb !== 'ANY' && $verb !== $method) {
+                    continue;
+                }
+                return $handler($matches);
+            }
+        }
+        throw new HttpError(404, 'Rota não encontrada.');
+    }
+
+    private function cadastro(Request $request, string $owner): array
+    {
+        $data = $request->data();
+        $key = $request->header('idempotency-key');
+        $idem = new Idempotency($this->storage, $this->config['idempotency_ttl']);
+        $fingerprint = hash('sha256', json_encode($data));
+        if ($key !== null) {
+            $begin = $idem->begin($owner, 'cadastro', $key, $fingerprint);
+            if ($begin['replay']) {
+                return [200, $begin['response'] + ['replayed' => true], ['Idempotent-Replayed' => 'true']];
+            }
+        }
+        $v = new Validator($data);
+        if ($v->required('nome', 'Informe seu nome.')) {
+            $v->length('nome', 3, 120, 'O nome deve ter entre 3 e 120 caracteres.');
+        }
+        if ($v->required('email', 'Informe seu e-mail.')) {
+            $v->email('email', 'E-mail inválido.');
+            if (in_array(strtolower((string) $v->value('email')), $this->config['demo']['taken_emails'], true)) {
+                $v->add('email', 'Este e-mail já está cadastrado.');
+            }
+        }
+        if ($v->filled('cpf')) {
+            $v->cpf('cpf', 'CPF inválido.');
+        }
+        if ($v->filled('senha')) {
+            $v->length('senha', 8, 200, 'A senha deve ter ao menos 8 caracteres.');
+            $v->same('senha_confirmacao', 'senha', 'A confirmação não confere.');
+        }
+        if (($data['tipo'] ?? '') === 'pj') {
+            $v->required('cnpj', 'Informe o CNPJ.');
+            $v->cnpj('cnpj', 'CNPJ inválido.');
+        }
+        if (($data['nome'] ?? '') === 'erro geral') {
+            $v->add('_general', 'Cadastro temporariamente bloqueado para este nome (erro geral de demonstração).');
+        }
+        if ($v->fails()) {
+            $errors = $v->errors();
+            $general = $errors['_general'] ?? [];
+            unset($errors['_general']);
+            if ($key !== null) {
+                $idem->abort($owner, 'cadastro', $key);
+            }
+            $response = $this->invalid($errors);
+            if ($general) {
+                $response[1]['errors'] = $errors + ['_general' => $general];
+            }
+            return $response;
+        }
+        $id = Fs::randomId(8);
+        Fs::writeJsonAtomic($this->storage . '/records/cadastro-' . $id . '.json', ['id' => $id, 'owner' => $owner, 'nome' => $data['nome'], 'email' => $data['email'], 'createdAt' => time()]);
+        $response = ['success' => true, 'message' => 'Cadastro realizado com sucesso.', 'errors' => new \stdClass(), 'data' => ['id' => $id], 'request_id' => $this->requestId];
+        if ($key !== null) {
+            $idem->complete($owner, 'cadastro', $key, $response);
+        }
+        return [201, $response, []];
+    }
+
+    private function validarEmail(Request $request): array
+    {
+        $delay = (int) $this->config['demo']['remote_delay_ms'];
+        if ($delay > 0) {
+            usleep($delay * 1000);
+        }
+        if (($request->query['falhar'] ?? '') === '1') {
+            throw new HttpError(503, 'Serviço de verificação indisponível (demonstração).');
+        }
+        $email = strtolower(trim((string) ($request->post['email'] ?? '')));
+        $currentId = (string) ($request->post['id'] ?? '');
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return [200, ['valid' => false, 'message' => 'E-mail inválido.'], []];
+        }
+        $taken = in_array($email, $this->config['demo']['taken_emails'], true);
+        if ($taken && $currentId === '7' && $email === 'joao@exemplo.com') {
+            $taken = false;
+        }
+        return [200, ['valid' => !$taken, 'message' => $taken ? 'Este e-mail já está cadastrado.' : null], []];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function storeUploads(Request $request, string $field, array &$errors, int $maxFiles): array
+    {
+        $entry = $request->files[$field] ?? null;
+        $files = is_array($entry) ? UploadInspector::normalize($entry) : [];
+        if (count($files) > $maxFiles) {
+            $errors[$field][] = "Envie no máximo {$maxFiles} arquivo(s).";
+            return [];
+        }
+        $inspector = new UploadInspector($this->config['upload']['allowed'], $this->config['upload']['max_file_bytes']);
+        $stored = [];
+        foreach ($files as $i => $file) {
+            $result = $inspector->inspect($file);
+            if (!$result['ok']) {
+                $errors[$field . '.' . $i][] = $result['error'];
+                continue;
+            }
+            $storedName = Fs::randomId(16) . '.' . $result['ext'];
+            Fs::ensureDir($this->storage . '/files');
+            if (!move_uploaded_file($file['tmp_name'], $this->storage . '/files/' . $storedName)) {
+                $errors[$field . '.' . $i][] = 'Falha ao armazenar o arquivo.';
+                continue;
+            }
+            $stored[] = ['name' => $result['name'], 'size' => $result['size'], 'mime' => $result['mime'], 'stored' => $storedName] + (isset($result['width']) ? ['width' => $result['width'], 'height' => $result['height']] : []);
+        }
+        return $stored;
+    }
+
+    private function upload(Request $request, string $owner): array
+    {
+        $errors = [];
+        $titulo = trim((string) ($request->post['titulo'] ?? ''));
+        if (array_key_exists('titulo', $request->post) && $titulo === '') {
+            $errors['titulo'][] = 'Informe um título.';
+        }
+        $result = [];
+        foreach (array_keys($request->files) as $field) {
+            $result[$field] = $this->storeUploads($request, (string) $field, $errors, $this->config['upload']['max_files']);
+        }
+        if (!$request->files && ($request->query['exigir'] ?? '') === '1') {
+            $errors['documentos'][] = 'Envie ao menos um arquivo.';
+        }
+        if ($errors) {
+            return $this->invalid($errors);
+        }
+        return $this->ok(['arquivos' => $result, 'owner' => substr($owner, 0, 6)], 'Arquivos recebidos.');
+    }
+
+    /** Edição com arquivos existentes: aplica remoções pedidas e recebe novos arquivos. */
+    private function perfil(Request $request, string $owner): array
+    {
+        $existing = Session::get('perfil_anexos', [['id' => '101', 'name' => 'contrato.pdf'], ['id' => '102', 'name' => 'rg-frente.jpg']]);
+        $remove = array_map('strval', (array) ($request->post['anexos_remover'] ?? []));
+        $known = array_column($existing, 'id');
+        $errors = [];
+        foreach ($remove as $id) {
+            if (!in_array($id, $known, true)) {
+                $errors['anexos'][] = "Anexo {$id} não pertence a este perfil.";
+            }
+        }
+        $kept = array_values(array_filter($existing, static fn ($e) => !in_array($e['id'], $remove, true)));
+        $new = $this->storeUploads($request, 'anexos', $errors, 5);
+        if (count($kept) + count($new) === 0) {
+            $errors['anexos'][] = 'O perfil precisa de ao menos um anexo.';
+        }
+        if ($errors) {
+            return $this->invalid($errors);
+        }
+        foreach ($new as $file) {
+            $kept[] = ['id' => (string) random_int(1000, 9999), 'name' => $file['name']];
+        }
+        Session::set('perfil_anexos', $kept);
+        return $this->ok(['anexos' => $kept, 'removidos' => $remove], 'Perfil atualizado.');
+    }
+
+    private function pedido(Request $request): array
+    {
+        $data = $request->data();
+        $itens = is_array($data['itens'] ?? null) ? $data['itens'] : [];
+        $errors = [];
+        if (!$itens) {
+            $errors['itens'][] = 'Adicione ao menos um item.';
+        }
+        foreach ($itens as $i => $item) {
+            $produto = trim((string) ($item['produto'] ?? ''));
+            $qtd = (string) ($item['quantidade'] ?? '');
+            if ($produto === '') {
+                $errors["itens.{$i}.produto"][] = 'Informe o produto.';
+            } elseif (stripos($produto, 'esgotado') !== false) {
+                $errors["itens.{$i}.produto"][] = 'Produto esgotado (validação do servidor).';
+            }
+            if (preg_match('/^[1-9]\d*$/', $qtd) !== 1) {
+                $errors["itens.{$i}.quantidade"][] = 'Quantidade inválida.';
+            }
+        }
+        if ($errors) {
+            return $this->invalid($errors);
+        }
+        return $this->ok(['itens' => count($itens)], 'Pedido registrado.');
+    }
+
+    private function pagamento(Request $request): array
+    {
+        $data = $request->data();
+        $v = new Validator($data);
+        $doc = (string) ($data['documento'] ?? '');
+        if ($v->required('documento', 'Informe CPF ou CNPJ.') && !Validator::isCpf($doc) && !Validator::isCnpj($doc)) {
+            $v->add('documento', 'CPF/CNPJ inválido.');
+        }
+        $v->required('valor', 'Informe o valor.');
+        $v->decimal('valor', '0.01', 'Valor deve ser um decimal canônico maior ou igual a 0.01.');
+        if ($v->fails()) {
+            return $this->invalid($v->errors());
+        }
+        return $this->ok(['recebido' => array_intersect_key($data, array_flip(['documento', 'telefone', 'cep', 'valor', 'codigo', 'percentual', 'data']))], 'Dados recebidos pelo servidor.');
+    }
+
+    private function preferencias(Request $request): array
+    {
+        $data = $request->data();
+        $v = new Validator($data);
+        $v->required('plano', 'Escolha um plano.');
+        $v->in('plano', ['basico', 'pro', 'empresa'], 'Plano inválido.');
+        $v->in('interesses', ['php', 'js', 'devops', 'dados'], 'Interesse inválido.');
+        $v->in('estados', ['SP', 'RJ', 'MG', 'RS', 'BA'], 'Estado inválido.');
+        if ($v->fails()) {
+            return $this->invalid($v->errors());
+        }
+        return $this->ok(['recebido' => $data], 'Preferências salvas.');
+    }
+
+    /** Vincula tokens de upload em partes ao registro (upload != vínculo != commit). */
+    private function documentos(Request $request, string $owner): array
+    {
+        $data = $request->data();
+        $errors = [];
+        $titulo = trim((string) ($data['titulo'] ?? ''));
+        if ($titulo === '') {
+            $errors['titulo'][] = 'Informe um título.';
+        }
+        $tokens = array_values(array_filter((array) ($data['arquivo'] ?? []), static fn ($t) => is_string($t) && $t !== ''));
+        if (!$tokens) {
+            $errors['arquivo'][] = 'Envie o arquivo.';
+        }
+        if ($errors) {
+            return $this->invalid($errors);
+        }
+        $store = $this->chunks();
+        $bound = [];
+        foreach ($tokens as $i => $token) {
+            try {
+                $bound[] = $store->bind($owner, $token, $this->storage . '/files');
+            } catch (HttpError $error) {
+                $errors['arquivo.' . $i][] = $error->getMessage();
+            }
+        }
+        if ($errors) {
+            return $this->invalid($errors);
+        }
+        $id = Fs::randomId(8);
+        Fs::writeJsonAtomic($this->storage . '/records/documento-' . $id . '.json', ['id' => $id, 'owner' => $owner, 'titulo' => $titulo, 'arquivos' => array_map(static fn ($b) => ['name' => $b['name'], 'size' => $b['size'], 'stored' => $b['stored']], $bound), 'createdAt' => time()]);
+        return $this->ok(['id' => $id, 'arquivos' => array_map(static fn ($b) => ['name' => $b['name'], 'size' => $b['size']], $bound)], 'Documento registrado.');
+    }
+
+    /** Recebe CSV (multipart ou token de chunks) e enfileira processamento: HTTP 202 + job. */
+    private function importacao(Request $request, string $owner): array
+    {
+        $errors = [];
+        $path = null;
+        $name = null;
+        $token = $request->post['planilha'] ?? null;
+        if (is_string($token) && $token !== '') {
+            try {
+                $bound = $this->chunks()->bind($owner, $token, $this->storage . '/imports');
+                $path = $bound['path'];
+                $name = $bound['name'];
+            } catch (HttpError $error) {
+                $errors['planilha'][] = $error->getMessage();
+            }
+        } else {
+            $stored = $this->storeUploads($request, 'planilha', $errors, 1);
+            if ($stored) {
+                Fs::ensureDir($this->storage . '/imports');
+                $path = $this->storage . '/imports/' . $stored[0]['stored'];
+                rename($this->storage . '/files/' . $stored[0]['stored'], $path);
+                $name = $stored[0]['name'];
+            } elseif (!$errors) {
+                $errors['planilha'][] = 'Envie a planilha CSV.';
+            }
+        }
+        if ($errors) {
+            return $this->invalid($errors);
+        }
+        $delay = max(0, min(5000, (int) ($request->post['atraso_ms'] ?? 300)));
+        $job = $this->jobs()->create($owner, 'import_csv', ['path' => $path, 'name' => $name, 'delayMs' => $delay]);
+        return [202, [
+            'success' => true,
+            'message' => 'Arquivo recebido. Processamento enfileirado.',
+            'job' => ['id' => $job['id'], 'status_url' => '/api/jobs/' . $job['id'], 'cancel_url' => '/api/jobs/' . $job['id']],
+            'request_id' => $this->requestId,
+        ], []];
+    }
+
+    private function putPart(Request $request, string $owner, string $id, int $index): array
+    {
+        $offset = $request->header('x-chunk-offset');
+        $size = $request->header('x-chunk-size');
+        if ($offset === null || $size === null || !ctype_digit($offset) || !ctype_digit($size)) {
+            throw new HttpError(422, 'Cabeçalhos X-Chunk-Offset e X-Chunk-Size são obrigatórios.');
+        }
+        $failRate = (int) ($request->query['falhar'] ?? 0);
+        if ($failRate > 0 && random_int(1, 100) <= $failRate) {
+            throw new HttpError(503, 'Falha transitória simulada.', [], ['Retry-After' => '0']);
+        }
+        $stream = fopen('php://input', 'rb');
+        try {
+            return [200, $this->chunks()->putPart($owner, $id, $index, (int) $offset, (int) $size, $request->header('x-chunk-sha256'), $stream), []];
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    /** Cenários de resposta para testar o cliente (HTTP x sucesso lógico, HTML, 204, timeouts...). */
+    private function demo(string $scenario, Request $request): array
+    {
+        switch ($scenario) {
+            case 'sucesso':
+                return $this->ok(['recebido' => $request->data()], 'Recebido.');
+            case 'erro-logico':
+                return [200, ['success' => false, 'mensagem' => 'Operação recusada pela regra de negócio.', 'errors' => ['nome' => 'Nome reservado.', 'campo_inexistente' => ['Erro sem campo correspondente na tela.']], 'data' => null, 'request_id' => $this->requestId], []];
+            case 'sem-conteudo':
+                return [204, null, []];
+            case 'html':
+                return [200, '<!doctype html><html><body><h1>Entrar</h1><form><input type="password" name="senha"></form></body></html>', ['Content-Type' => 'text/html; charset=utf-8']];
+            case 'texto':
+                return [200, 'OK', ['Content-Type' => 'text/plain']];
+            case 'erro-servidor':
+                return [500, ['success' => false, 'message' => 'Falha interna simulada.', 'request_id' => $this->requestId], []];
+            case 'nao-autorizado':
+                return [401, ['success' => false, 'message' => 'Sessão expirada.'], []];
+            case 'proibido':
+                return [403, ['success' => false, 'message' => 'Sem permissão.'], []];
+            case 'csrf':
+                return [419, ['message' => 'CSRF token mismatch.'], []];
+            case 'muito-grande':
+                return [413, '<html><body>413 Request Entity Too Large</body></html>', ['Content-Type' => 'text/html']];
+            case 'limite':
+                return [429, ['success' => false, 'message' => 'Muitas requisições.'], ['Retry-After' => '30']];
+            case 'lento':
+                usleep(max(0, min(10000, (int) ($request->query['ms'] ?? 2500))) * 1000);
+                return $this->ok(['recebido' => count($request->post)], 'Processado após espera.');
+            case 'laravel':
+                return [422, ['message' => 'The given data was invalid.', 'errors' => ['email' => ['O campo e-mail já está em uso.'], 'itens.0.nome' => ['Nome do item obrigatório.']]], []];
+            case 'joomla':
+                return [200, ['success' => false, 'message' => 'Não foi possível salvar.', 'messages' => ['error' => ['Token inválido ou permissão insuficiente.'], 'warning' => ['Alguns campos foram ignorados.']], 'data' => ['errors' => ['jform[title]' => 'Título obrigatório.']]], []];
+            case 'redirect':
+                return [200, ['success' => true, 'message' => 'Redirecionando...', 'redirect' => '/examples/index.php?ok=1'], []];
+            case 'redirect-externo':
+                return [200, ['success' => true, 'message' => 'Tentativa de redirecionamento externo.', 'redirect' => 'https://example.org/'], []];
+            default:
+                throw new HttpError(404, 'Cenário desconhecido.');
+        }
+    }
+}

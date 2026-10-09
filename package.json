@@ -1,0 +1,46 @@
+{
+  "name": "alpine-form",
+  "version": "1.0.0",
+  "description": "Micro-framework declarativo de formulários sobre Alpine.js 3: validação, mensagens, máscaras, arquivos, progresso real, chunks e processamento assíncrono.",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/alpine-form.esm.js",
+  "module": "dist/alpine-form.esm.js",
+  "exports": {
+    ".": "./dist/alpine-form.esm.js",
+    "./masks": "./dist/alpine-form-masks.esm.js",
+    "./chunks": "./dist/alpine-form-chunks.esm.js",
+    "./inspectors": "./dist/alpine-form-inspectors.esm.js",
+    "./bootstrap": "./dist/alpine-form-bootstrap.esm.js",
+    "./css": "./css/alpine-form.css",
+    "./src/*": "./src/*"
+  },
+  "files": [
+    "dist",
+    "src",
+    "css"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "alpinejs": "^3.10.0"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:php": "php server/tests/run.php",
+    "serve": "php -S 127.0.0.1:8080 server/router.php",
+    "test:all": "npm run build && npm test && npm run test:php && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "alpinejs": "3.14.9",
+    "bootstrap": "^5.3.3",
+    "esbuild": "0.25.10",
+    "jsdom": "26.1.0",
+    "vitest": "3.2.4"
+  }
+}
