@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use AlpineForm\Server\ChunkStore;
+use AlpineForm\Server\Fs;
 use AlpineForm\Server\JobQueue;
 
 function expected_payload(int $size): string
@@ -79,4 +80,14 @@ test('concorrência: workers disputando a fila não processam o mesmo job duas v
     $claimed = array_merge(...array_map(fn ($r) => $r['claimed'], $results));
     assert_same(6, count($claimed), 'todos os jobs reivindicados');
     assert_same(6, count(array_unique($claimed)), 'nenhum job reivindicado duas vezes');
+});
+
+test('concorrência: gravação atômica de JSON não falha enquanto outros processos leem o arquivo (Windows)', function () {
+    $root = temp_storage();
+    Fs::writeJsonAtomic($root . '/corrida/job.json', ['i' => -1]);
+    $resultados = run_children(2, ['rw', $root, 'x']);
+    $escritor = array_values(array_filter($resultados, fn ($r) => isset($r['falhas'])))[0];
+    assert_same(0, $escritor['falhas'], 'rename sobre arquivo aberto por leitor é repetido até conseguir');
+    assert_true(array_sum(array_column($resultados, 'leituras')) > 0, 'leitores rodaram junto');
+    assert_same(99, Fs::readJson($root . '/corrida/job.json')['i']);
 });

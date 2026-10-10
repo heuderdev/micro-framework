@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 use AlpineForm\Server\ChunkStore;
+use AlpineForm\Server\Fs;
 use AlpineForm\Server\HttpError;
 use AlpineForm\Server\JobQueue;
 
@@ -64,6 +65,31 @@ try {
                 usleep(20000);
             }
             echo json_encode(['claimed' => $claimed]);
+            break;
+        case 'rw':
+            // processo 0 grava o mesmo JSON atomicamente; os demais leem em laço (como a API respondendo ao polling)
+            $alvo = $root . '/corrida/job.json';
+            $fim = $root . '/corrida/fim';
+            if ((int) $worker === 0) {
+                $falhas = 0;
+                for ($i = 0; $i < 100; $i++) {
+                    try {
+                        Fs::writeJsonAtomic($alvo, ['i' => $i, 'x' => str_repeat('a', 400)]);
+                    } catch (Throwable $e) {
+                        $falhas++;
+                    }
+                }
+                touch($fim);
+                echo json_encode(['falhas' => $falhas]);
+            } else {
+                $leituras = 0;
+                $limite = microtime(true) + 20;
+                while (!is_file($fim) && microtime(true) < $limite) {
+                    Fs::readJson($alvo);
+                    $leituras++;
+                }
+                echo json_encode(['leituras' => $leituras]);
+            }
             break;
         default:
             echo json_encode(['error' => 'ação desconhecida']);

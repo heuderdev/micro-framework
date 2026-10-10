@@ -20,7 +20,7 @@ npm run docs:browser          # exemplos HTML no Chrome (precisa do servidor em 
 Diagnóstico:
 
 - **Instabilidade × regressão**: rode o arquivo que falhou isoladamente 3–5 vezes (`npx vitest run tests/unit/<arquivo>`, `npx playwright test <spec> -g "<nome>"`). Passa sozinho e falha em paralelo → teste depende de tempo fixo; corrija o teste para esperar a condição (`vi.waitFor`, `expect.poll`), não aumente o `tick`.
-- **Conhecido**: os testes de concorrência PHP (`server/tests/ConcurrencyTest.php`) às vezes falham no Windows com "Processo filho falhou" sem saída (processo filho não chega a rodar). Rode `npm run test:php` de novo; só é regressão se repetir.
+- **Windows e arquivos**: no Windows, `rename()` sobre um arquivo que outro processo está lendo falha com "Acesso negado" (era a causa das falhas intermitentes do teste de processamento e dos testes de concorrência). `Fs::writeJsonAtomic` usa `Fs::renameWithRetry`; use-o em qualquer substituição de arquivo do backend. Se um teste de concorrência falhar com "Processo filho falhou", veja o código de saída na mensagem.
 - **E2E**: confira se `dist/` está atualizado; se a porta 8099 está livre ou com o servidor do projeto; se o Chrome está instalado (`channel: 'chrome'`; o download do Chromium falha atrás do proxy). Use os traces em `test-results/`.
 - **Expectativa errada × bug**: antes de mudar um teste, leia o código e a documentação (`docs-src/pages/`) para saber qual é o comportamento correto. Mude o teste só se a expectativa estava errada, e diga isso explicitamente.
 - **Cliques que "não acontecem" na E2E**: geralmente o layout mudou (mensagem de erro sumindo pelo debounce) entre localizar e clicar; espere o estado estabilizar.

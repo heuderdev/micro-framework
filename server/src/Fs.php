@@ -28,10 +28,29 @@ final class Fs
         if (file_put_contents($tmp, $json, LOCK_EX) === false) {
             throw new \RuntimeException("Falha ao gravar {$tmp}.");
         }
-        if (!rename($tmp, $path)) {
+        if (!self::renameWithRetry($tmp, $path)) {
             @unlink($tmp);
             throw new \RuntimeException("Falha ao substituir {$path}.");
         }
+    }
+
+    /**
+     * No Windows, rename() sobre um arquivo que outro processo está lendo falha com "Acesso negado"
+     * (medido: ~18% das gravações com um leitor em laço — ex.: o worker atualiza o job enquanto a API
+     * responde ao polling). É transitório: tenta de novo por até ~2 s. Em Linux/macOS acerta de primeira.
+     */
+    public static function renameWithRetry(string $from, string $to): bool
+    {
+        for ($attempt = 0; $attempt < 100; $attempt++) {
+            if (@rename($from, $to)) {
+                return true;
+            }
+            if (DIRECTORY_SEPARATOR !== '\\' || !is_file($from)) {
+                return false;
+            }
+            usleep(min(50, 2 + $attempt * 2) * 1000);
+        }
+        return false;
     }
 
     /** @return array<string, mixed>|null */

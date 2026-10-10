@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { startAlpine, mount, flush, tick, fakeTransport, jsonResponse, AlpineForm } from './helpers.js'
 import masksPlugin from '../../src/masks/index.js'
 
@@ -140,8 +140,7 @@ describe('máscaras integradas ao formulário', () => {
         const input = form.querySelector('input')
         expect(input.value).toBe('(11) 98765-4321')
         input.setAttribute('data-form-mask', 'cpf')
-        await tick(10)
-        expect(input.value).toBe('119.876.543-21')
+        await vi.waitFor(() => expect(input.value).toBe('119.876.543-21'))
     })
 
     it('validação remota recebe o valor bruto configurado e máscara não substitui validação', async () => {
