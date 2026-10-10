@@ -60,6 +60,7 @@ if (str_starts_with($path, '/api/')) {
 $vendor = [
     '/vendor/alpine.min.js' => $root . '/node_modules/alpinejs/dist/cdn.min.js',
     '/vendor/alpine.esm.js' => $root . '/node_modules/alpinejs/dist/module.esm.js',
+    '/vendor/alpine-csp.min.js' => $root . '/node_modules/@alpinejs/csp/dist/cdn.min.js',
     '/vendor/bootstrap.min.css' => $root . '/node_modules/bootstrap/dist/css/bootstrap.min.css',
 ];
 if (isset($vendor[$path])) {

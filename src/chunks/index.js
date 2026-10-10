@@ -58,7 +58,7 @@ class ChunkExtension {
             chunkSize: config.chunkSize,
             concurrency: config.concurrency,
             retries: config.retries,
-            persist: config.persist,
+            persist: config.persist && this.controller.storageAllowed,
             checksum: config.checksum,
             transport: this.controller.transportFor('chunk'),
             headers: url => this.controller.securityHeaders(url),
@@ -81,7 +81,7 @@ class ChunkExtension {
             entry.status = statuses.includes('failed') ? 'failed' : statuses.includes('uploading') ? 'uploading' : statuses.includes('paused') ? 'paused' : statuses.every(s => s === 'completed') ? 'completed' : 'idle'
             const field = this.controller.fields.get(key)
             const config = field ? safeConfig(field) : null
-            entry.resumable = config?.persist ? listPersisted(config.endpoint.replace(/\/+$/, '')) : []
+            entry.resumable = config?.persist && this.controller.storageAllowed ? listPersisted(config.endpoint.replace(/\/+$/, '')) : []
         }
         state.uploads = byField
         if (this.active) this.active.report()

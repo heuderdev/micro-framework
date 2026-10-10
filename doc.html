@@ -1297,7 +1297,10 @@ AlpineForm.messages.placa = 'Informe uma placa no padrão antigo (ABC-1234) ou M
 <tr><td>Regex</td><td><code>data-form-pattern</code> vem do HTML do desenvolvedor; limitado a 500 caracteres, flags restritas, entrada testada até 2000 caracteres</td><td><code>compilePattern</code></td></tr>
 <tr><td>Previews</td><td>Object URL só para imagens raster (SVG excluído) e revogado</td><td><code>FileManager.previewFor</code>/<code>releaseItem</code></td></tr>
 <tr><td>Reenvio</td><td>POST nunca repetido automaticamente; idempotência opcional</td><td><code>retry.js</code>, <code>idempotencyKey</code></td></tr>
-<tr><td>Persistência</td><td>Chunks: só metadados no <code>localStorage</code>; jobs: id e URL no <code>sessionStorage</code>. Nenhum valor de campo é persistido</td><td><code>chunk-upload.js</code>, <code>poller.js</code></td></tr>
+<tr><td>Persistência</td><td>Chunks: só metadados no <code>localStorage</code> (inclui o nome do arquivo); jobs: id e URL no <code>sessionStorage</code>. Nenhum valor de campo é persistido. Com <code>storage: 'none'</code> (<code>data-form-storage</code>), nada é gravado</td><td><code>chunk-upload.js</code>, <code>poller.js</code>, <code>FormController.storageAllowed</code></td></tr>
+<tr><td>Console</td><td>Com <code>log: 'none'</code> (<code>data-form-log</code>), nada é escrito no console. Mesmo no padrão, o trecho de respostas HTML inesperadas (que pode conter dados de cliente) não vai para o console, só para <code>$form.error.diagnostic</code></td><td><code>FormController.log</code>, <code>canLog</code> em <code>src/index.js</code></td></tr>
+<tr><td>URLs vindas do servidor</td><td><code>status_url</code> e <code>cancel_url</code> de jobs só são aceitas na mesma origem; chaves de erro <code>__proto__</code>/<code>prototype</code>/<code>constructor</code> vão para o resumo sem tocar protótipos</td><td><code>runJob</code>, <code>normalizeErrors</code>, <code>setErrors</code></td></tr>
+<tr><td>CSP</td><td>Nenhum <code>eval</code>/<code>new Function</code>/<code>innerHTML</code>/<code>document.write</code> no código. Com a versão CSP do Alpine, funciona sob <code>script-src 'self'</code> sem <code>'unsafe-eval'</code>/<code>'unsafe-inline'</code> e com Trusted Types (E2E <code>tests/e2e/csp.spec.js</code>)</td><td><code>examples/csp.php</code></td></tr>
 </tbody></table></div>
 <h3 id="seg-backend">Responsabilidades da aplicação integradora</h3>
 <ul>
@@ -1357,9 +1360,9 @@ AlpineForm.messages.placa = 'Informe uma placa no padrão antigo (ABC-1234) ou M
 <div class="table-wrap"><table>
 <thead><tr><th>Suíte</th><th>Ferramentas</th><th>Comando</th><th>Real ou simulado</th><th>Resultado em 2026-10-09</th></tr></thead>
 <tbody>
-<tr><td>Unitária/integração</td><td>Vitest 3.2.4 + jsdom 26.1 + Alpine 3.14.9 real</td><td><code>npm test</code></td><td>Rede <strong>simulada</strong> por transportes registrados (<code>fakeTransport</code>); polyfills de teste para <code>Blob.arrayBuffer</code>, <code>CSS.escape</code>, <code>scrollIntoView</code> (<code>tests/unit/setup.js</code>)</td><td>168/168 em 10 arquivos</td></tr>
+<tr><td>Unitária/integração</td><td>Vitest 3.2.4 + jsdom 26.1 + Alpine 3.14.9 real</td><td><code>npm test</code></td><td>Rede <strong>simulada</strong> por transportes registrados (<code>fakeTransport</code>); polyfills de teste para <code>Blob.arrayBuffer</code>, <code>CSS.escape</code>, <code>scrollIntoView</code> (<code>tests/unit/setup.js</code>)</td><td>177/177 em 11 arquivos</td></tr>
 <tr><td>Backend</td><td>Runner próprio (<code>server/tests/run.php</code>)</td><td><code>npm run test:php</code></td><td>Real (sistema de arquivos, processos concorrentes reais), sem HTTP</td><td>28/28 (PHP 8.4.2)</td></tr>
-<tr><td>E2E</td><td>Playwright 1.64 com Chrome instalado (<code>channel: 'chrome'</code>)</td><td><code>npm run test:e2e</code></td><td><strong>Tudo real</strong>: navegador, servidor PHP embutido, worker de jobs</td><td>44/44</td></tr>
+<tr><td>E2E</td><td>Playwright 1.64 com Chrome instalado (<code>channel: 'chrome'</code>)</td><td><code>npm run test:e2e</code></td><td><strong>Tudo real</strong>: navegador, servidor PHP embutido, worker de jobs; inclui página com CSP estrita e Trusted Types</td><td>47/47</td></tr>
 </tbody></table></div>
 <p><code>npm run test:all</code> executa build + as três suítes. Durante a preparação desta versão, a suíte E2E revelou dois defeitos, ambos corrigidos com teste de regressão: (1) um ciclo de re-renderização da lista de arquivos provocado por mutações de atributos em conteúdo gerado; (2) uma parte de chunk que ainda calculava o hash podia ser enviada depois da pausa.</p>
 <h3 id="matriz">Matriz funcionalidade → implementação → teste</h3>

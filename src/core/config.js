@@ -42,6 +42,10 @@ export const OPTION_SPECS = {
     jobTimeout: { attr: 'data-form-job-timeout', type: 'duration', default: 600000, max: 24 * 3600 * 1000 },
     jobPersist: { attr: 'data-form-job-persist', type: 'bool', default: false },
     debug: { attr: 'data-form-debug', type: 'bool', default: false },
+    // "none": a biblioteca não escreve nada no console (ambientes regulados); prevalece sobre debug
+    log: { attr: 'data-form-log', type: 'enum', values: ['errors', 'none'], default: 'errors' },
+    // "none": nada é gravado em localStorage/sessionStorage (desativa chunk-persist e job-persist)
+    storage: { attr: 'data-form-storage', type: 'enum', values: ['allow', 'none'], default: 'allow' },
 }
 
 export const NON_ATTRIBUTE_DEFAULTS = {
@@ -66,6 +70,11 @@ export function configure(options = {}) {
         else if (key in NON_ATTRIBUTE_DEFAULTS) globalConfig.extra[key] = mergeExtra(key, globalConfig.extra[key], value)
         else throw new ConfigError(`Opção global desconhecida: "${key}".`)
     }
+}
+
+/** Valor global (configure() ou padrão) de uma opção, para código que roda fora de um formulário. */
+export function globalOption(key) {
+    return key in globalConfig.options ? globalConfig.options[key] : OPTION_SPECS[key]?.default
 }
 
 export function resetGlobalConfig() {

@@ -35,3 +35,6 @@
 | Testes | Testes unitários usam jsdom e transporte simulado | Layout, cursor real e rede real não são cobertos ali | Cobertos pela suíte E2E em Chrome real |
 | Navegadores | Alvo de build: Chrome/Edge 92+, Firefox 90+, Safari 15+ | Navegadores antigos não são suportados | — |
 | Navegadores | E2E executado apenas no Chrome | Firefox/Safari não verificados automaticamente | Rodar Playwright com outros projetos |
+| CSP | O Alpine padrão exige `'unsafe-eval'`; a biblioteca funciona com a versão CSP do Alpine (testado, inclusive com Trusted Types), mas nela as expressões do HTML só aceitam caminhos de propriedade e `x-model` não funciona | Lógica em `Alpine.data()`; ver `examples/csp.php` e `docs/seguranca.html` |
+| Validação remota | "Valor já cadastrado" permite descobrir quem é cliente (enumeração) | Limite de tentativas no servidor ou não usar em telas públicas |
+| Avisos de ordem de carregamento | Os avisos de `cdn.js` (módulo carregado fora de ordem) são emitidos antes de qualquer `configure()` e não respeitam `log: 'none'`; não contêm dados | Carregar os scripts na ordem documentada |

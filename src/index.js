@@ -1,5 +1,5 @@
 import * as registry from './core/registry.js'
-import { configure, resetGlobalConfig, OPTION_SPECS } from './core/config.js'
+import { configure, resetGlobalConfig, OPTION_SPECS, globalOption } from './core/config.js'
 import { FormController, getController, controllerForElement } from './core/controller.js'
 import { services, setMaskProvider, setChunkService } from './core/services.js'
 import { EVENTS } from './core/events.js'
@@ -38,13 +38,19 @@ function registerBuiltins() {
 
 registerBuiltins()
 
+/** Console permitido para este form? Respeita data-form-log no form e AlpineForm.configure({ log }). */
+function canLog(form) {
+    const attr = form?.getAttribute?.('data-form-log')
+    return (attr ?? globalOption('log')) !== 'none'
+}
+
 /** Lista (e avisa no console) formulários x-form sem controlador. Executado uma vez após alpine:initialized. */
 function diagnoseUninitialized() {
     const missing = []
     for (const form of document.querySelectorAll('form[x-form]')) {
         if (!getController(form)) {
             missing.push(form)
-            console.warn('[AlpineForm] <form x-form> não foi inicializado. O Alpine só processa elementos dentro de um componente: adicione x-data ao <form> ou a um ancestral (e verifique x-ignore).', form)
+            if (canLog(form)) console.warn('[AlpineForm] <form x-form> não foi inicializado. O Alpine só processa elementos dentro de um componente: adicione x-data ao <form> ou a um ancestral (e verifique x-ignore).', form)
         }
     }
     return missing
@@ -63,11 +69,11 @@ export function AlpineFormPlugin(Alpine) {
             cleanup(() => controller.destroy())
         } catch (error) {
             if ((error?.kind === 'state')) {
-                console.warn('[AlpineForm]', error.message, el)
+                if (canLog(el)) console.warn('[AlpineForm]', error.message, el)
                 return
             }
             el.setAttribute('data-form-state', 'config-error')
-            console.error('[AlpineForm]', error.message, el)
+            if (canLog(el)) console.error('[AlpineForm]', error.message, el)
         }
     })
     Alpine.magic('form', el => controllerForElement(el)?.state ?? null)

@@ -331,7 +331,11 @@
     jobMaxInterval: { attr: "data-form-job-max-interval", type: "duration", default: 1e4, min: 250, max: 36e5 },
     jobTimeout: { attr: "data-form-job-timeout", type: "duration", default: 6e5, max: 24 * 3600 * 1e3 },
     jobPersist: { attr: "data-form-job-persist", type: "bool", default: false },
-    debug: { attr: "data-form-debug", type: "bool", default: false }
+    debug: { attr: "data-form-debug", type: "bool", default: false },
+    // "none": a biblioteca não escreve nada no console (ambientes regulados); prevalece sobre debug
+    log: { attr: "data-form-log", type: "enum", values: ["errors", "none"], default: "errors" },
+    // "none": nada é gravado em localStorage/sessionStorage (desativa chunk-persist e job-persist)
+    storage: { attr: "data-form-storage", type: "enum", values: ["allow", "none"], default: "allow" }
   };
   var NON_ATTRIBUTE_DEFAULTS = {
     headers: {},
@@ -353,6 +357,9 @@
       else if (key in NON_ATTRIBUTE_DEFAULTS) globalConfig.extra[key] = mergeExtra(key, globalConfig.extra[key], value);
       else throw new ConfigError(`Op\xE7\xE3o global desconhecida: "${key}".`);
     }
+  }
+  function globalOption(key) {
+    return key in globalConfig.options ? globalConfig.options[key] : OPTION_SPECS[key]?.default;
   }
   function resetGlobalConfig() {
     globalConfig.options = {};
@@ -1531,6 +1538,7 @@
   }
 
   // src/transport/response.js
+  var UNSAFE_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
   function parseBody(raw) {
     const text2 = raw.text ?? "";
     const contentType = (raw.headers?.get("content-type") || "").toLowerCase();
@@ -1562,6 +1570,10 @@
         continue;
       }
       const key = normalizeErrorKey(rawKey);
+      if (key.split(".").some((segment) => UNSAFE_KEYS.has(segment))) {
+        general.push(...messages);
+        continue;
+      }
       errors[key] = [...errors[key] || [], ...messages];
     }
     return { errors, general };
@@ -2757,7 +2769,12 @@
       };
     }
     log(level, ...args) {
+      if (this.config.log === "none") return;
       if (level === "error" || this.config.debug) console[level]("[AlpineForm]", ...args);
+    }
+    /** Persistência no navegador permitida? (data-form-storage="none" desliga tudo) */
+    get storageAllowed() {
+      return this.config.storage !== "none";
     }
     initialize() {
       if (this.destroyed) return;
@@ -3842,7 +3859,7 @@
       if (!isPlainObject(errors) && !Array.isArray(errors)) throw new ConfigError("setErrors espera um objeto { campo: mensagens }.");
       if (replace) this.clearServerErrors();
       const list = Array.isArray(errors) ? { _general: errors } : errors;
-      const normalized = {};
+      const normalized = /* @__PURE__ */ Object.create(null);
       const extraGeneral = [...general];
       for (const [key, value] of Object.entries(list)) {
         const messages = (Array.isArray(value) ? value : [value]).filter((m) => typeof m === "string" && m);
@@ -4132,7 +4149,8 @@
       let message = result.message;
       if (kind === "html") {
         message = this.formMessage("submit.html");
-        this.log("error", "Resposta HTML inesperada:", result.diagnostic);
+        const { snippet, ...semConteudo } = result.diagnostic || {};
+        this.log("error", "Resposta HTML inesperada (o trecho da resposta fica em $form.error.diagnostic):", semConteudo);
       } else if (!message) {
         const key = {
           validation: "submit.validation",
@@ -4158,8 +4176,9 @@
     async runJob(job, signal, result) {
       const statusUrl = job.statusUrl && !isCrossOrigin(job.statusUrl) ? job.statusUrl : this.config.jobUrl ? this.config.jobUrl.replace("{id}", encodeURIComponent(job.id)) : null;
       if (!statusUrl) return this.failSubmit("config", "Resposta 202 sem status_url e sem data-form-job-url configurado.");
-      this.state.job = { id: job.id, status: "queued", progress: null, message: result?.message ?? null, statusUrl, cancelUrl: job.cancelUrl || (this.config.jobCancelUrl ? this.config.jobCancelUrl.replace("{id}", encodeURIComponent(job.id)) : null) };
-      if (this.config.jobPersist) saveJob(this.form, { id: job.id, statusUrl });
+      const cancelUrl = job.cancelUrl && !isCrossOrigin(job.cancelUrl) ? job.cancelUrl : this.config.jobCancelUrl ? this.config.jobCancelUrl.replace("{id}", encodeURIComponent(job.id)) : null;
+      this.state.job = { id: job.id, status: "queued", progress: null, message: result?.message ?? null, statusUrl, cancelUrl };
+      if (this.config.jobPersist && this.storageAllowed) saveJob(this.form, { id: job.id, statusUrl });
       this.setPhase("processing");
       dispatch(this.form, EVENTS.processing, { job: { ...this.state.job } });
       const poller = new JobPoller({
@@ -4200,7 +4219,7 @@
       return this.failSubmit(final.status === "canceled" ? "job-canceled" : "job-failed", message, { result: final });
     }
     resumePersistedJob() {
-      if (!this.config.jobPersist) return;
+      if (!this.config.jobPersist || !this.storageAllowed) return;
       const saved = loadJob(this.form);
       if (!saved || this.submission) return;
       const submission = { controller: new AbortController(), promise: null };
@@ -5487,12 +5506,16 @@
     add("fileInspector", "image", { inspect: inspectImage }, registerFileInspector);
   }
   registerBuiltins();
+  function canLog(form) {
+    const attr = form?.getAttribute?.("data-form-log");
+    return (attr ?? globalOption("log")) !== "none";
+  }
   function diagnoseUninitialized() {
     const missing = [];
     for (const form of document.querySelectorAll("form[x-form]")) {
       if (!getController(form)) {
         missing.push(form);
-        console.warn("[AlpineForm] <form x-form> n\xE3o foi inicializado. O Alpine s\xF3 processa elementos dentro de um componente: adicione x-data ao <form> ou a um ancestral (e verifique x-ignore).", form);
+        if (canLog(form)) console.warn("[AlpineForm] <form x-form> n\xE3o foi inicializado. O Alpine s\xF3 processa elementos dentro de um componente: adicione x-data ao <form> ou a um ancestral (e verifique x-ignore).", form);
       }
     }
     return missing;
@@ -5506,11 +5529,11 @@
         cleanup(() => controller.destroy());
       } catch (error) {
         if (error?.kind === "state") {
-          console.warn("[AlpineForm]", error.message, el);
+          if (canLog(el)) console.warn("[AlpineForm]", error.message, el);
           return;
         }
         el.setAttribute("data-form-state", "config-error");
-        console.error("[AlpineForm]", error.message, el);
+        if (canLog(el)) console.error("[AlpineForm]", error.message, el);
       }
     });
     Alpine.magic("form", (el) => controllerForElement(el)?.state ?? null);

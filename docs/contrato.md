@@ -45,6 +45,8 @@ Valores inválidos (enum fora da lista, duração malformada, booleano diferente
 | `data-form-job-interval` / `-max-interval` / `-timeout` | durações (**1.5s** / **10s** / **10min**) | |
 | `data-form-job-persist` | booleano: id do job no `sessionStorage` | |
 | `data-form-debug` | booleano: log detalhado | |
+| `data-form-log` | **errors** · none (nada no console) | |
+| `data-form-storage` | **allow** · none (nada em localStorage/sessionStorage) | |
 
 Opções sem atributo (somente `configure()`/`x-form`): `headers`, `csrf` (`{ meta: 'csrf-token', header: 'X-CSRF-TOKEN' }`), `messages`, `locale`, `remote` (padrões da validação remota), `files`, `patternMaxLength`, `patternMaxInput`, `hooks`, `clock`.
 

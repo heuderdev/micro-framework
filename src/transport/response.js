@@ -13,6 +13,8 @@ import { isPlainObject, truncate } from '../lib/utils.js'
  * }
  */
 
+const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
+
 export function parseBody(raw) {
     const text = raw.text ?? ''
     const contentType = (raw.headers?.get('content-type') || '').toLowerCase()
@@ -45,6 +47,11 @@ export function normalizeErrors(source) {
             continue
         }
         const key = normalizeErrorKey(rawKey)
+        // chaves vindas do servidor nunca podem alterar o protótipo do objeto de erros
+        if (key.split('.').some(segment => UNSAFE_KEYS.has(segment))) {
+            general.push(...messages)
+            continue
+        }
         errors[key] = [...(errors[key] || []), ...messages]
     }
     return { errors, general }

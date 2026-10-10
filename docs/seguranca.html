@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segurança · AlpineForm</title>
+<meta name="description" content="Uso em ambientes regulados (bancos, saúde, governo): CSP estrita sem unsafe-eval, console silencioso, nada gravado no navegador, o que a biblioteca protege e o que continua sendo responsabilidade do servidor.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Integração › Segurança</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="seguranca.html" class="ativo" aria-current="page" data-busca="csp unsafe-eval trusted types banco regulado log console storage localstorage privacidade lgpd pci">Segurança</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Segurança</h1>
+<p class="lead">Uso em ambientes regulados (bancos, saúde, governo): CSP estrita sem unsafe-eval, console silencioso, nada gravado no navegador, o que a biblioteca protege e o que continua sendo responsabilidade do servidor.</p>
+<div id="nesta-pagina"></div>
+<div class="nota perigo"><strong class="rotulo">Primeiro princípio</strong><p>Validação no navegador é conforto, não proteção: pode ser desligada por qualquer pessoa. Limites, permissões, saldo, antifraude e a validação de cada campo precisam existir no servidor. A biblioteca não passou por auditoria externa nem por teste de invasão.</p></div>
+
+<h2 id="configuracao" data-titulo="Configuração recomendada">Configuração recomendada</h2>
+<div class="codigo"><div class="titulo-codigo">seguranca.js (carregado depois de alpine-form e antes do Alpine)</div><pre><code data-lang="js">AlpineForm.configure({
+    log: 'none',         // nada no console (nem erros, nem request_id, nem diagnósticos)
+    storage: 'none',     // nada em localStorage/sessionStorage, mesmo com chunk-persist/job-persist
+    idempotency: true,   // Idempotency-Key em todo envio (evita operação duplicada)
+    credentials: 'same-origin',
+})</code></pre></div>
+<p>As duas primeiras opções também valem por formulário: <code>data-form-log="none"</code> e <code>data-form-storage="none"</code>.</p>
+
+<h2 id="csp" data-titulo="CSP estrita (sem unsafe-eval)">CSP estrita (sem unsafe-eval)</h2>
+<p>O AlpineForm não usa <code>eval</code>, <code>new Function</code>, <code>innerHTML</code> nem <code>document.write</code>. Quem precisa de <code>'unsafe-eval'</code> é o Alpine padrão (ele avalia expressões como <code>:disabled="…"</code>). Com a <strong>versão CSP do Alpine</strong> (<code>@alpinejs/csp</code>), a página funciona com esta política — testada no Chrome sem nenhuma violação, inclusive com Trusted Types:</p>
+<div class="codigo"><div class="titulo-codigo">Content-Security-Policy</div><pre><code data-lang="txt">default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:;
+media-src 'self' blob:; connect-src 'self'; form-action 'self'; base-uri 'none';
+frame-ancestors 'none'; object-src 'none'; require-trusted-types-for 'script'</code></pre></div>
+<ul>
+    <li><code>img-src blob:</code> é necessário para miniaturas de imagens; <code>media-src blob:</code> para a regra de duração de mídia. Sem preview/mídia, pode remover.</li>
+    <li>O CSS da biblioteca é um arquivo (<code>style-src 'self'</code> basta); a barra de progresso usa <code>element.style</code>, permitido pela CSP.</li>
+</ul>
+<div class="codigo"><div class="titulo-codigo">Página</div><pre><code data-lang="html">&lt;script src=&quot;/js/alpine-form/alpine-form.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-masks.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/js/app.js&quot;&gt;&lt;/script&gt;                          &lt;!-- sua lógica: Alpine.data(...) --&gt;
+&lt;script defer src=&quot;/js/alpine-csp.min.js&quot;&gt;&lt;/script&gt;         &lt;!-- node_modules/@alpinejs/csp/dist/cdn.min.js --&gt;
+
+&lt;form id=&quot;cadastro&quot; x-data=&quot;cadastro&quot; x-form action=&quot;/api/cadastro&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;input name=&quot;cpf&quot; data-form-mask=&quot;cpf&quot; data-form-v=&quot;required|cpf&quot;&gt;
+    &lt;fieldset&gt;
+        &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;tipo&quot; value=&quot;pf&quot; data-form-v=&quot;required&quot;&gt; Física&lt;/label&gt;
+        &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;tipo&quot; value=&quot;pj&quot;&gt; Jurídica&lt;/label&gt;
+    &lt;/fieldset&gt;
+    &lt;div x-show=&quot;ehPj&quot; data-form-hidden=&quot;skip&quot;&gt;
+        &lt;input name=&quot;cnpj&quot; data-form-mask=&quot;cnpj&quot; data-form-v=&quot;required_if:tipo,pj|cnpj&quot;&gt;
+    &lt;/div&gt;
+    &lt;button type=&quot;submit&quot; x-bind:disabled=&quot;$form.submitting&quot;&gt;Enviar&lt;/button&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">app.js</div><pre><code data-lang="js">document.addEventListener('alpine:init', () =&gt; {
+    window.Alpine.data('cadastro', () =&gt; ({
+        tipo: 'pf',
+        get ehPj() { return this.tipo === 'pj' },
+        init() {
+            // x-model não funciona na versão CSP; o evento form:change informa o valor
+            this.$el.addEventListener('form:change', e =&gt; {
+                if (e.detail.name === 'tipo') this.tipo = e.detail.value
+            })
+        },
+    }))
+})</code></pre></div>
+<div class="tabela"><table><caption>Regras da versão CSP do Alpine (3.14)</caption><thead><tr><th>Funciona</th><th>Não funciona</th></tr></thead><tbody>
+<tr><td><code>x-bind:disabled="$form.submitting"</code>, <code>x-show="$form.success"</code>, <code>x-show="ehPj"</code> (getter), <code>x-form</code>, <code>x-form="opcoes"</code> (propriedade com o objeto de opções)</td><td>Expressões: <code>!x</code>, <code>a === b</code>, chamadas com argumento <code>$form.hasError('email')</code>, objetos literais <code>x-form="{ … }"</code>, <code>x-model</code>, <code>@click="x = 1"</code></td></tr>
+</tbody></table></div>
+<p>Toda lógica vai para <code>Alpine.data()</code> em arquivo JS. Exemplo executável: <code>examples/csp.php</code> (e <code>csp.php?tt=1</code> com Trusted Types).</p>
+
+<h2 id="protegido" data-titulo="O que a biblioteca protege">O que a biblioteca protege</h2>
+<div class="tabela"><table><thead><tr><th>Risco</th><th>Proteção</th></tr></thead><tbody>
+<tr><td>XSS por mensagens</td><td>Mensagens (inclusive do servidor) e nomes de arquivo inseridos como texto; HTML nunca é interpretado.</td></tr>
+<tr><td>Vazamento do token CSRF</td><td>Enviado só para a mesma origem. URLs de status e cancelamento de jobs vindas do servidor só são aceitas na mesma origem.</td></tr>
+<tr><td>Dados sensíveis</td><td><code>type="password"</code> e <code>data-form-sensitive</code>: valor nunca no estado, eventos, mensagens ou URL; GET remoto bloqueado.</td></tr>
+<tr><td>Operação duplicada (pagamento em dobro)</td><td>POST nunca é reenviado automaticamente; resultado desconhecido é informado como tal; <code>Idempotency-Key</code> opcional; clique duplo não gera segunda requisição.</td></tr>
+<tr><td>Redirecionamento aberto</td><td>Só <code>http(s)</code> da mesma origem ou de <code>data-form-redirect-origins</code>.</td></tr>
+<tr><td><em>Prototype pollution</em></td><td>Nomes de campo e chaves de erro <code>__proto__</code>, <code>prototype</code>, <code>constructor</code> recusados/neutralizados.</td></tr>
+<tr><td>Regex abusiva</td><td>Padrões até 500 caracteres, flags restritas, entrada até 2000 caracteres.</td></tr>
+<tr><td>Arquivos com código</td><td>Preview só de imagens raster (SVG nunca); object URLs revogados.</td></tr>
+<tr><td>Configuração errada</td><td>Regra/atributo desconhecido bloqueia o envio (nunca envia "sem validar").</td></tr>
+<tr><td>Dados de cliente no console</td><td>O trecho de respostas HTML inesperadas nunca vai para o console (fica só em <code>$form.error.diagnostic</code>); com <code>log: 'none'</code>, nada é escrito.</td></tr>
+<tr><td>Dados no navegador</td><td>Valores de campos nunca são gravados. Com <code>storage: 'none'</code>, nem metadados (nome de arquivo, id de job).</td></tr>
+<tr><td>Cadeia de dependências</td><td>Nenhuma dependência em tempo de execução além do Alpine.</td></tr>
+</tbody></table></div>
+
+<h2 id="servidor" data-titulo="O que é do servidor">O que continua sendo do servidor</h2>
+<ul>
+    <li><strong>Revalidar tudo</strong> e autorizar cada operação (o registro pertence ao usuário?).</li>
+    <li><strong>CSRF</strong> em toda rota que altera dados; sessão com cookie <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite</code>.</li>
+    <li><strong>Limitar tentativas</strong>: a validação remota ("e-mail já cadastrado") permite descobrir quem é cliente; aplique limite por IP/sessão ou não use em telas públicas.</li>
+    <li><strong>Conteúdo real dos arquivos</strong> (finfo, getimagesize), tamanho, nome novo, fora da pasta pública.</li>
+    <li><strong>Idempotência</strong> das operações financeiras (<a href="backend.html#idempotencia">exemplo</a>).</li>
+    <li><strong>Cabeçalhos</strong>: CSP, <code>X-Content-Type-Options: nosniff</code>, <code>Referrer-Policy</code>, <code>frame-ancestors</code>/<code>X-Frame-Options</code>, HSTS.</li>
+    <li><strong>Cartão de crédito</strong>: para escopo PCI reduzido, use o campo hospedado do gateway de pagamento em vez de um input da sua página (a máscara <code>card</code> mantém o número no DOM enquanto é digitado, como qualquer input).</li>
+</ul>
+
+<h2 id="checklist" data-titulo="Checklist antes de publicar">Checklist antes de publicar</h2>
+<ol class="passos">
+    <li><code>AlpineForm.configure({ log: 'none', storage: 'none' })</code> em produção.</li>
+    <li>Sem <code>data-form-debug</code> no HTML de produção.</li>
+    <li>Versão CSP do Alpine + CSP sem <code>'unsafe-eval'</code>/<code>'unsafe-inline'</code>; teste com <code>securitypolicyviolation</code> no console.</li>
+    <li>Scripts servidos pelo seu domínio (sem CDN de terceiros) ou com <code>integrity</code> (SRI).</li>
+    <li>Nenhum ouvinte de <code>form:submit</code> enviando <code>event.detail.request.headers</code> para analytics (contém o token CSRF).</li>
+    <li>Endpoints de validação remota com limite de tentativas.</li>
+    <li>Toda regra do formulário também validada no servidor.</li>
+    <li>Revisão de segurança e teste de invasão da aplicação completa.</li>
+</ol>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="extensoes.html"><small>← Anterior</small>Extensões</a><a class="proxima" href="backend.html"><small>Próxima →</small>Backend (PHP, Joomla, Laravel)</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

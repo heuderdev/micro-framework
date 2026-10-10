@@ -40,6 +40,7 @@
     "docs:serve": "node scripts/build-docs.mjs && php -S 0.0.0.0:1900 scripts/docs-server.php"
   },
   "devDependencies": {
+    "@alpinejs/csp": "^3.14.9",
     "@playwright/test": "1.64.0",
     "alpinejs": "3.14.9",
     "bootstrap": "^5.3.3",

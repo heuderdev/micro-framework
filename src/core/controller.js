@@ -148,7 +148,13 @@ export class FormController {
     }
 
     log(level, ...args) {
+        if (this.config.log === 'none') return
         if (level === 'error' || this.config.debug) console[level]('[AlpineForm]', ...args)
+    }
+
+    /** Persistência no navegador permitida? (data-form-storage="none" desliga tudo) */
+    get storageAllowed() {
+        return this.config.storage !== 'none'
     }
 
     initialize() {
@@ -1312,7 +1318,7 @@ export class FormController {
         if (!isPlainObject(errors) && !Array.isArray(errors)) throw new ConfigError('setErrors espera um objeto { campo: mensagens }.')
         if (replace) this.clearServerErrors()
         const list = Array.isArray(errors) ? { _general: errors } : errors
-        const normalized = {}
+        const normalized = Object.create(null)   // chaves como __proto__ não alteram protótipo
         const extraGeneral = [...general]
         for (const [key, value] of Object.entries(list)) {
             const messages = (Array.isArray(value) ? value : [value]).filter(m => typeof m === 'string' && m)
@@ -1629,7 +1635,8 @@ export class FormController {
         let message = result.message
         if (kind === 'html') {
             message = this.formMessage('submit.html')
-            this.log('error', 'Resposta HTML inesperada:', result.diagnostic)
+            const { snippet, ...semConteudo } = result.diagnostic || {}
+            this.log('error', 'Resposta HTML inesperada (o trecho da resposta fica em $form.error.diagnostic):', semConteudo)
         } else if (!message) {
             const key = {
                 validation: 'submit.validation', logical: 'submit.logical', auth: 'submit.auth', forbidden: 'submit.forbidden',
@@ -1649,8 +1656,12 @@ export class FormController {
     async runJob(job, signal, result) {
         const statusUrl = job.statusUrl && !isCrossOrigin(job.statusUrl) ? job.statusUrl : this.config.jobUrl ? this.config.jobUrl.replace('{id}', encodeURIComponent(job.id)) : null
         if (!statusUrl) return this.failSubmit('config', 'Resposta 202 sem status_url e sem data-form-job-url configurado.')
-        this.state.job = { id: job.id, status: 'queued', progress: null, message: result?.message ?? null, statusUrl, cancelUrl: job.cancelUrl || (this.config.jobCancelUrl ? this.config.jobCancelUrl.replace('{id}', encodeURIComponent(job.id)) : null) }
-        if (this.config.jobPersist) saveJob(this.form, { id: job.id, statusUrl })
+        // como status_url, a cancel_url vinda da resposta só é aceita se for da mesma origem
+        const cancelUrl = job.cancelUrl && !isCrossOrigin(job.cancelUrl)
+            ? job.cancelUrl
+            : this.config.jobCancelUrl ? this.config.jobCancelUrl.replace('{id}', encodeURIComponent(job.id)) : null
+        this.state.job = { id: job.id, status: 'queued', progress: null, message: result?.message ?? null, statusUrl, cancelUrl }
+        if (this.config.jobPersist && this.storageAllowed) saveJob(this.form, { id: job.id, statusUrl })
         this.setPhase('processing')
         dispatch(this.form, EVENTS.processing, { job: { ...this.state.job } })
         const poller = new JobPoller({
@@ -1692,7 +1703,7 @@ export class FormController {
     }
 
     resumePersistedJob() {
-        if (!this.config.jobPersist) return
+        if (!this.config.jobPersist || !this.storageAllowed) return
         const saved = loadJob(this.form)
         if (!saved || this.submission) return
         const submission = { controller: new AbortController(), promise: null }

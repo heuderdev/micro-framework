@@ -1,7 +1,7 @@
 import { test } from '@playwright/test'
 import { open, state, waitPhase, expect } from './helpers.js'
 
-const PAGES = ['index', 'cadastro', 'condicionais', 'remoto', 'escolhas', 'linhas', 'arquivo-unico', 'arquivos-multiplos', 'imagem', 'csv', 'edicao', 'progresso', 'chunks', 'processamento', 'erros', 'mascaras', 'bootstrap', 'extensao', 'esm']
+const PAGES = ['index', 'cadastro', 'condicionais', 'remoto', 'escolhas', 'linhas', 'arquivo-unico', 'arquivos-multiplos', 'imagem', 'csv', 'edicao', 'progresso', 'chunks', 'processamento', 'erros', 'mascaras', 'bootstrap', 'extensao', 'esm', 'csp']
 
 test.describe('todas as páginas de exemplo', () => {
     for (const name of PAGES) {

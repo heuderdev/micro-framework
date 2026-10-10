@@ -1,21 +1,21 @@
 [
   {
     "module": "alpine-form",
-    "min": 147288,
-    "gzip": 45934,
-    "esm": 237338
+    "min": 147991,
+    "gzip": 46146,
+    "esm": 238717
   },
   {
     "module": "alpine-form-masks",
-    "min": 22203,
-    "gzip": 8002,
-    "esm": 36456
+    "min": 22371,
+    "gzip": 8035,
+    "esm": 36851
   },
   {
     "module": "alpine-form-chunks",
-    "min": 19981,
-    "gzip": 6888,
-    "esm": 30876
+    "min": 20213,
+    "gzip": 6928,
+    "esm": 31339
   },
   {
     "module": "alpine-form-inspectors",

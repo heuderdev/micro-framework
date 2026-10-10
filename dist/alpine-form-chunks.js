@@ -126,7 +126,11 @@
     jobMaxInterval: { attr: "data-form-job-max-interval", type: "duration", default: 1e4, min: 250, max: 36e5 },
     jobTimeout: { attr: "data-form-job-timeout", type: "duration", default: 6e5, max: 24 * 3600 * 1e3 },
     jobPersist: { attr: "data-form-job-persist", type: "bool", default: false },
-    debug: { attr: "data-form-debug", type: "bool", default: false }
+    debug: { attr: "data-form-debug", type: "bool", default: false },
+    // "none": a biblioteca não escreve nada no console (ambientes regulados); prevalece sobre debug
+    log: { attr: "data-form-log", type: "enum", values: ["errors", "none"], default: "errors" },
+    // "none": nada é gravado em localStorage/sessionStorage (desativa chunk-persist e job-persist)
+    storage: { attr: "data-form-storage", type: "enum", values: ["allow", "none"], default: "allow" }
   };
   var NON_ATTRIBUTE_DEFAULTS = {
     headers: {},
@@ -611,7 +615,7 @@
         chunkSize: config.chunkSize,
         concurrency: config.concurrency,
         retries: config.retries,
-        persist: config.persist,
+        persist: config.persist && this.controller.storageAllowed,
         checksum: config.checksum,
         transport: this.controller.transportFor("chunk"),
         headers: (url) => this.controller.securityHeaders(url),
@@ -633,7 +637,7 @@
         entry.status = statuses.includes("failed") ? "failed" : statuses.includes("uploading") ? "uploading" : statuses.includes("paused") ? "paused" : statuses.every((s) => s === "completed") ? "completed" : "idle";
         const field = this.controller.fields.get(key);
         const config = field ? safeConfig(field) : null;
-        entry.resumable = config?.persist ? listPersisted(config.endpoint.replace(/\/+$/, "")) : [];
+        entry.resumable = config?.persist && this.controller.storageAllowed ? listPersisted(config.endpoint.replace(/\/+$/, "")) : [];
       }
       state.uploads = byField;
       if (this.active) this.active.report();

@@ -27,6 +27,8 @@ lead: Todos os atributos, regras, métodos, eventos, opções e chaves de mensag
 <tr><td><code>data-form-idempotency</code></td><td>booleano</td><td><a href="envio.html#idempotencia">Envio</a></td></tr>
 <tr><td><code>data-form-job-interval</code> · <code>-max-interval</code> · <code>-timeout</code> · <code>-persist</code> · <code>data-form-job-url</code> · <code>data-form-job-cancel-url</code></td><td>1,5s · 10s · 10min · booleano · modelos com {id}</td><td><a href="processamento.html">Processamento</a></td></tr>
 <tr><td><code>data-form-debug</code></td><td>booleano (logs no console)</td><td></td></tr>
+<tr><td><code>data-form-log</code></td><td><strong>errors</strong> · none (nada no console)</td><td><a href="seguranca.html#configuracao">Segurança</a></td></tr>
+<tr><td><code>data-form-storage</code></td><td><strong>allow</strong> · none (nada no localStorage/sessionStorage)</td><td><a href="seguranca.html#configuracao">Segurança</a></td></tr>
 </tbody></table></div>
 
 <h2 id="atributos-campo" data-titulo="Atributos de campo">Atributos de campo</h2>
@@ -102,6 +104,7 @@ AlpineForm.configure({
     nesting: 'brackets', timeout: 0, credentials: 'same-origin', responseAdapter: 'default',
     resetOnSuccess: false, redirect: 'none', redirectOrigins: [], idempotency: false,
     jobInterval: 1500, jobMaxInterval: 10000, jobTimeout: 600000, jobPersist: false, debug: false,
+    log: 'errors', storage: 'allow',
 
     // só por configuração:
     headers: {},

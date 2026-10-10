@@ -45,6 +45,7 @@ const PAGES = [
     { arquivo: 'api', menu: 'API $form', busca: 'métodos setvalue getvalue validate submit reset destroy alpineform get' },
     { arquivo: 'eventos', menu: 'Eventos e hooks', busca: 'form:success form:error form:change before-submit hooks reveal' },
     { arquivo: 'extensoes', menu: 'Extensões', busca: 'validador próprio normalizador componente transporte adaptador plugin' },
+    { arquivo: 'seguranca', menu: 'Segurança', busca: 'csp unsafe-eval trusted types banco regulado log console storage localstorage privacidade lgpd pci' },
     { arquivo: 'backend', menu: 'Backend (PHP, Joomla, Laravel)', busca: 'controller php joomla jresponsejson laravel resposta contrato csrf token servidor' },
     { grupo: 'Consulta' },
     { arquivo: 'receitas', menu: 'Receitas', busca: 'exemplos prontos completos cadastro login endereço pedido importação' },

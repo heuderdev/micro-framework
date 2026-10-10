@@ -663,7 +663,11 @@
     jobMaxInterval: { attr: "data-form-job-max-interval", type: "duration", default: 1e4, min: 250, max: 36e5 },
     jobTimeout: { attr: "data-form-job-timeout", type: "duration", default: 6e5, max: 24 * 3600 * 1e3 },
     jobPersist: { attr: "data-form-job-persist", type: "bool", default: false },
-    debug: { attr: "data-form-debug", type: "bool", default: false }
+    debug: { attr: "data-form-debug", type: "bool", default: false },
+    // "none": a biblioteca não escreve nada no console (ambientes regulados); prevalece sobre debug
+    log: { attr: "data-form-log", type: "enum", values: ["errors", "none"], default: "errors" },
+    // "none": nada é gravado em localStorage/sessionStorage (desativa chunk-persist e job-persist)
+    storage: { attr: "data-form-storage", type: "enum", values: ["allow", "none"], default: "allow" }
   };
   var NON_ATTRIBUTE_DEFAULTS = {
     headers: {},
