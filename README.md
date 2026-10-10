@@ -140,14 +140,14 @@ php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 | Comando | O que executa | Tipo |
 |---|---|---|
 | `npm test` | 256 testes Vitest/jsdom com Alpine real | integração; **rede simulada** por transportes registrados |
-| `npm run test:php` | 28 testes do backend (chunks, concorrência com processos reais, fila, idempotência, validação) + 20 dos helpers PHP | backend real, sem HTTP |
+| `npm run test:php` | 28 testes do backend (chunks, concorrência com processos reais, fila, idempotência, validação) + 25 dos helpers PHP (carga: `npm run test:php:carga`) | backend real, sem HTTP |
 | `npm run test:e2e` | 69 testes Playwright (inclui CSP estrita e Trusted Types) no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
 | `npm run test:all` | build + os três acima | |
 | `npm run docs:check` | gera `docs/*.html` a partir de `docs-src/` e confere atributos, regras, máscaras, métodos e links de todos os exemplos contra a biblioteca | estático |
 | `npm run docs:serve` | gera e serve a documentação em `http://localhost:1900` (técnica em `/tecnica`); no Windows também `docs-servidor.bat` | servidor |
 | `npm run docs:browser` | carrega cada exemplo HTML da documentação no Chrome (servidor em 127.0.0.1:8099) | navegador real |
 
-Último resultado executado (2026-10-10): unitários 256/256, PHP 28/28 + helpers 20/20 (PHP 8.4.2; helpers também em 7.1 e 8.5), E2E 69/69 (Chrome).
+Último resultado executado (2026-10-10): unitários 256/256, PHP 28/28 + helpers 25/25 (PHP 8.4.2; helpers também em 7.1 e 8.5), E2E 69/69 (Chrome).
 
 O Playwright usa `channel: 'chrome'` (Chrome instalado). Para usar o Chromium do Playwright: `npx playwright install chromium` e `PW_CHANNEL= npm run test:e2e`.
 

@@ -222,6 +222,8 @@ Csv::enviar('clientes.csv', [
 <tr><td><code>Csv::enviar($nome, $colunas, $linhas, $opcoes)</code></td><td>Cabeçalhos de download (<code>text/csv; charset=utf-8</code>, <code>Content-Disposition</code> com nome seguro, <code>no-store</code>, <code>nosniff</code>), escreve e encerra.</td></tr>
 <tr><td><code>Csv::escrever($recurso, $colunas, $linhas, $opcoes)</code></td><td>Escreve num recurso aberto (<code>php://output</code>, arquivo, <code>php://temp</code>); devolve a quantidade de linhas.</td></tr>
 <tr><td><code>Csv::texto($colunas, $linhas, $opcoes)</code></td><td>O CSV como texto (testes, anexo de e-mail, frameworks que esperam o corpo pronto).</td></tr>
+<tr><td><code>Csv::linhasDoBanco($pdo, $sql, $params)</code> · <code>Csv::linhasPorLote($buscar, $tamanho)</code></td><td>Leitura com memória constante (<a href="#csv-volume">milhões de linhas</a>).</td></tr>
+<tr><td><code>Csv::comprimir($recurso)</code></td><td>Grava em gzip (para gerar <code>.csv.gz</code> em arquivo, por exemplo num job).</td></tr>
 <tr><td><code>Csv::nomeSeguro($nome)</code></td><td>Nome de arquivo sem caminho, aspas nem acentos; garante extensão.</td></tr>
 </tbody></table></div>
 <ul>
@@ -230,7 +232,34 @@ Csv::enviar('clientes.csv', [
     <li>Padrões para o Excel em português: separador <code>;</code>, BOM UTF-8 (acentos corretos), quebra <code>\r\n</code>, aspas conforme RFC 4180. Opções: <code>separador</code>, <code>bom</code>, <code>cabecalho</code>, <code>protegerFormulas</code>.</li>
     <li><strong>Injeção de fórmulas</strong>: célula que começa com <code>=</code>, <code>+</code>, <code>-</code>, <code>@</code>, tab ou CR recebe um apóstrofo na frente (<code>'=HYPERLINK(...)</code>), para o Excel não executar o que alguém digitou num cadastro. Números como <code>-10.5</code> ficam intactos.</li>
     <li><code>null</code> vira vazio, <code>true</code>/<code>false</code> viram <code>1</code>/<code>0</code>, datas (<code>DateTimeInterface</code>) viram <code>Y-m-d H:i:s</code>.</li>
-    <li>Exportações grandes: <code>set_time_limit(300)</code> antes; se houver buffer de saída ativo (<code>ob_start</code>), descarte-o para o arquivo sair em fluxo.</li>
+</ul>
+<h3 id="csv-volume" data-titulo="Csv com milhões de linhas">Milhões de linhas</h3>
+<div class="codigo"><pre><code data-lang="php">// MySQL/MariaDB e SQLite: lê sem carregar o resultado inteiro (o PDO do MySQL, por padrão, carrega tudo)
+$linhas = Csv::linhasDoBanco($pdo, 'SELECT id, nome, email FROM clientes WHERE uf = ? ORDER BY id', [$uf]);
+
+// PostgreSQL, SQL Server, Oracle, Eloquent, APIs: em lotes, por chave (memória constante)
+$linhas = Csv::linhasPorLote(function ($ultima, $tamanho) use ($pdo, $uf) {
+    $st = $pdo-&gt;prepare('SELECT id, nome, email FROM clientes WHERE uf = ? AND id &gt; ? ORDER BY id LIMIT ' . (int) $tamanho);
+    $st-&gt;execute([$uf, $ultima ? $ultima['id'] : 0]);
+    return $st-&gt;fetchAll(PDO::FETCH_ASSOC);
+}, 5000);
+
+Csv::enviar('clientes.csv', ['id' =&gt; 'Código', 'nome' =&gt; 'Nome', 'email' =&gt; 'E-mail'], $linhas, [
+    'gzip' =&gt; true,           // comprime em fluxo se o navegador aceitar (5–6x menos tráfego); ele salva o .csv normal
+    'tempoLimite' =&gt; 600,     // set_time_limit
+    // 'maxLinhas' =&gt; Csv::LIMITE_EXCEL,  // corta em 1.048.575 linhas para abrir inteiro no Excel
+]);</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Opção de <code>enviar()</code></th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>descartarBuffer</code></td><td>true</td><td>Descarta buffers de saída ativos (<code>ob_start</code> do Joomla e de frameworks), que guardariam o arquivo inteiro na memória — e qualquer saída anterior que corromperia o CSV.</td></tr>
+<tr><td><code>gzip</code></td><td>false</td><td><code>Content-Encoding: gzip</code> em fluxo quando o navegador aceita e o PHP não comprime sozinho (<code>zlib.output_compression</code>).</td></tr>
+<tr><td><code>tempoLimite</code></td><td>null</td><td>Segundos para <code>set_time_limit</code> (0 = sem limite).</td></tr>
+<tr><td><code>maxLinhas</code></td><td>null</td><td>Para de escrever depois de N linhas (também em <code>escrever()</code>).</td></tr>
+</tbody></table></div>
+<ul>
+    <li>As linhas são acumuladas em blocos de 64 KB antes de gravar (uma escrita por linha deixava 2 milhões de linhas 4x mais lentas) e enviadas ao cliente bloco a bloco; o cabeçalho <code>X-Accel-Buffering: no</code> evita que o nginx segure a resposta.</li>
+    <li>Com <code>linhasDoBanco()</code> no MySQL, a conexão fica ocupada até o fim da leitura: não execute outra consulta nela no meio da exportação (abra outra conexão se precisar).</li>
+    <li>Proxies e balanceadores costumam cortar conexões sem dados por 60 s: garanta índice para o <code>ORDER BY</code>, para a primeira linha sair logo. Se a consulta for lenta por natureza, use exportação em segundo plano.</li>
+    <li>Teste de carga: <code>npm run test:php:carga</code> (gera 2 milhões de linhas; usa o MySQL local se houver — <code>AF_MYSQL_DSN</code>, <code>AF_MYSQL_USUARIO</code>, <code>AF_MYSQL_SENHA</code>).</li>
 </ul>
 
 <h2 id="csrf" data-titulo="CSRF">CSRF (PHP puro)</h2>

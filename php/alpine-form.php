@@ -928,10 +928,16 @@ final class Consulta
  */
 final class Csv
 {
-    const PADRAO = ['separador' => ';', 'bom' => true, 'protegerFormulas' => true, 'cabecalho' => true];
+    const PADRAO = ['separador' => ';', 'bom' => true, 'protegerFormulas' => true, 'cabecalho' => true, 'maxLinhas' => null];
+    const PADRAO_ENVIO = ['descartarBuffer' => true, 'gzip' => false, 'tempoLimite' => null];
+
+    /** Linhas de dados que cabem numa planilha do Excel (1.048.576 linhas, menos o cabeçalho). */
+    const LIMITE_EXCEL = 1048575;
 
     /**
      * Escreve o CSV em um recurso aberto (php://output, php://temp, arquivo).
+     * Opções: separador (";"), bom (true), protegerFormulas (true), cabecalho (true),
+     * maxLinhas (null = sem limite; ex.: Csv::LIMITE_EXCEL para o arquivo abrir inteiro no Excel).
      *
      * @param resource $saida
      * @param array $colunas ['chave' => 'Título'] ou ['chave1', 'chave2'] (título = chave)
@@ -940,16 +946,15 @@ final class Csv
      */
     public static function escrever($saida, array $colunas, $linhas, array $opcoes = [])
     {
-        $desconhecidas = array_diff(array_keys($opcoes), array_keys(self::PADRAO));
-        if ($desconhecidas) {
-            throw new \InvalidArgumentException('Csv: opção desconhecida "' . implode('", "', $desconhecidas) . '".');
-        }
+        $o = self::opcoes($opcoes, self::PADRAO);
         if (!is_array($linhas) && !($linhas instanceof \Traversable)) {
             throw new \InvalidArgumentException('Csv: $linhas deve ser array ou Traversable (PDOStatement, gerador...).');
         }
-        $o = array_merge(self::PADRAO, $opcoes);
         if (!is_string($o['separador']) || strlen($o['separador']) !== 1 || strpos("\"\r\n", $o['separador']) !== false) {
             throw new \InvalidArgumentException('Csv: separador deve ser um único caractere (ex.: ";", ",", "\t").');
+        }
+        if ($o['maxLinhas'] !== null && (!is_int($o['maxLinhas']) || $o['maxLinhas'] < 1)) {
+            throw new \InvalidArgumentException('Csv: maxLinhas deve ser um inteiro positivo ou null.');
         }
         $mapa = [];
         foreach ($colunas as $chave => $titulo) {
@@ -962,6 +967,10 @@ final class Csv
         if (!$mapa) {
             throw new \InvalidArgumentException('Csv: informe ao menos uma coluna.');
         }
+        $chaves = array_keys($mapa);
+        $meta = stream_get_meta_data($saida);
+        // php://output: além do buffer do stream, empurra os bytes para o cliente (download em fluxo)
+        $paraCliente = isset($meta['uri']) && $meta['uri'] === 'php://output';
         if ($o['bom']) {
             fwrite($saida, "\xEF\xBB\xBF");
         }
@@ -969,9 +978,14 @@ final class Csv
             fwrite($saida, self::linha(array_values($mapa), $o['separador'], $o['protegerFormulas']));
         }
         $total = 0;
+        // acumula ~64 KB antes de gravar: uma chamada de escrita por linha deixa arquivos grandes várias vezes mais lentos
+        $bloco = '';
         foreach ($linhas as $linha) {
+            if ($o['maxLinhas'] !== null && $total >= $o['maxLinhas']) {
+                break;
+            }
             $valores = [];
-            foreach (array_keys($mapa) as $chave) {
+            foreach ($chaves as $chave) {
                 if (is_array($linha)) {
                     $valores[] = array_key_exists($chave, $linha) ? $linha[$chave] : null;
                 } elseif (is_object($linha)) {
@@ -980,22 +994,48 @@ final class Csv
                     $valores[] = null;
                 }
             }
-            fwrite($saida, self::linha($valores, $o['separador'], $o['protegerFormulas']));
+            $bloco .= self::linha($valores, $o['separador'], $o['protegerFormulas']);
             $total++;
-            if ($total % 1000 === 0) {
+            if (strlen($bloco) >= 65536) {
+                fwrite($saida, $bloco);
+                $bloco = '';
                 fflush($saida);
+                if ($paraCliente) {
+                    flush();
+                }
             }
         }
+        if ($bloco !== '') {
+            fwrite($saida, $bloco);
+        }
+        fflush($saida);
         return $total;
     }
 
     /**
-     * Envia o CSV como download e encerra (Resposta::$semExit = true para não encerrar).
-     * Para exportações grandes, aumente o tempo limite antes (set_time_limit(300)) e, se a página tiver
-     * buffer de saída ativo (ob_start, alguns frameworks), descarte-o antes para o arquivo sair em fluxo.
+     * Envia o CSV como download, em fluxo, e encerra (Resposta::$semExit = true para não encerrar).
+     * Além das opções de escrever():
+     *   descartarBuffer (true)  descarta buffers de saída ativos (ob_start de frameworks), que acumulariam
+     *                           o arquivo inteiro na memória — e qualquer saída anterior que corromperia o CSV;
+     *   gzip (false)            comprime em fluxo (Content-Encoding: gzip) quando o navegador aceita: o
+     *                           navegador descompacta sozinho e salva o .csv normal; 5 a 10 vezes menos tráfego;
+     *   tempoLimite (null)      segundos para set_time_limit (0 = sem limite) — exportações longas.
+     * Para milhões de linhas, leia o banco sem buffer: Csv::linhasDoBanco() ou Csv::linhasPorLote().
      */
     public static function enviar($nomeArquivo, array $colunas, $linhas, array $opcoes = [])
     {
+        $envio = array_intersect_key($opcoes, self::PADRAO_ENVIO);
+        $escrita = array_diff_key($opcoes, self::PADRAO_ENVIO);
+        $e = self::opcoes($envio, self::PADRAO_ENVIO);
+        self::opcoes($escrita, self::PADRAO);
+        if ($e['tempoLimite'] !== null) {
+            set_time_limit((int) $e['tempoLimite']);
+        }
+        if ($e['descartarBuffer']) {
+            while (ob_get_level() > 0 && @ob_end_clean()) {
+            }
+        }
+        $gzip = $e['gzip'] && self::clienteAceitaGzip() && !filter_var(ini_get('zlib.output_compression'), FILTER_VALIDATE_BOOLEAN);
         $nome = self::nomeSeguro($nomeArquivo);
         if (!headers_sent()) {
             http_response_code(200);
@@ -1003,14 +1043,131 @@ final class Csv
             header('Content-Disposition: attachment; filename="' . $nome . '"; filename*=UTF-8\'\'' . rawurlencode($nome));
             header('Cache-Control: no-store');
             header('X-Content-Type-Options: nosniff');
+            header('X-Accel-Buffering: no');     // nginx: não segura a resposta inteira antes de repassar
+            if ($gzip) {
+                header('Content-Encoding: gzip');
+                header('Vary: Accept-Encoding');
+            }
         }
         $saida = fopen('php://output', 'wb');
-        $total = self::escrever($saida, $colunas, $linhas, $opcoes);
+        $filtro = $gzip ? self::comprimir($saida) : null;
+        $total = self::escrever($saida, $colunas, $linhas, $escrita);
+        if ($filtro) {
+            stream_filter_remove($filtro);     // fecha o fluxo gzip (rodapé com CRC)
+        }
         fclose($saida);
         if (!Resposta::$semExit) {
             exit;
         }
         return $total;
+    }
+
+    /** Aplica compressão gzip (formato .gz) num recurso de escrita; devolve o filtro (remova para finalizar). */
+    public static function comprimir($recurso, $nivel = 6)
+    {
+        $filtro = stream_filter_append($recurso, 'zlib.deflate', STREAM_FILTER_WRITE, ['window' => 31, 'level' => (int) $nivel]);
+        if ($filtro === false) {
+            throw new \RuntimeException('Csv: compressão zlib indisponível neste PHP.');
+        }
+        return $filtro;
+    }
+
+    private static function clienteAceitaGzip()
+    {
+        $aceita = isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? (string) $_SERVER['HTTP_ACCEPT_ENCODING'] : '';
+        return function_exists('gzencode') && preg_match('/\bgzip\b(?!\s*;\s*q=0(\.0+)?\b)/i', $aceita) === 1;
+    }
+
+    /**
+     * Linhas de uma consulta PDO sem carregar o resultado inteiro na memória do PHP.
+     *   MySQL/MariaDB: desliga o buffer de resultado durante a leitura (MYSQL_ATTR_USE_BUFFERED_QUERY) e
+     *                  restaura no fim. Enquanto lê, essa conexão não pode executar outra consulta.
+     *   SQLite:        já lê sob demanda.
+     *   Outros (PostgreSQL, SQL Server, Oracle): o driver PDO traz tudo de uma vez — use linhasPorLote().
+     *
+     * @return \Generator
+     */
+    public static function linhasDoBanco(\PDO $pdo, $sql, array $parametros = [])
+    {
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if (!in_array($driver, ['mysql', 'sqlite'], true)) {
+            throw new \InvalidArgumentException('Csv::linhasDoBanco: o driver "' . $driver . '" carrega o resultado inteiro na memória. Use Csv::linhasPorLote() (paginação por chave).');
+        }
+        return self::lerSemBuffer($pdo, $driver, (string) $sql, $parametros);
+    }
+
+    private static function lerSemBuffer(\PDO $pdo, $driver, $sql, array $parametros)
+    {
+        $anterior = null;
+        if ($driver === 'mysql') {
+            $anterior = $pdo->getAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY);
+            $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+        }
+        $st = null;
+        try {
+            $st = $pdo->prepare($sql);
+            $st->execute($parametros);
+            while (($linha = $st->fetch(\PDO::FETCH_ASSOC)) !== false) {
+                yield $linha;
+            }
+        } finally {
+            if ($st) {
+                $st->closeCursor();
+            }
+            if ($driver === 'mysql') {
+                $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, $anterior);
+            }
+        }
+    }
+
+    /**
+     * Lê em lotes com memória constante, em qualquer banco ou API: $buscar($ultimaLinha, $tamanho) devolve o
+     * próximo lote (array/Traversable); termina quando vier um lote menor que $tamanho.
+     * Prefira paginação por chave (WHERE id > :ultimo ORDER BY id LIMIT :tamanho) a OFFSET, que fica
+     * cada vez mais lento em tabelas grandes.
+     *
+     *   $linhas = Csv::linhasPorLote(function ($ultima, $tamanho) use ($pdo) {
+     *       $st = $pdo->prepare('SELECT id, nome FROM clientes WHERE id > ? ORDER BY id LIMIT ' . (int) $tamanho);
+     *       $st->execute([$ultima ? $ultima['id'] : 0]);
+     *       return $st->fetchAll(PDO::FETCH_ASSOC);
+     *   });
+     *
+     * @return \Generator
+     */
+    public static function linhasPorLote(callable $buscar, $tamanho = 5000)
+    {
+        $tamanho = (int) $tamanho;
+        if ($tamanho < 1) {
+            throw new \InvalidArgumentException('Csv::linhasPorLote: tamanho deve ser positivo.');
+        }
+        return self::lerPorLote($buscar, $tamanho);
+    }
+
+    private static function lerPorLote(callable $buscar, $tamanho)
+    {
+        $ultima = null;
+        do {
+            $lote = $buscar($ultima, $tamanho);
+            if (!is_array($lote) && !($lote instanceof \Traversable)) {
+                throw new \UnexpectedValueException('Csv::linhasPorLote: o callback deve devolver um array ou Traversable.');
+            }
+            $quantidade = 0;
+            foreach ($lote as $linha) {
+                $quantidade++;
+                $ultima = $linha;
+                yield $linha;
+            }
+            $lote = null;
+        } while ($quantidade >= $tamanho);
+    }
+
+    private static function opcoes(array $opcoes, array $padrao)
+    {
+        $desconhecidas = array_diff(array_keys($opcoes), array_keys($padrao));
+        if ($desconhecidas) {
+            throw new \InvalidArgumentException('Csv: opção desconhecida "' . implode('", "', $desconhecidas) . '".');
+        }
+        return array_merge($padrao, $opcoes);
     }
 
     /** CSV completo como texto (testes, anexos de e-mail, frameworks que esperam o corpo pronto). */

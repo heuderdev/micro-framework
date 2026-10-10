@@ -281,10 +281,9 @@ function exportarClientes(PDO $pdo, array $query, $arquivo)
 {
     $c = Consulta::ler($query, ['ordenaveis' => ['nome' => 'c.nome', 'uf' => 'c.uf'], 'ordem' => 'nome']);
     list($where, $params) = filtrosDeClientes($c);   // a MESMA função de filtro usada na listagem
-    set_time_limit(300);
-    $st = $pdo->prepare("SELECT c.id, c.nome, c.email, c.uf FROM clientes c WHERE $where ORDER BY {$c->sqlOrdem('c.id')}");
-    $st->execute($params);
-    Csv::enviar($arquivo, ['id' => 'Código', 'nome' => 'Nome', 'email' => 'E-mail', 'uf' => 'UF'], $st);   // linha a linha
+    $linhas = Csv::linhasDoBanco($pdo, "SELECT c.id, c.nome, c.email, c.uf FROM clientes c WHERE $where ORDER BY {$c->sqlOrdem('c.id')}", $params);
+    Csv::enviar($arquivo, ['id' => 'Código', 'nome' => 'Nome', 'email' => 'E-mail', 'uf' => 'UF'], $linhas,
+        ['gzip' => true, 'tempoLimite' => 600]);    // em fluxo, sem buffer do MySQL, comprimido
 }
 @@@
 @@@php Laravel
@@ -297,6 +296,12 @@ function exportarClientes($query) {
     }, 'clientes.csv', ['Content-Type' => 'text/csv; charset=utf-8']);
 }
 @@@
+<h3 id="volume" data-titulo="Milhões de linhas">Milhões de linhas</h3>
+<div class="tabela"><table><thead><tr><th>Volume</th><th>Recomendação</th></tr></thead><tbody>
+<tr><td>Até ~50 mil linhas (alguns MB)</td><td>Modo padrão (<code>baixar</code>): estado "gerando" e erro na tela.</td></tr>
+<tr><td>Centenas de milhares a alguns milhões</td><td><code>data-lista-exportar-modo="direto"</code> (o navegador baixa em fluxo, sem memória da página) + servidor com <code>Csv::linhasDoBanco()</code> e <code>gzip</code>.</td></tr>
+</tbody></table></div>
+<p>Medido em <code>php php/tests/carga.php</code> (PHP 8.4, MySQL 8, Windows): 2 milhões de linhas em fluxo com pico de 0,3 MB de memória no PHP; 1 milhão de linhas do MySQL em ~7 s com 0,3 MB usando <code>Csv::linhasDoBanco()</code> — contra <strong>87 MB</strong> com o <code>$pdo-&gt;query()</code> comum, que carrega o resultado inteiro; download HTTP de 2 milhões de linhas com gzip: 9 MB trafegados em vez de 46 MB. O Excel abre no máximo 1.048.576 linhas por planilha (<code>Csv::LIMITE_EXCEL</code>; opção <code>maxLinhas</code>).</p>
 <div class="nota aviso"><p>O endpoint de exportação precisa da <strong>mesma autorização</strong> da listagem (e, para o completo, normalmente uma permissão a mais): quem chama a URL direto não passa pela tela. Use a mesma função de filtro da listagem para o CSV bater com o que a pessoa vê, e proteja células contra injeção de fórmulas (o <code>Csv</code> dos <a href="php.html#csv">Helpers PHP</a> já faz). Em ambiente regulado, registre quem exportou e o quê.</p></div>
 
 <h2 id="adaptador" data-titulo="Outro formato de resposta">Outro formato de resposta</h2>

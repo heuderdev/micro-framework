@@ -289,10 +289,96 @@ teste('Csv: configuração inválida lança exceção; nome de arquivo seguro', 
 teste('Csv::enviar escreve cabeçalhos de download e o conteúdo (sem exit em teste)', function () {
     Resposta::$semExit = true;
     ob_start();
-    $total = Csv::enviar('clientes.csv', ['id' => 'Código'], [['id' => 7]]);
+    $total = Csv::enviar('clientes.csv', ['id' => 'Código'], [['id' => 7]], ['descartarBuffer' => false]);
     $saida = ob_get_clean();
     igual(1, $total);
     igual("\xEF\xBB\xBFCódigo\r\n7\r\n", $saida);
+});
+
+teste('Csv: maxLinhas corta no limite (ex.: Csv::LIMITE_EXCEL) e opções erradas lançam exceção', function () {
+    $gerador = function () {
+        for ($i = 1; $i <= 10; $i++) {
+            yield ['n' => $i];
+        }
+    };
+    $mem = fopen('php://temp', 'w+b');
+    igual(3, Csv::escrever($mem, ['n'], $gerador(), ['maxLinhas' => 3, 'bom' => false]));
+    rewind($mem);
+    igual("n\r\n1\r\n2\r\n3\r\n", stream_get_contents($mem));
+    igual(1048575, Csv::LIMITE_EXCEL);
+    lanca('InvalidArgumentException', function () {
+        Csv::texto(['n'], [], ['maxLinhas' => 0]);
+    });
+    lanca('InvalidArgumentException', function () {
+        Resposta::$semExit = true;
+        Csv::enviar('x.csv', ['n'], [], ['gzipp' => true]);
+    });
+});
+
+teste('Csv::comprimir gera gzip válido em fluxo (o navegador descompacta)', function () {
+    $mem = fopen('php://temp', 'w+b');
+    $filtro = Csv::comprimir($mem);
+    $linhas = function () {
+        for ($i = 1; $i <= 20000; $i++) {
+            yield ['id' => $i, 'nome' => "Cliente {$i}"];
+        }
+    };
+    Csv::escrever($mem, ['id', 'nome'], $linhas());
+    stream_filter_remove($filtro);
+    rewind($mem);
+    $gz = stream_get_contents($mem);
+    $texto = gzdecode($gz);
+    igual(true, is_string($texto) && substr_count($texto, "\r\n") === 20001, 'gzip decodificável com todas as linhas');
+    igual(true, strlen($gz) * 3 < strlen($texto), 'compressão de pelo menos 3x');
+});
+
+teste('Csv::linhasPorLote: memória constante em lotes (paginação por chave) e contrato do callback', function () {
+    $chamadas = [];
+    $linhas = Csv::linhasPorLote(function ($ultima, $tamanho) use (&$chamadas) {
+        $desde = $ultima ? $ultima['id'] : 0;
+        $chamadas[] = $desde;
+        $lote = [];
+        for ($i = $desde + 1; $i <= min(25, $desde + $tamanho); $i++) {
+            $lote[] = ['id' => $i];
+        }
+        return $lote;
+    }, 10);
+    igual("id\r\n" . implode("\r\n", range(1, 25)) . "\r\n", Csv::texto(['id'], $linhas, ['bom' => false]));
+    igual([0, 10, 20], $chamadas);
+    lanca('UnexpectedValueException', function () {
+        foreach (Csv::linhasPorLote(function () {
+            return 'x';
+        }) as $l) {
+        }
+    });
+    lanca('InvalidArgumentException', function () {
+        Csv::linhasPorLote(function () {
+            return [];
+        }, 0);
+    });
+});
+
+teste('Csv::linhasDoBanco lê SQLite sob demanda e recusa driver que carregaria tudo', function () {
+    if (!extension_loaded('pdo_sqlite')) {
+        echo "      (pdo_sqlite ausente neste PHP: parte pulada)\n";
+        return;
+    }
+    $pdo = new PDO('sqlite::memory:');
+    $pdo->exec('CREATE TABLE t (id INTEGER PRIMARY KEY, nome TEXT)');
+    $pdo->exec("INSERT INTO t (nome) VALUES ('a'), ('b'), ('=1+1')");
+    $csv = Csv::texto(['id', 'nome'], Csv::linhasDoBanco($pdo, 'SELECT id, nome FROM t WHERE id >= ? ORDER BY id', [2]), ['bom' => false]);
+    igual("id;nome\r\n2;b\r\n3;'=1+1\r\n", $csv);
+});
+
+teste('Csv::enviar descarta buffers ativos (saída anterior não corrompe o CSV) — processo real', function () {
+    $script = tempnam(sys_get_temp_dir(), 'afcsv');
+    file_put_contents($script, '<?php require ' . var_export(dirname(__DIR__) . '/alpine-form.php', true) . ';'
+        . ' ob_start(); echo "LIXO-DO-LAYOUT"; ob_start();'
+        . ' AlpineForm\\Helpers\\Csv::enviar("a.csv", ["id"], [["id" => 1]], ["bom" => false]);');
+    $saida = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script));
+    unlink($script);
+    // o pipe do Windows pode converter quebras de linha: compara o texto normalizado
+    igual("id\n1\n", str_replace("\r\n", "\n", (string) $saida));
 });
 
 $inicio = microtime(true);

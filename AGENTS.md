@@ -27,7 +27,7 @@ Este arquivo é a fonte única de instruções para qualquer IA (Claude, Codex, 
 | `src/completo/` | Pacote único `alpine-form-completo` (núcleo + todos os módulos); novo módulo deve ser incluído aqui |
 | `dist/` | Saída do build (**gerada**; commitada; não editar à mão) |
 | `css/alpine-form.css` | CSS opcional |
-| `php/alpine-form.php` | Helpers PHP para projetos (PHP **7.0+**, sem `strict_types`, sem sintaxe 7.1+): `Resposta`, `Entrada`, `Validador`, `Consulta`, `Csv`, `Csrf`; testes em `php/tests/run.php` |
+| `php/alpine-form.php` | Helpers PHP para projetos (PHP **7.0+**, sem `strict_types`, sem sintaxe 7.1+): `Resposta`, `Entrada`, `Validador`, `Consulta`, `Csv`, `Csrf`; testes em `php/tests/run.php` e carga em `php/tests/carga.php` (`npm run test:php:carga`, lento) |
 | `server/` | Backend PHP de referência (contratos de resposta, chunks, fila/worker, idempotência) e seus testes |
 | `examples/*.php` | Páginas executáveis (incl. `csp.php`, CSP estrita) |
 | `tests/unit/` | Vitest + jsdom + Alpine real; rede simulada por transportes registrados |
@@ -53,7 +53,7 @@ npm run serve          # exemplos em http://127.0.0.1:8080/examples/
 npm run docs:serve     # documentação em http://localhost:1900
 ```
 
-Estado esperado: unitários 256/256, PHP 28/28 + helpers 20/20, E2E 69/69, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
+Estado esperado: unitários 256/256, PHP 28/28 + helpers 25/25, E2E 69/69, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
 
 ## Qual guia ler para cada tarefa
 

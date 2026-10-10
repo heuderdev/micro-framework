@@ -40,6 +40,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:php": "php server/tests/run.php && php php/tests/run.php",
+    "test:php:carga": "php php/tests/carga.php",
     "serve": "php -S 127.0.0.1:8080 server/router.php",
     "test:all": "npm run build && npm test && npm run test:php && npm run test:e2e",
     "docs": "node scripts/build-docs.mjs",
