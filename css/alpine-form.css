@@ -205,3 +205,7 @@ form[aria-busy="true"] [type="submit"] {
 [x-lista][aria-busy="true"] [data-lista-status] {
     color: var(--af-muted);
 }
+
+/* módulo alpine-form-opcoes: select carregando opções */
+select[data-form-opcoes-estado="carregando"] { cursor: progress; opacity: .7; }
+select[data-form-opcoes-estado="erro"] { border-color: #b91c1c; }

@@ -17,6 +17,7 @@ Referência completa com exemplos testados: `docs-src/pages/*.html` (ou `docs/in
 <script src="/js/alpine-form/alpine-form-bootstrap.min.js"></script>  <!-- só com data-form-ui="bootstrap" -->
 <script src="/js/alpine-form/alpine-form-rascunho.min.js"></script>   <!-- só se usar data-form-rascunho -->
 <script src="/js/alpine-form/alpine-form-lista.min.js"></script>      <!-- só se usar x-lista / data-form-lista -->
+<script src="/js/alpine-form/alpine-form-opcoes.min.js"></script>     <!-- só se usar data-form-opcoes -->
 <script src="/js/app.js"></script>                                    <!-- extensões, configure(), Alpine.data() -->
 <script defer src="/js/alpine.min.js"></script>                       <!-- SEMPRE por último, com defer -->
 ```
@@ -62,6 +63,7 @@ Checklist: `x-data` (no form ou ancestral) + `x-form` + `novalidate` + `name` em
 | Reagir a sucesso | `@form:success="..."` ou `form.addEventListener('form:success', ...)` |
 | Bootstrap 5 | módulo bootstrap + `data-form-ui="bootstrap"` |
 | Não perder o que foi digitado (rascunho) | módulo rascunho + `<form id="x" data-form-rascunho>`; `data-form-rascunho-sessao` para sumir ao fechar a aba; `data-form-rascunho-ignorar` no campo. Senha/sensível/arquivo nunca são guardados. Evite em dados pessoais/financeiros (ver `rascunho.html`) |
+| Select que depende de outro (UF → cidade) / opções da API | módulo opcoes + `<select name="cidade" data-form-opcoes="/api/cidades?uf={uf}"><option value="">…</option></select>`; edição: `<option selected>` do servidor ou `data-form-opcoes-selecionado`; ver `opcoes.html` |
 | Tabela/lista paginada vinda da API | módulo lista + `<section id="x" x-data x-lista data-lista-url="/api/...">` com `x-for="item in $lista.itens"`, `data-lista-filtros`, `data-lista-ordenar`, `<nav data-lista-paginacao>`, `data-lista-url-sincronizar`. Servidor: `page`/`per_page`/`sort`/`direction`, ordenação por lista branca (ver `lista.html`) |
 | Backend PHP sem framework (ou Joomla 3) | `php/alpine-form.php`: `Resposta::sucesso/invalido/erro`, `Entrada::ler()`, `Validador` (mesmas regras do HTML), `Consulta::ler($_GET, ['ordenaveis' => [...]])` para listagens; ver `php.html` |
 | Atualizar listas depois de cadastrar/excluir | `data-form-lista="idDaLista grupo"` no `<form>`; `data-lista-destacar` na lista para realçar `data.id` |

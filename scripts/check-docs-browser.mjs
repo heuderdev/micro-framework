@@ -50,6 +50,7 @@ for (const [index, block] of blocks.entries()) {
 <script src="/dist/alpine-form-bootstrap.js"></script>
 <script src="/dist/alpine-form-rascunho.js"></script>
 <script src="/dist/alpine-form-lista.js"></script>
+<script src="/dist/alpine-form-opcoes.js"></script>
 <script>${block.setup}</script>
 <script defer src="/vendor/alpine.min.js"></script>
 </head><body>${body}</body></html>`
@@ -60,6 +61,8 @@ for (const [index, block] of blocks.entries()) {
     page.on('console', m => {
         if ((m.type() === 'error' || m.type() === 'warning') && !/Failed to load resource/.test(m.text())) problems.push(`${m.type()}: ${m.text()}`)
     })
+    // endpoints fictícios usados nos exemplos de selects dependentes (opcoes.html): respondem lista vazia
+    await page.route(/\/api\/(ufs|cidades|bairros|categorias|produtos|empresas|filiais|turmas|bancos)(\?|$)/, route => route.fulfill({ contentType: 'application/json', body: '[]' }))
     await page.route(`${BASE}/__snippet`, route => route.fulfill({ contentType: 'text/html', body: html }))
     await page.goto(`${BASE}/__snippet`)
     await page.waitForTimeout(250)

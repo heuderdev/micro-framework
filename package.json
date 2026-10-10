@@ -14,6 +14,7 @@
     "./bootstrap": "./dist/alpine-form-bootstrap.esm.js",
     "./rascunho": "./dist/alpine-form-rascunho.esm.js",
     "./lista": "./dist/alpine-form-lista.esm.js",
+    "./opcoes": "./dist/alpine-form-opcoes.esm.js",
     "./css": "./css/alpine-form.css",
     "./src/*": "./src/*"
   },

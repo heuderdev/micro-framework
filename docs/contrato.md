@@ -82,6 +82,8 @@ Atributos de módulos (exigem o módulo carregado): `data-form-mask*`, `data-for
 
 No `<form>`, com o módulo `alpine-form-rascunho`: `data-form-rascunho` (validade em dias, padrão 7; exige `id` no form) e `data-form-rascunho-sessao` (usa `sessionStorage`). Eventos: `form:rascunho-restaurado` (`{ salvoEm, campos }`), `form:rascunho-salvo` (`{ campos }`), `form:rascunho-apagado`. API: `AlpineForm.rascunho.salvar|ler|descartar(formOuId)`.
 
+No `<select>`, com o módulo `alpine-form-opcoes`: `data-form-opcoes="/url?x={campo}"` (opções da API; `{campo}` = valor de envio do campo, codificado; mesma origem), `data-form-opcoes-valor`, `-texto`, `-grupo`, `-selecionado`, `-vazio`, `-debounce`, `-cache`, `-manter-habilitado`; o módulo escreve `data-form-opcoes-estado` (aguardando|carregando|pronto|erro). Respostas: array, `{ data }`, `{ success, data }`, mapa `{ valor: texto }`. Eventos: `form:opcoes-carregadas` (`{ name, total, url }`), `form:opcoes-erro` (`{ name, url, status }`). API: `AlpineForm.opcoes.recarregar|estado|limparCache`.
+
 No `<form>`, com o módulo `alpine-form-lista`: `data-form-lista="idOuGrupo ..."` — depois de `form:success`, recarrega as listas (`x-lista`) cujo `id` ou `data-lista-grupo` corresponda; se a resposta trouxer `data.id` e a lista tiver `data-lista-destacar`, essa chave fica em `$lista.destaque`. Listagens (GET): parâmetros `page`, `per_page`, `sort`, `direction` e filtros pelo `name`; respostas aceitas: Laravel Resource (`data` + `meta`), `paginate()`, `simplePaginate()`, `{ success, data: { itens, total, pagina, por_pagina } }`, `{ items, total }` ou array. Detalhes em `docs/lista.html`.
 
 ### Elementos auxiliares (dentro do form ou em contêiner com `data-form-for="idDoForm"`)

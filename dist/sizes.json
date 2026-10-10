@@ -40,5 +40,11 @@
     "min": 27955,
     "gzip": 8720,
     "esm": 43790
+  },
+  {
+    "module": "alpine-form-opcoes",
+    "min": 11402,
+    "gzip": 4139,
+    "esm": 18569
   }
 ]

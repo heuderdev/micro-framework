@@ -457,6 +457,42 @@ final class Api
         return $consulta->paginarArray($consulta->ordenarArray($clientes));
     }
 
+    /**
+     * Opções para selects dependentes (módulo alpine-form-opcoes): UFs (mapa sigla => nome), cidades por UF
+     * ({ data: [{ id, nome, regiao }] }) e bairros por cidade (lista de textos). ?ms=… atrasa; ?falhar=1 → 500.
+     *
+     * @param array<string, mixed> $query
+     * @return array<mixed>
+     */
+    public static function opcoesDemo(string $tipo, array $query): array
+    {
+        if (($query['falhar'] ?? '') === '1') {
+            throw new HttpError(500, 'Falha simulada ao carregar opções.');
+        }
+        usleep(max(0, min(5000, (int) ($query['ms'] ?? 0))) * 1000);
+        $cidades = [
+            'SP' => [[3550308, 'São Paulo', 'Capital'], [3509502, 'Campinas', 'Interior'], [3548500, 'Santos', 'Litoral'], [3543402, 'Ribeirão Preto', 'Interior']],
+            'RJ' => [[3304557, 'Rio de Janeiro', 'Capital'], [3303302, 'Niterói', 'Metropolitana'], [3301702, 'Duque de Caxias', 'Metropolitana']],
+            'MG' => [[3106200, 'Belo Horizonte', 'Capital'], [3170206, 'Uberlândia', 'Interior']],
+            'AC' => [],
+        ];
+        $bairros = [
+            3550308 => ['Sé', 'Mooca', 'Pinheiros', 'Vila Mariana'],
+            3509502 => ['Cambuí', 'Barão Geraldo'],
+            3304557 => ['Centro', 'Copacabana', 'Tijuca'],
+            3303302 => ['Icaraí', 'Ingá'],
+            3106200 => ['Savassi', 'Pampulha'],
+        ];
+        if ($tipo === 'ufs') {
+            return ['SP' => 'São Paulo', 'RJ' => 'Rio de Janeiro', 'MG' => 'Minas Gerais', 'AC' => 'Acre (sem cidades na demonstração)'];
+        }
+        if ($tipo === 'cidades') {
+            $uf = strtoupper((string) ($query['uf'] ?? ''));
+            return ['data' => array_map(static fn (array $c): array => ['id' => $c[0], 'nome' => $c[1], 'regiao' => $c[2]], $cidades[$uf] ?? [])];
+        }
+        return $bairros[(int) ($query['cidade'] ?? 0)] ?? [];
+    }
+
     /** Cadastro de demonstração: guarda o cliente na sessão para aparecer em /api/demo/clientes. */
     private function cadastrarClienteDemo(Request $request): array
     {
@@ -520,6 +556,10 @@ final class Api
                 return [200, self::listarClientes($request->query, (array) Session::get('clientes_extra', [])), []];
             case 'clientes-novo':
                 return $this->cadastrarClienteDemo($request);
+            case 'ufs':
+            case 'cidades':
+            case 'bairros':
+                return [200, self::opcoesDemo($scenario, $request->query), []];
             case 'lento':
                 usleep(max(0, min(10000, (int) ($request->query['ms'] ?? 2500))) * 1000);
                 return $this->ok(['recebido' => count($request->post)], 'Processado após espera.');

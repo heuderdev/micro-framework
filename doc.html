@@ -262,7 +262,7 @@ footer.end { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <p>O pacote não está publicado em registro público neste repositório; ele é construído localmente:</p>
 <pre><code>npm install
 npm run build        # gera dist/ (ESM, IIFE e IIFE minificado) via build.mjs (esbuild)</code></pre>
-<p>Arquivos gerados por módulo (<code>build.mjs</code>): <code>dist/&lt;nome&gt;.esm.js</code>, <code>dist/&lt;nome&gt;.js</code> e <code>dist/&lt;nome&gt;.min.js</code>, para <code>alpine-form</code>, <code>alpine-form-masks</code>, <code>alpine-form-chunks</code>, <code>alpine-form-inspectors</code>, <code>alpine-form-bootstrap</code>, <code>alpine-form-rascunho</code> e <code>alpine-form-lista</code>. CSS opcional em <code>css/alpine-form.css</code>.</p>
+<p>Arquivos gerados por módulo (<code>build.mjs</code>): <code>dist/&lt;nome&gt;.esm.js</code>, <code>dist/&lt;nome&gt;.js</code> e <code>dist/&lt;nome&gt;.min.js</code>, para <code>alpine-form</code>, <code>alpine-form-masks</code>, <code>alpine-form-chunks</code>, <code>alpine-form-inspectors</code>, <code>alpine-form-bootstrap</code>, <code>alpine-form-rascunho</code>, <code>alpine-form-lista</code> e <code>alpine-form-opcoes</code>. CSS opcional em <code>css/alpine-form.css</code>.</p>
 
 <h3 id="ordem-carregamento">Ordem de carregamento</h3>
 <p>Com <code>&lt;script&gt;</code> clássico, a ordem é obrigatória: núcleo → módulos opcionais → Alpine com <code>defer</code>. O motivo está em <code>src/cdn.js</code>: o núcleo define <code>window.AlpineForm</code> e registra o plugin no evento <code>alpine:init</code>; os módulos opcionais usam <code>window.AlpineForm</code>; o Alpine dispara <code>alpine:init</code> ao iniciar.</p>
@@ -354,7 +354,7 @@ php server/bin/worker.php     # outro terminal, apenas para o exemplo de process
 </g>
 <path class="svg-line" d="M450 180 V205 M10 205 H800 M100 205 V228 M275 205 V228 M450 205 V228 M625 205 V228 M800 205 V228"/>
 <path class="svg-line" d="M10 205 V300 H800 M100 300 V318 M275 300 V318 M450 300 V318 M625 300 V318 M800 300 V318"/>
-<text class="svg-small" x="450" y="405" text-anchor="middle">Módulos opcionais (masks, chunks, inspectors, bootstrap, rascunho, lista) usam apenas a API pública: AlpineForm.use(plugin) → registry / formHook</text>
+<text class="svg-small" x="450" y="405" text-anchor="middle">Módulos opcionais (masks, chunks, inspectors, bootstrap, rascunho, lista, opcoes) usam apenas a API pública: AlpineForm.use(plugin) → registry / formHook</text>
 </svg>
 <figcaption>Figura 1 — Componentes e dependências.</figcaption>
 </figure>
@@ -391,6 +391,7 @@ php server/bin/worker.php     # outro terminal, apenas para o exemplo de process
 <tr><td><code>src/chunks/</code></td><td><code>chunksPlugin</code>, <code>ChunkExtension</code>, <code>ChunkUpload</code></td><td>Módulo opcional de upload em partes</td></tr>
 <tr><td><code>src/inspectors/</code></td><td><code>inspectorsPlugin</code>, <code>inspectCsv</code>, <code>inspectJson</code>…</td><td>Módulo opcional de inspeção de arquivos</td></tr>
 <tr><td><code>src/rascunho/</code></td><td><code>rascunhoPlugin</code>, <code>RascunhoExtension</code></td><td>Módulo opcional de rascunho: <code>formHook</code> que salva os campos (exceto senha, sensíveis, arquivos e <code>data-form-rascunho-ignorar</code>) após <code>form:change</code>, restaura em <code>form:ready</code> com <code>setValue(…, { silent: true })</code>, apaga em <code>form:success</code>/<code>form:reset</code>; respeita <code>storageAllowed</code></td></tr>
+<tr><td><code>src/opcoes/</code></td><td><code>opcoesPlugin</code>, <code>OpcoesExtension</code>, <code>SelectRemoto</code>, <code>extrairItens</code>, <code>normalizarOpcoes</code></td><td>Módulo opcional de selects dependentes: <code>formHook</code> que acompanha selects com <code>data-form-opcoes</code> (inclusive os adicionados depois), monta a URL com os valores de envio das dependências (mesma origem), carrega pelo transporte registrado com <code>AbortController</code> e token (respostas antigas descartadas), cache em memória por URL, cria <code>&lt;option&gt;</code>/<code>&lt;optgroup&gt;</code> com <code>data-form-generated</code> e <code>textContent</code>, e aplica o valor por <code>controller.setValue</code> (propaga a cadeia). Só desabilita/reabilita o que ele próprio desabilitou.</td></tr>
 <tr><td><code>src/lista/</code></td><td><code>listaPlugin</code>, <code>adaptadorPadrao</code>, <code>janelaDePaginas</code></td><td>Módulo opcional de listagens: diretiva <code>x-lista</code> e mágica <code>$lista</code> registradas via <code>AlpineForm.alpine(setup)</code>; estado reativo (itens, página, ordem, filtros, seleção), requisições GET com <code>AbortController</code> e descarte de respostas antigas, URL sincronizada com <code>history</code>, paginação gerada com <code>data-form-generated</code>; escuta <code>form:success</code> para atualizar listas indicadas em <code>data-form-lista</code>.</td></tr>
 </tbody></table></div>
 

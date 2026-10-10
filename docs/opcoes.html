@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selects dependentes · AlpineForm</title>
+<meta name="description" content="Opções de um select vindas da API e que dependem de outros campos — UF → cidade → bairro, categoria → produto, empresa → filial — só com atributos. Requer alpine-form-opcoes.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Formulários › Selects dependentes</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="opcoes.html" class="ativo" aria-current="page" data-busca="select dependente cascata uf cidade bairro opções remotas api carregar combo categoria produto">Selects dependentes</a><a href="rascunho.html" data-busca="rascunho localstorage sessionstorage salvar recuperar restaurar perder dados recarregar">Rascunho automático</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Listagens</div><a href="lista.html" data-busca="tabela lista paginação paginar ordenar ordenação filtros busca pesquisa debounce url seleção lote carregar mais rolagem infinita data-form-lista atualizar recarregar laravel paginate">Listagens (x-lista)</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="seguranca.html" data-busca="csp unsafe-eval trusted types banco regulado log console storage localstorage privacidade lgpd pci">Segurança</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><a href="php.html" data-busca="php helpers resposta entrada validador consulta csrf paginação ordenação lista branca sql joomla 3 php 7 pdo">Helpers PHP</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Selects dependentes</h1>
+<p class="lead">Opções de um select vindas da API e que dependem de outros campos — UF → cidade → bairro, categoria → produto, empresa → filial — só com atributos. Requer alpine-form-opcoes.</p>
+<div id="nesta-pagina"></div>
+<h2 id="instalacao" data-titulo="Instalação">Instalação</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;script src=&quot;/js/alpine-form/alpine-form.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-opcoes.min.js&quot;&gt;&lt;/script&gt;   &lt;!-- depois do núcleo --&gt;
+&lt;script defer src=&quot;/js/alpine.min.js&quot;&gt;&lt;/script&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">ESM</div><pre><code data-lang="js">import opcoes from 'alpine-form/opcoes'
+AlpineForm.use(opcoes)</code></pre></div>
+<p>Exemplo executável: <code>examples/opcoes.php</code>.</p>
+
+<h2 id="cadeia" data-titulo="UF → cidade → bairro">UF → cidade → bairro</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/enderecos&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;select name=&quot;uf&quot; data-form-opcoes=&quot;/api/ufs&quot; data-form-v=&quot;required&quot;&gt;
+        &lt;option value=&quot;&quot;&gt;Selecione&lt;/option&gt;
+    &lt;/select&gt;
+
+    &lt;select name=&quot;cidade&quot; data-form-opcoes=&quot;/api/cidades?uf={uf}&quot; data-form-v=&quot;required&quot;&gt;
+        &lt;option value=&quot;&quot;&gt;Escolha a UF primeiro&lt;/option&gt;
+    &lt;/select&gt;
+
+    &lt;select name=&quot;bairro&quot; data-form-opcoes=&quot;/api/bairros?cidade={cidade}&quot;&gt;
+        &lt;option value=&quot;&quot;&gt;Escolha a cidade primeiro&lt;/option&gt;
+    &lt;/select&gt;
+    &lt;button type=&quot;submit&quot;&gt;Salvar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<ol class="passos">
+    <li>Ao abrir, <code>uf</code> busca <code>/api/ufs</code> (não depende de ninguém).</li>
+    <li><code>{uf}</code> é trocado pelo valor do campo <code>uf</code>. Enquanto ele estiver vazio, <code>cidade</code> fica sem opções e <strong>desabilitado</strong> (campo desabilitado não valida nem é enviado).</li>
+    <li>Escolheu a UF: <code>cidade</code> busca <code>/api/cidades?uf=SP</code>. Trocou a UF: a lista antiga some na hora, a requisição anterior é cancelada e a resposta antiga nunca sobrescreve a nova.</li>
+    <li>Se o valor escolhido não existe na lista nova, o campo é limpo — e isso limpa o <code>bairro</code>. A cadeia se propaga sozinha.</li>
+    <li>A <code>&lt;option value=""&gt;</code> escrita no HTML é o placeholder: fica sempre.</li>
+</ol>
+
+<h2 id="servidor" data-titulo="O que o servidor responde">O que o servidor responde</h2>
+<div class="tabela"><table><thead><tr><th>Formato</th><th>Exemplo</th></tr></thead><tbody>
+<tr><td>Lista de objetos</td><td><code>[{ "id": 3550308, "nome": "São Paulo" }, …]</code></td></tr>
+<tr><td>Laravel / Resource</td><td><code>{ "data": [{ "id": 1, "name": "…" }] }</code></td></tr>
+<tr><td>Contrato AlpineForm / Joomla</td><td><code>{ "success": true, "data": [...] }</code> ou <code>{ "success": true, "data": { "opcoes": [...] } }</code> (também <code>itens</code>, <code>items</code>, <code>options</code>)</td></tr>
+<tr><td>Mapa valor → texto</td><td><code>{ "SP": "São Paulo", "RJ": "Rio de Janeiro" }</code></td></tr>
+<tr><td>Lista de textos</td><td><code>["Sé", "Mooca", "Pinheiros"]</code> (valor = texto)</td></tr>
+</tbody></table></div>
+<p>Em objetos, o valor é lido de <code>value</code>, <code>id</code>, <code>codigo</code>, <code>sigla</code> ou <code>key</code>; o texto, de <code>label</code>, <code>text</code>, <code>nome</code>, <code>name</code>, <code>descricao</code> ou <code>titulo</code>. Para outros nomes:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;select name=&quot;categoria&quot; data-form-opcoes=&quot;/api/categorias&quot;&gt;&lt;option value=&quot;&quot;&gt;Categoria&lt;/option&gt;&lt;/select&gt;
+&lt;select name=&quot;produto&quot; data-form-opcoes=&quot;/api/produtos?categoria={categoria}&quot;
+        data-form-opcoes-valor=&quot;sku&quot; data-form-opcoes-texto=&quot;descricao_curta&quot;&gt;&lt;/select&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">PHP puro</div><pre><code data-lang="php">&lt;?php
+// /api/cidades?uf=SP — valide o parâmetro: ele vem da URL
+$uf = strtoupper($_GET['uf'] ?? '');
+if (!preg_match('/^[A-Z]{2}$/', $uf)) { http_response_code(422); exit; }
+$st = $pdo-&gt;prepare('SELECT id, nome FROM cidades WHERE uf = ? ORDER BY nome');
+$st-&gt;execute([$uf]);
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode($st-&gt;fetchAll(PDO::FETCH_ASSOC), JSON_UNESCAPED_UNICODE);</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Laravel</div><pre><code data-lang="php">Route::get('/api/cidades', fn (Request $r) =&gt;
+    Cidade::where('uf', $r-&gt;validate(['uf' =&gt; 'required|size:2'])['uf'])-&gt;orderBy('nome')-&gt;get(['id', 'nome'])
+);</code></pre></div>
+<div class="nota aviso"><p>O usuário pode chamar o endpoint com qualquer parâmetro e enviar qualquer valor no formulário. No salvamento, confira de novo que a cidade pertence à UF (<code>Validador::em()</code> nos <a href="php.html#validador">Helpers PHP</a>, <code>Rule::exists</code> no Laravel).</p></div>
+
+<h2 id="edicao" data-titulo="Formulário de edição">Formulário de edição (valores já salvos)</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;select name=&quot;uf&quot; data-form-opcoes=&quot;/api/ufs&quot;&gt;
+    &lt;option value=&quot;&quot;&gt;Selecione&lt;/option&gt;
+    &lt;option value=&quot;RJ&quot; selected&gt;Rio de Janeiro&lt;/option&gt;        &lt;!-- renderizado pelo servidor: aparece antes do JS --&gt;
+&lt;/select&gt;
+&lt;select name=&quot;cidade&quot; data-form-opcoes=&quot;/api/cidades?uf={uf}&quot; data-form-opcoes-selecionado=&quot;3303302&quot;&gt;
+    &lt;option value=&quot;&quot;&gt;Escolha a UF primeiro&lt;/option&gt;
+&lt;/select&gt;
+&lt;select name=&quot;bairro&quot; data-form-opcoes=&quot;/api/bairros?cidade={cidade}&quot; data-form-opcoes-selecionado=&quot;Icaraí&quot;&gt;
+    &lt;option value=&quot;&quot;&gt;Escolha a cidade primeiro&lt;/option&gt;
+&lt;/select&gt;</code></pre></div>
+<p>O valor inicial é o de <code>data-form-opcoes-selecionado</code> ou o da <code>&lt;option selected&gt;</code> que o servidor renderizou. As listas carregam em cadeia e cada valor é selecionado quando a sua lista chega. As opções estáticas com valor são substituídas pela lista da API na primeira carga.</p>
+
+<h2 id="dependencias" data-titulo="Outras dependências">Outras dependências</h2>
+<ul>
+    <li><strong>Vários campos:</strong> <code>data-form-opcoes="/api/turmas?curso={curso}&amp;turno={turno}"</code> — só busca quando todos estiverem preenchidos.</li>
+    <li><strong>Campo de texto</strong> (código, CEP): espera a digitação parar (<code>data-form-opcoes-debounce</code>, padrão 250 ms). Selects, radios e checkboxes buscam na hora.</li>
+    <li><strong>Nomes com colchetes:</strong> <code>{endereco[uf]}</code> ou <code>{endereco.uf}</code>.</li>
+    <li><strong>Campo com máscara:</strong> vai o valor de envio (CPF sem pontos, moeda como <code>1234.50</code>).</li>
+    <li><strong>Sem dependência:</strong> <code>data-form-opcoes="/api/bancos"</code> só carrega a lista uma vez ao abrir.</li>
+</ul>
+
+<h2 id="linhas" data-titulo="Em linhas repetidas (x-for)">Em linhas repetidas (x-for)</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;{ linhas: [1] }&quot; x-form action=&quot;/api/pedido&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;template x-for=&quot;(n, i) in linhas&quot; :key=&quot;n&quot;&gt;
+        &lt;div&gt;
+            &lt;select :name=&quot;'itens[' + i + '][categoria]'&quot; data-form-opcoes=&quot;/api/categorias&quot;&gt;&lt;option value=&quot;&quot;&gt;Categoria&lt;/option&gt;&lt;/select&gt;
+            &lt;select :name=&quot;'itens[' + i + '][produto]'&quot; :data-form-opcoes=&quot;'/api/produtos?categoria={itens[' + i + '][categoria]}'&quot;&gt;
+                &lt;option value=&quot;&quot;&gt;Produto&lt;/option&gt;
+            &lt;/select&gt;
+        &lt;/div&gt;
+    &lt;/template&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;linhas.push(linhas.length + 1)&quot;&gt;Adicionar item&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<p>Cada linha tem a sua cadeia. Linhas adicionadas depois são reconhecidas sozinhas; linhas removidas liberam requisições e listeners.</p>
+
+<h2 id="grupos" data-titulo="Grupos, vazio e múltiplo">Grupos, lista vazia e select múltiplo</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;select name=&quot;uf&quot; data-form-opcoes=&quot;/api/ufs&quot;&gt;&lt;option value=&quot;&quot;&gt;UF&lt;/option&gt;&lt;/select&gt;
+&lt;select name=&quot;cidade&quot; data-form-opcoes=&quot;/api/cidades?uf={uf}&quot;
+        data-form-opcoes-grupo=&quot;regiao&quot;
+        data-form-opcoes-vazio=&quot;Nenhuma cidade para esta UF&quot;&gt;
+    &lt;option value=&quot;&quot;&gt;Escolha a UF&lt;/option&gt;
+&lt;/select&gt;
+
+&lt;select name=&quot;empresa&quot; data-form-opcoes=&quot;/api/empresas&quot;&gt;&lt;option value=&quot;&quot;&gt;Empresa&lt;/option&gt;&lt;/select&gt;
+&lt;select name=&quot;filiais[]&quot; multiple data-form-opcoes=&quot;/api/filiais?empresa={empresa}&quot;&gt;&lt;/select&gt;</code></pre></div>
+<ul>
+    <li><code>data-form-opcoes-grupo="regiao"</code> agrupa em <code>&lt;optgroup&gt;</code> pelo campo indicado.</li>
+    <li><code>data-form-opcoes-vazio</code>: texto de uma opção desabilitada quando a API devolve lista vazia (o select também fica desabilitado).</li>
+    <li>Select múltiplo mantém os valores que continuam existindo na nova lista.</li>
+</ul>
+
+<h2 id="estados" data-titulo="Carregando e erro">Carregando e erro</h2>
+<div class="codigo"><pre><code data-lang="css">select[data-form-opcoes-estado=&quot;carregando&quot;] { cursor: progress; opacity: .7; }   /* já em alpine-form.css */
+select[data-form-opcoes-estado=&quot;erro&quot;] { border-color: #b91c1c; }</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;{ falhou: false }&quot; x-form @form:opcoes-erro=&quot;falhou = true&quot; @form:opcoes-carregadas=&quot;falhou = false&quot; novalidate&gt;
+    &lt;select name=&quot;uf&quot; data-form-opcoes=&quot;/api/ufs&quot;&gt;&lt;option value=&quot;&quot;&gt;UF&lt;/option&gt;&lt;/select&gt;
+    &lt;p x-show=&quot;falhou&quot; role=&quot;alert&quot;&gt;Não foi possível carregar as opções. &lt;button type=&quot;button&quot; @click=&quot;AlpineForm.opcoes.recarregar($el.closest('form'))&quot;&gt;Tentar de novo&lt;/button&gt;&lt;/p&gt;
+&lt;/form&gt;</code></pre></div>
+<ul>
+    <li><code>data-form-opcoes-estado</code>: <code>aguardando</code> (falta dependência), <code>carregando</code>, <code>pronto</code> ou <code>erro</code>. Durante a carga o select tem <code>aria-busy="true"</code>.</li>
+    <li>Em erro (rede, HTTP, resposta que não é JSON ou formato desconhecido) o select volta a ficar habilitado, sem opções; o erro vai ao console (respeita <code>data-form-log="none"</code>).</li>
+    <li>Eventos no form: <code>form:opcoes-carregadas</code> (<code>{ name, total, url }</code>) e <code>form:opcoes-erro</code> (<code>{ name, url, status }</code>).</li>
+    <li>Um select desabilitado pelo seu HTML ou pelo Alpine nunca é reabilitado pelo módulo. Para não desabilitar enquanto espera: <code>data-form-opcoes-manter-habilitado</code>.</li>
+</ul>
+
+<h2 id="cache" data-titulo="Cache">Cache</h2>
+<p>As listas ficam na memória da página por URL (até 100): voltar para uma UF já escolhida não repete a requisição, e vários selects com a mesma URL compartilham a resposta. Nada é gravado em <code>localStorage</code>. Desligue com <code>data-form-opcoes-cache="false"</code> (dados que mudam a todo momento) ou force: <code>AlpineForm.opcoes.recarregar(form, 'cidade')</code>; <code>AlpineForm.opcoes.limparCache()</code> esvazia tudo.</p>
+
+<h2 id="referencia" data-titulo="Referência">Referência</h2>
+<div class="tabela"><table><thead><tr><th>Atributo (no select)</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-opcoes</code></td><td>obrigatório</td><td>URL (mesma origem) com <code>{campo}</code> para cada dependência.</td></tr>
+<tr><td><code>data-form-opcoes-valor</code> · <code>data-form-opcoes-texto</code></td><td>automático</td><td>Campos do item usados como valor e texto.</td></tr>
+<tr><td><code>data-form-opcoes-grupo</code></td><td>—</td><td>Campo do item que agrupa em <code>&lt;optgroup&gt;</code>.</td></tr>
+<tr><td><code>data-form-opcoes-selecionado</code></td><td>—</td><td>Valor a selecionar na primeira carga (edição).</td></tr>
+<tr><td><code>data-form-opcoes-vazio</code></td><td>—</td><td>Texto mostrado quando a lista vem vazia.</td></tr>
+<tr><td><code>data-form-opcoes-debounce</code></td><td>250ms</td><td>Espera quando a dependência é um campo de texto.</td></tr>
+<tr><td><code>data-form-opcoes-cache</code></td><td>true</td><td><code>false</code> busca sempre.</td></tr>
+<tr><td><code>data-form-opcoes-manter-habilitado</code></td><td>false</td><td>Não desabilita enquanto espera/carrega.</td></tr>
+</tbody></table></div>
+<p>Global: <code>AlpineForm.opcoes.recarregar(formOuId, nome?)</code>, <code>AlpineForm.opcoes.estado(formOuId, nome)</code> (<code>{ carregando, erro, url }</code>), <code>AlpineForm.opcoes.limparCache()</code>. Mensagem: <code>AlpineForm.messages['opcoes.erro']</code>.</p>
+<p>Erros de configuração bloqueiam o envio e aparecem no console: <code>{campo}</code> inexistente, URL de outra origem (use um endpoint do próprio site como proxy), atributo fora de <code>&lt;select&gt;</code>, duração inválida, select que depende dele mesmo.</p>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="mascaras.html"><small>← Anterior</small>Máscaras</a><a class="proxima" href="rascunho.html"><small>Próxima →</small>Rascunho automático</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

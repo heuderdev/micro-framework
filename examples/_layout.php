@@ -13,7 +13,7 @@ Session::release();
 /**
  * Cabeçalho comum dos exemplos. Ordem de carregamento obrigatória:
  *   1. alpine-form(.min).js  2. módulos opcionais  3. Alpine com defer
- * @param array{masks?: bool, chunks?: bool, inspectors?: bool, bootstrap?: bool, rascunho?: bool, lista?: bool, esm?: bool} $modules
+ * @param array{masks?: bool, chunks?: bool, inspectors?: bool, bootstrap?: bool, rascunho?: bool, lista?: bool, opcoes?: bool, esm?: bool} $modules
  */
 function layout_start(string $title, string $intro, array $modules = []): void
 {
@@ -43,6 +43,7 @@ function layout_start(string $title, string $intro, array $modules = []): void
     <?php if ($bootstrap): ?><script src="/dist/alpine-form-bootstrap.js"></script><?php endif; ?>
     <?php if (!empty($modules['rascunho'])): ?><script src="/dist/alpine-form-rascunho.js"></script><?php endif; ?>
     <?php if (!empty($modules['lista'])): ?><script src="/dist/alpine-form-lista.js"></script><?php endif; ?>
+    <?php if (!empty($modules['opcoes'])): ?><script src="/dist/alpine-form-opcoes.js"></script><?php endif; ?>
     <script defer src="/vendor/alpine.min.js"></script>
     <?php endif; ?>
 </head>

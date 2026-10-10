@@ -30,6 +30,7 @@ const PAGES = [
     { arquivo: 'condicionais', menu: 'Condicionais e dependências', busca: 'required_if x-show x-if hidden skip dependente confirmação senha same' },
     { arquivo: 'validacao-remota', menu: 'Validação remota', busca: 'remote servidor e-mail disponível cache inconclusivo debounce' },
     { arquivo: 'mascaras', menu: 'Máscaras', busca: 'cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical' },
+    { arquivo: 'opcoes', menu: 'Selects dependentes', busca: 'select dependente cascata uf cidade bairro opções remotas api carregar combo categoria produto' },
     { arquivo: 'rascunho', menu: 'Rascunho automático', busca: 'rascunho localstorage sessionstorage salvar recuperar restaurar perder dados recarregar' },
     { arquivo: 'listas-dinamicas', menu: 'Listas e DOM dinâmico', busca: 'x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh' },
     { grupo: 'Listagens' },
