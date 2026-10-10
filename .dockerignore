@@ -1,0 +1,10 @@
+node_modules
+.git
+test-results
+playwright-report
+server/storage
+dist
+tests
+examples
+src
+docs/*.html

@@ -111,7 +111,7 @@ for (const [index, page] of pages.entries()) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escape(meta.titulo)} · AlpineForm</title>
+<title>${meta.titulo === 'AlpineForm' ? 'AlpineForm · documentação' : `${escape(meta.titulo)} · AlpineForm`}</title>
 <meta name="description" content="${escape(plainLead)}">
 <link rel="stylesheet" href="assets/docs.css">
 <script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>

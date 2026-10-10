@@ -1,0 +1,8 @@
+services:
+  docs:
+    build: .
+    image: alpineform-docs
+    container_name: alpineform-docs
+    ports:
+      - "1900:1900"
+    restart: unless-stopped

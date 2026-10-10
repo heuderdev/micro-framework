@@ -123,6 +123,7 @@ php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 | `npm run test:e2e` | 44 testes Playwright no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
 | `npm run test:all` | build + os três acima | |
 | `npm run docs:check` | gera `docs/*.html` a partir de `docs-src/` e confere atributos, regras, máscaras, métodos e links de todos os exemplos contra a biblioteca | estático |
+| `npm run docs:serve` | gera e serve a documentação em `http://localhost:1900` (técnica em `/tecnica`); no Windows também `docs-servidor.bat` | servidor |
 | `npm run docs:browser` | carrega cada exemplo HTML da documentação no Chrome (servidor em 127.0.0.1:8099) | navegador real |
 
 Último resultado executado (2026-10-09): unitários 168/168, PHP 28/28 (PHP 8.4.2), E2E 44/44 (Chrome).
@@ -130,6 +131,17 @@ php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 O Playwright usa `channel: 'chrome'` (Chrome instalado). Para usar o Chromium do Playwright: `npx playwright install chromium` e `PW_CHANNEL= npm run test:e2e`.
 
 Tamanho (minificado / gzip): núcleo 143,8 / 44,9 KiB; máscaras 21,7 / 7,8; chunks 19,5 / 6,7; inspetores 9,1 / 3,7; Bootstrap 1,6 / 0,8.
+
+## Documentação em Docker (porta 1900)
+
+```bash
+docker compose up -d --build          # http://localhost:1900  ·  técnica: http://localhost:1900/tecnica
+docker compose logs -f docs
+docker compose down
+```
+
+Sem Compose: `docker build -t alpineform-docs . && docker run -d -p 1900:1900 --restart unless-stopped alpineform-docs`.
+O build gera as páginas a partir de `docs-src/` (Node) e serve com nginx (`docker/nginx-docs.conf`). A imagem contém só a documentação, não a biblioteca nem o backend PHP dos exemplos.
 
 ## Exemplos
 
