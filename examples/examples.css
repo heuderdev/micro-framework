@@ -224,3 +224,5 @@ dl.metrics dt {
 /* CRUD: botões de ação na linha */
 .acoes { white-space: nowrap; }
 .acoes form { display: inline; margin: 0; padding: 0; border: 0; box-shadow: none; background: none; }
+
+.erro-exportacao { color: #b91c1c; }

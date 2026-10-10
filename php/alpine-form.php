@@ -8,6 +8,7 @@
  *   use AlpineForm\Helpers\Validador;
  *   use AlpineForm\Helpers\Consulta;
  *   use AlpineForm\Helpers\Csrf;
+ *   use AlpineForm\Helpers\Csv;
  *
  * Resposta  — JSON no contrato do AlpineForm (sucesso, 422 com erros por campo, erro geral, 202 com job).
  * Entrada   — lê o corpo (JSON, urlencoded ou multipart) e campos aninhados ("itens.0.nome").
@@ -15,6 +16,7 @@
  * Consulta  — parâmetros de listagem (page, per_page, sort, direction, filtros) com lista branca e limites,
  *             e a resposta no formato que o módulo x-lista lê.
  * Csrf      — token por sessão para <meta name="csrf-token"> e conferência do cabeçalho X-CSRF-TOKEN.
+ * Csv       — exportação CSV em fluxo (abre certo no Excel, protegida contra injeção de fórmulas).
  *
  * Nada aqui monta SQL com texto do usuário: ordenação só por colunas da lista branca, paginação só com inteiros.
  */
@@ -907,6 +909,170 @@ final class Consulta
             return $padrao;
         }
         return max($min, min($max, (int) $v));
+    }
+}
+
+/**
+ * Exportação CSV (botões data-lista-exportar do x-lista).
+ *
+ *   $c = Consulta::ler($_GET, ['ordenaveis' => [...], 'ordem' => 'nome']);    // filtros e ordem, sem paginação
+ *   $linhas = $pdo->prepare("SELECT id, nome, email FROM clientes WHERE ... ORDER BY " . $c->sqlOrdem('id'));
+ *   $linhas->execute($params);
+ *   Csv::enviar('clientes.csv', ['id' => 'Código', 'nome' => 'Nome', 'email' => 'E-mail'], $linhas);
+ *
+ * $linhas pode ser array, PDOStatement, gerador (yield) ou qualquer Traversable de arrays/objetos: as linhas
+ * são escritas uma a uma (não carrega a tabela inteira na memória).
+ * Padrões pensados para o Excel em português: separador ";", BOM UTF-8 (acentos corretos), quebra "\r\n".
+ * Células que começam com = + - @ (e tab/CR) recebem um apóstrofo na frente, para o Excel não executar
+ * fórmulas vindas de dados digitados por usuários (CSV/formula injection). Números negativos não são alterados.
+ */
+final class Csv
+{
+    const PADRAO = ['separador' => ';', 'bom' => true, 'protegerFormulas' => true, 'cabecalho' => true];
+
+    /**
+     * Escreve o CSV em um recurso aberto (php://output, php://temp, arquivo).
+     *
+     * @param resource $saida
+     * @param array $colunas ['chave' => 'Título'] ou ['chave1', 'chave2'] (título = chave)
+     * @param array|\Traversable $linhas
+     * @return int quantidade de linhas de dados escritas
+     */
+    public static function escrever($saida, array $colunas, $linhas, array $opcoes = [])
+    {
+        $desconhecidas = array_diff(array_keys($opcoes), array_keys(self::PADRAO));
+        if ($desconhecidas) {
+            throw new \InvalidArgumentException('Csv: opção desconhecida "' . implode('", "', $desconhecidas) . '".');
+        }
+        if (!is_array($linhas) && !($linhas instanceof \Traversable)) {
+            throw new \InvalidArgumentException('Csv: $linhas deve ser array ou Traversable (PDOStatement, gerador...).');
+        }
+        $o = array_merge(self::PADRAO, $opcoes);
+        if (!is_string($o['separador']) || strlen($o['separador']) !== 1 || strpos("\"\r\n", $o['separador']) !== false) {
+            throw new \InvalidArgumentException('Csv: separador deve ser um único caractere (ex.: ";", ",", "\t").');
+        }
+        $mapa = [];
+        foreach ($colunas as $chave => $titulo) {
+            if (is_int($chave)) {
+                $mapa[(string) $titulo] = (string) $titulo;
+            } else {
+                $mapa[(string) $chave] = (string) $titulo;
+            }
+        }
+        if (!$mapa) {
+            throw new \InvalidArgumentException('Csv: informe ao menos uma coluna.');
+        }
+        if ($o['bom']) {
+            fwrite($saida, "\xEF\xBB\xBF");
+        }
+        if ($o['cabecalho']) {
+            fwrite($saida, self::linha(array_values($mapa), $o['separador'], $o['protegerFormulas']));
+        }
+        $total = 0;
+        foreach ($linhas as $linha) {
+            $valores = [];
+            foreach (array_keys($mapa) as $chave) {
+                if (is_array($linha)) {
+                    $valores[] = array_key_exists($chave, $linha) ? $linha[$chave] : null;
+                } elseif (is_object($linha)) {
+                    $valores[] = isset($linha->$chave) ? $linha->$chave : null;
+                } else {
+                    $valores[] = null;
+                }
+            }
+            fwrite($saida, self::linha($valores, $o['separador'], $o['protegerFormulas']));
+            $total++;
+            if ($total % 1000 === 0) {
+                fflush($saida);
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * Envia o CSV como download e encerra (Resposta::$semExit = true para não encerrar).
+     * Para exportações grandes, aumente o tempo limite antes (set_time_limit(300)) e, se a página tiver
+     * buffer de saída ativo (ob_start, alguns frameworks), descarte-o antes para o arquivo sair em fluxo.
+     */
+    public static function enviar($nomeArquivo, array $colunas, $linhas, array $opcoes = [])
+    {
+        $nome = self::nomeSeguro($nomeArquivo);
+        if (!headers_sent()) {
+            http_response_code(200);
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $nome . '"; filename*=UTF-8\'\'' . rawurlencode($nome));
+            header('Cache-Control: no-store');
+            header('X-Content-Type-Options: nosniff');
+        }
+        $saida = fopen('php://output', 'wb');
+        $total = self::escrever($saida, $colunas, $linhas, $opcoes);
+        fclose($saida);
+        if (!Resposta::$semExit) {
+            exit;
+        }
+        return $total;
+    }
+
+    /** CSV completo como texto (testes, anexos de e-mail, frameworks que esperam o corpo pronto). */
+    public static function texto(array $colunas, $linhas, array $opcoes = [])
+    {
+        $mem = fopen('php://temp', 'w+b');
+        self::escrever($mem, $colunas, $linhas, $opcoes);
+        rewind($mem);
+        $conteudo = stream_get_contents($mem);
+        fclose($mem);
+        return $conteudo;
+    }
+
+    /** Uma linha RFC 4180 (aspas duplicadas; aspas quando há separador, aspas ou quebra de linha). */
+    public static function linha(array $valores, $separador = ';', $protegerFormulas = true)
+    {
+        $celulas = [];
+        foreach ($valores as $valor) {
+            $texto = self::celula($valor, $protegerFormulas);
+            if ($texto !== '' && strpbrk($texto, $separador . "\"\r\n") !== false) {
+                $texto = '"' . str_replace('"', '""', $texto) . '"';
+            }
+            $celulas[] = $texto;
+        }
+        return implode($separador, $celulas) . "\r\n";
+    }
+
+    public static function celula($valor, $protegerFormulas = true)
+    {
+        if ($valor === null) {
+            return '';
+        }
+        if (is_bool($valor)) {
+            return $valor ? '1' : '0';
+        }
+        if ($valor instanceof \DateTimeInterface) {
+            return $valor->format('Y-m-d H:i:s');
+        }
+        if (is_array($valor) || (is_object($valor) && !method_exists($valor, '__toString'))) {
+            return '';
+        }
+        $texto = (string) $valor;
+        if ($protegerFormulas && $texto !== '' && strpos("=+-@\t\r", $texto[0]) !== false && !is_numeric($texto)) {
+            $texto = "'" . $texto;
+        }
+        return $texto;
+    }
+
+    /** Nome de arquivo seguro para o cabeçalho (sem caminho, aspas ou caracteres de controle). */
+    public static function nomeSeguro($nome)
+    {
+        $nome = basename(str_replace('\\', '/', (string) $nome));
+        $nome = preg_replace('/[^A-Za-z0-9._-]+/', '-', $nome);
+        $nome = preg_replace(['/-+/', '/-\./'], ['-', '.'], $nome);
+        $nome = trim($nome, ' .-');
+        if ($nome === '') {
+            $nome = 'exportacao';
+        }
+        if (!preg_match('/\.[A-Za-z0-9]{2,5}$/', $nome)) {
+            $nome .= '.csv';
+        }
+        return substr($nome, 0, 150);
     }
 }
 

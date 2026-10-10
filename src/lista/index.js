@@ -28,6 +28,7 @@ const MENSAGENS = {
     'lista.pagina': 'Página :pagina',
     'lista.navegacao': 'Paginação',
     'lista.selecionados': ':total selecionado(s)',
+    'lista.exportar_erro': 'Não foi possível gerar o arquivo. Tente novamente.',
 }
 
 const PARAMETROS_PADRAO = { pagina: 'page', porPagina: 'per_page', ordem: 'sort', direcao: 'direction' }
@@ -188,6 +189,21 @@ class Lista {
         // atualização disparada por formulários (data-form-lista) ou por AlpineForm.lista.atualizar()
         const aoAtualizar = attr('ao-atualizar') || 'recarregar'
         if (!['recarregar', 'inicio'].includes(aoAtualizar)) throw new ConfigError(`data-lista-ao-atualizar="${aoAtualizar}" inválido. Use "recarregar" ou "inicio".`)
+        // exportação (CSV): uma URL para "com os filtros atuais" e outra para "tudo, sem filtro nem paginação"
+        const exportarModo = attr('exportar-modo') || 'baixar'
+        if (!['baixar', 'direto'].includes(exportarModo)) throw new ConfigError(`data-lista-exportar-modo="${exportarModo}" inválido. Use "baixar" ou "direto".`)
+        this.config.exportar = {
+            filtro: attr('exportar-url') ? String(attr('exportar-url')) : null,
+            completo: attr('exportar-completo-url') ? String(attr('exportar-completo-url')) : null,
+            modo: exportarModo,
+            timeout: lerDuracao(attr('exportar-timeout'), 120000, ConfigError, 'data-lista-exportar-timeout'),
+        }
+        for (const [tipo, endereco] of Object.entries({ filtro: this.config.exportar.filtro, completo: this.config.exportar.completo })) {
+            if (endereco && new URL(endereco, globalThis.location?.href).origin !== globalThis.location?.origin) {
+                throw new ConfigError(`data-lista-exportar${tipo === 'completo' ? '-completo' : ''}-url aponta para outra origem. Use um endpoint do próprio site.`)
+            }
+        }
+        this.exportacao = null
         this.config.grupos = String(attr('grupo') || '').split(/[\s,]+/).filter(Boolean)
         this.config.aoAtualizar = aoAtualizar
         const destacar = attr('destacar')
@@ -246,6 +262,8 @@ class Lista {
             filtros: {},
             selecionados: [],
             destaque: null,
+            exportando: null,
+            erroExportacao: null,
             get vazio() {
                 return this.carregado && !this.carregando && !this.erro && this.itens.length === 0
             },
@@ -298,6 +316,8 @@ class Lista {
             selecionado: chave => this.state.selecionados.includes(this.normalizarChave(chave)),
             itensSelecionados: () => this.state.itens.filter(item => this.state.selecionados.includes(this.chaveDe(item))),
             urlCom: base => this.urlCom(base),
+            exportar: tipo => this.exportar(tipo),
+            urlExportacao: tipo => this.urlExportacao(tipo),
         }
     }
 
@@ -493,7 +513,7 @@ class Lista {
     }
 
     aoClicar(evento) {
-        const alvo = evento.target.closest?.('[data-lista-ordenar], [data-lista-pagina], [data-lista-anterior], [data-lista-proxima], [data-lista-mais], [data-lista-recarregar], [data-lista-limpar]')
+        const alvo = evento.target.closest?.('[data-lista-ordenar], [data-lista-pagina], [data-lista-anterior], [data-lista-proxima], [data-lista-mais], [data-lista-recarregar], [data-lista-limpar], [data-lista-exportar]')
         if (!alvo || this.donoDe(alvo) !== this) return
         if (alvo.hasAttribute('data-lista-ordenar')) {
             evento.preventDefault()
@@ -516,6 +536,11 @@ class Lista {
         } else if (alvo.hasAttribute('data-lista-limpar')) {
             evento.preventDefault()
             this.limparFiltros()
+        } else if (alvo.hasAttribute('data-lista-exportar')) {
+            evento.preventDefault()
+            this.exportar(alvo.getAttribute('data-lista-exportar') || 'filtro').catch(error => {
+                if (this.podeLogar()) console.error('[AlpineForm] lista:', error.message, alvo)
+            })
         }
     }
 
@@ -604,6 +629,106 @@ class Lista {
             else url.searchParams.set(nome, valor)
         }
         return url.pathname + url.search
+    }
+
+    /* ------------------------------------------------------------ exportação */
+
+    /**
+     * URL de exportação: "filtro" leva filtros e ordenação atuais (sem paginação) para data-lista-exportar-url;
+     * "completo" chama data-lista-exportar-completo-url sem nenhum parâmetro (todas as linhas).
+     */
+    urlExportacao(tipo) {
+        if (tipo !== 'filtro' && tipo !== 'completo') throw new this.ConfigError(`Exportação "${tipo}" inválida. Use "filtro" ou "completo".`)
+        const base = this.config.exportar[tipo]
+        if (!base) throw new this.ConfigError(`Exportação "${tipo}" sem endereço: defina ${tipo === 'filtro' ? 'data-lista-exportar-url' : 'data-lista-exportar-completo-url'} na lista.`)
+        if (tipo === 'filtro') return this.urlCom(base)
+        const url = new URL(base, globalThis.location?.href)
+        return url.pathname + url.search
+    }
+
+    /** Baixa o arquivo. Resolve true quando o download foi entregue ao navegador. */
+    async exportar(tipo = 'filtro') {
+        const url = this.urlExportacao(tipo)
+        if (this.destruida || this.state.exportando) return false
+        this.state.erroExportacao = null
+        if (this.config.exportar.modo === 'direto') {
+            // arquivos enormes: o navegador baixa direto do servidor (sem passar pela memória da página)
+            this.baixarLink(url, null)
+            this.disparar('lista:exportada', { tipo, url, arquivo: null, bytes: null })
+            return true
+        }
+        const controle = new AbortController()
+        this.exportacao = controle
+        const limite = setTimeout(() => controle.abort(), this.config.exportar.timeout)
+        this.state.exportando = tipo
+        this.renderizarDom()
+        let erro = null
+        try {
+            const resposta = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { Accept: 'text/csv, application/octet-stream;q=0.9, */*;q=0.1', 'X-Requested-With': 'XMLHttpRequest' },
+                signal: controle.signal,
+            })
+            const tipoConteudo = (resposta.headers.get('content-type') || '').toLowerCase()
+            if (!resposta.ok || tipoConteudo.includes('json') || tipoConteudo.includes('html')) {
+                // resposta de erro (ou página de login) no lugar do arquivo: nunca baixa isso como CSV
+                let texto = ''
+                try {
+                    texto = await resposta.text()
+                } catch {
+                    texto = ''
+                }
+                const corpo = this.AlpineForm.internals.parseBody({ status: resposta.status, text: texto, headers: { get: n => resposta.headers.get(n) } })
+                const doServidor = corpo.type === 'json' && isObjeto(corpo.json) ? corpo.json.message || corpo.json.mensagem : null
+                erro = { kind: resposta.ok ? 'contract' : 'http', status: resposta.status, message: (typeof doServidor === 'string' && doServidor) || this.mensagem('lista.exportar_erro') }
+            } else {
+                const arquivo = await resposta.blob()
+                if (this.destruida) return false
+                const nome = nomeDoArquivo(resposta.headers.get('content-disposition')) || this.nomePadrao(tipo, tipoConteudo)
+                this.baixarBlob(arquivo, nome)
+                this.disparar('lista:exportada', { tipo, url, arquivo: nome, bytes: arquivo.size })
+            }
+        } catch (error) {
+            erro = { kind: controle.signal.aborted ? (this.destruida ? 'abort' : 'timeout') : 'network', status: null, message: this.mensagem('lista.exportar_erro') }
+        } finally {
+            clearTimeout(limite)
+            this.exportacao = null
+            if (!this.destruida) {
+                this.state.exportando = null
+                this.renderizarDom()
+            }
+        }
+        if (erro && !this.destruida && erro.kind !== 'abort') {
+            this.state.erroExportacao = erro
+            if (this.podeLogar()) console.error('[AlpineForm] lista: exportação', tipo, erro.message)
+            this.disparar('lista:exportacao-erro', { tipo, url, erro: { ...erro } })
+            return false
+        }
+        return !erro
+    }
+
+    nomePadrao(tipo, tipoConteudo) {
+        const data = new Date()
+        const dia = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
+        const extensao = tipoConteudo.includes('spreadsheetml') ? 'xlsx' : tipoConteudo.includes('pdf') ? 'pdf' : 'csv'
+        return `${this.el.id || 'lista'}-${tipo === 'filtro' ? 'filtrado' : 'completo'}-${dia}.${extensao}`
+    }
+
+    baixarBlob(arquivo, nome) {
+        const href = URL.createObjectURL(arquivo)
+        this.baixarLink(href, nome)
+        setTimeout(() => URL.revokeObjectURL(href), 60000)
+    }
+
+    baixarLink(href, nome) {
+        const a = document.createElement('a')
+        a.href = href
+        a.setAttribute('download', nome || '')
+        a.setAttribute('data-form-generated', 'lista-exportar')
+        a.hidden = true
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
     }
 
     transporte() {
@@ -826,6 +951,13 @@ class Lista {
             if (el.hidden !== ocultar) el.hidden = ocultar
         }
         for (const select of this.elementos('[data-lista-tamanho]')) if (select.value !== String(s.porPagina)) select.value = String(s.porPagina)
+        // durante uma exportação os dois botões ficam desabilitados (evita gerar o mesmo arquivo duas vezes)
+        desabilitar('[data-lista-exportar]', !!s.exportando)
+        for (const botao of this.elementos('[data-lista-exportar]')) {
+            const ocupado = s.exportando !== null && (botao.getAttribute('data-lista-exportar') || 'filtro') === s.exportando
+            if (ocupado && botao.getAttribute('aria-busy') !== 'true') botao.setAttribute('aria-busy', 'true')
+            else if (!ocupado && botao.hasAttribute('aria-busy')) botao.removeAttribute('aria-busy')
+        }
         for (const nav of this.elementos('[data-lista-paginacao]')) this.renderizarPaginacao(nav)
     }
 
@@ -916,6 +1048,7 @@ class Lista {
     destroy() {
         this.destruida = true
         this.requisicao?.abort()
+        this.exportacao?.abort()
         clearTimeout(this.timerFiltro)
         clearTimeout(this.timerAtualizar)
         this.observadorSentinela?.disconnect()
@@ -930,6 +1063,27 @@ class Lista {
         listas.delete(this.el)
         ativas.delete(this)
     }
+}
+
+/** Nome do arquivo de Content-Disposition (filename* tem prioridade), sem caminho nem caracteres de controle. */
+export function nomeDoArquivo(cabecalho) {
+    if (!cabecalho) return null
+    let nome = null
+    const estendido = /filename\*\s*=\s*(?:UTF-8|utf-8)''([^;]+)/.exec(cabecalho)
+    if (estendido) {
+        try {
+            nome = decodeURIComponent(estendido[1].trim())
+        } catch {
+            nome = null
+        }
+    }
+    if (!nome) {
+        const simples = /filename\s*=\s*(?:"([^"]*)"|([^;]+))/.exec(cabecalho)
+        nome = simples ? (simples[1] ?? simples[2] ?? '').trim() : null
+    }
+    if (!nome) return null
+    nome = nome.replace(/[\\/]/g, '_').replace(/[\u0000-\u001f\u007f]/g, '').replace(/^\.+/, '').slice(0, 150)
+    return nome || null
 }
 
 function listaDe(el) {
@@ -1005,5 +1159,6 @@ export default function listaPlugin(AlpineForm) {
         },
         janelaDePaginas,
         adaptadorPadrao,
+        nomeDoArquivo,
     }
 }

@@ -7293,7 +7293,8 @@
     "lista.proxima": "Pr\xF3xima",
     "lista.pagina": "P\xE1gina :pagina",
     "lista.navegacao": "Pagina\xE7\xE3o",
-    "lista.selecionados": ":total selecionado(s)"
+    "lista.selecionados": ":total selecionado(s)",
+    "lista.exportar_erro": "N\xE3o foi poss\xEDvel gerar o arquivo. Tente novamente."
   };
   var PARAMETROS_PADRAO = { pagina: "page", porPagina: "per_page", ordem: "sort", direcao: "direction" };
   var TIPOS_SEM_DIGITACAO = /* @__PURE__ */ new Set(["checkbox", "radio", "date", "month", "week", "time", "datetime-local", "range", "color", "file"]);
@@ -7425,6 +7426,20 @@
       };
       const aoAtualizar = attr("ao-atualizar") || "recarregar";
       if (!["recarregar", "inicio"].includes(aoAtualizar)) throw new ConfigError2(`data-lista-ao-atualizar="${aoAtualizar}" inv\xE1lido. Use "recarregar" ou "inicio".`);
+      const exportarModo = attr("exportar-modo") || "baixar";
+      if (!["baixar", "direto"].includes(exportarModo)) throw new ConfigError2(`data-lista-exportar-modo="${exportarModo}" inv\xE1lido. Use "baixar" ou "direto".`);
+      this.config.exportar = {
+        filtro: attr("exportar-url") ? String(attr("exportar-url")) : null,
+        completo: attr("exportar-completo-url") ? String(attr("exportar-completo-url")) : null,
+        modo: exportarModo,
+        timeout: lerDuracao(attr("exportar-timeout"), 12e4, ConfigError2, "data-lista-exportar-timeout")
+      };
+      for (const [tipo, endereco] of Object.entries({ filtro: this.config.exportar.filtro, completo: this.config.exportar.completo })) {
+        if (endereco && new URL(endereco, globalThis.location?.href).origin !== globalThis.location?.origin) {
+          throw new ConfigError2(`data-lista-exportar${tipo === "completo" ? "-completo" : ""}-url aponta para outra origem. Use um endpoint do pr\xF3prio site.`);
+        }
+      }
+      this.exportacao = null;
       this.config.grupos = String(attr("grupo") || "").split(/[\s,]+/).filter(Boolean);
       this.config.aoAtualizar = aoAtualizar;
       const destacar = attr("destacar");
@@ -7478,6 +7493,8 @@
         filtros: {},
         selecionados: [],
         destaque: null,
+        exportando: null,
+        erroExportacao: null,
         get vazio() {
           return this.carregado && !this.carregando && !this.erro && this.itens.length === 0;
         },
@@ -7529,7 +7546,9 @@
         limparSelecao: () => this.limparSelecao(),
         selecionado: (chave) => this.state.selecionados.includes(this.normalizarChave(chave)),
         itensSelecionados: () => this.state.itens.filter((item) => this.state.selecionados.includes(this.chaveDe(item))),
-        urlCom: (base) => this.urlCom(base)
+        urlCom: (base) => this.urlCom(base),
+        exportar: (tipo) => this.exportar(tipo),
+        urlExportacao: (tipo) => this.urlExportacao(tipo)
       };
     }
     mensagem(chave, vars = {}) {
@@ -7698,7 +7717,7 @@
       return this.carregar({ historico: "substituir", acumular: true });
     }
     aoClicar(evento) {
-      const alvo = evento.target.closest?.("[data-lista-ordenar], [data-lista-pagina], [data-lista-anterior], [data-lista-proxima], [data-lista-mais], [data-lista-recarregar], [data-lista-limpar]");
+      const alvo = evento.target.closest?.("[data-lista-ordenar], [data-lista-pagina], [data-lista-anterior], [data-lista-proxima], [data-lista-mais], [data-lista-recarregar], [data-lista-limpar], [data-lista-exportar]");
       if (!alvo || this.donoDe(alvo) !== this) return;
       if (alvo.hasAttribute("data-lista-ordenar")) {
         evento.preventDefault();
@@ -7721,6 +7740,11 @@
       } else if (alvo.hasAttribute("data-lista-limpar")) {
         evento.preventDefault();
         this.limparFiltros();
+      } else if (alvo.hasAttribute("data-lista-exportar")) {
+        evento.preventDefault();
+        this.exportar(alvo.getAttribute("data-lista-exportar") || "filtro").catch((error) => {
+          if (this.podeLogar()) console.error("[AlpineForm] lista:", error.message, alvo);
+        });
       }
     }
     aoMudar(evento) {
@@ -7799,6 +7823,98 @@
         else url.searchParams.set(nome, valor);
       }
       return url.pathname + url.search;
+    }
+    /* ------------------------------------------------------------ exportação */
+    /**
+     * URL de exportação: "filtro" leva filtros e ordenação atuais (sem paginação) para data-lista-exportar-url;
+     * "completo" chama data-lista-exportar-completo-url sem nenhum parâmetro (todas as linhas).
+     */
+    urlExportacao(tipo) {
+      if (tipo !== "filtro" && tipo !== "completo") throw new this.ConfigError(`Exporta\xE7\xE3o "${tipo}" inv\xE1lida. Use "filtro" ou "completo".`);
+      const base = this.config.exportar[tipo];
+      if (!base) throw new this.ConfigError(`Exporta\xE7\xE3o "${tipo}" sem endere\xE7o: defina ${tipo === "filtro" ? "data-lista-exportar-url" : "data-lista-exportar-completo-url"} na lista.`);
+      if (tipo === "filtro") return this.urlCom(base);
+      const url = new URL(base, globalThis.location?.href);
+      return url.pathname + url.search;
+    }
+    /** Baixa o arquivo. Resolve true quando o download foi entregue ao navegador. */
+    async exportar(tipo = "filtro") {
+      const url = this.urlExportacao(tipo);
+      if (this.destruida || this.state.exportando) return false;
+      this.state.erroExportacao = null;
+      if (this.config.exportar.modo === "direto") {
+        this.baixarLink(url, null);
+        this.disparar("lista:exportada", { tipo, url, arquivo: null, bytes: null });
+        return true;
+      }
+      const controle = new AbortController();
+      this.exportacao = controle;
+      const limite = setTimeout(() => controle.abort(), this.config.exportar.timeout);
+      this.state.exportando = tipo;
+      this.renderizarDom();
+      let erro = null;
+      try {
+        const resposta = await fetch(url, {
+          credentials: "same-origin",
+          headers: { Accept: "text/csv, application/octet-stream;q=0.9, */*;q=0.1", "X-Requested-With": "XMLHttpRequest" },
+          signal: controle.signal
+        });
+        const tipoConteudo = (resposta.headers.get("content-type") || "").toLowerCase();
+        if (!resposta.ok || tipoConteudo.includes("json") || tipoConteudo.includes("html")) {
+          let texto = "";
+          try {
+            texto = await resposta.text();
+          } catch {
+            texto = "";
+          }
+          const corpo = this.AlpineForm.internals.parseBody({ status: resposta.status, text: texto, headers: { get: (n) => resposta.headers.get(n) } });
+          const doServidor = corpo.type === "json" && isObjeto(corpo.json) ? corpo.json.message || corpo.json.mensagem : null;
+          erro = { kind: resposta.ok ? "contract" : "http", status: resposta.status, message: typeof doServidor === "string" && doServidor || this.mensagem("lista.exportar_erro") };
+        } else {
+          const arquivo = await resposta.blob();
+          if (this.destruida) return false;
+          const nome = nomeDoArquivo(resposta.headers.get("content-disposition")) || this.nomePadrao(tipo, tipoConteudo);
+          this.baixarBlob(arquivo, nome);
+          this.disparar("lista:exportada", { tipo, url, arquivo: nome, bytes: arquivo.size });
+        }
+      } catch (error) {
+        erro = { kind: controle.signal.aborted ? this.destruida ? "abort" : "timeout" : "network", status: null, message: this.mensagem("lista.exportar_erro") };
+      } finally {
+        clearTimeout(limite);
+        this.exportacao = null;
+        if (!this.destruida) {
+          this.state.exportando = null;
+          this.renderizarDom();
+        }
+      }
+      if (erro && !this.destruida && erro.kind !== "abort") {
+        this.state.erroExportacao = erro;
+        if (this.podeLogar()) console.error("[AlpineForm] lista: exporta\xE7\xE3o", tipo, erro.message);
+        this.disparar("lista:exportacao-erro", { tipo, url, erro: { ...erro } });
+        return false;
+      }
+      return !erro;
+    }
+    nomePadrao(tipo, tipoConteudo) {
+      const data = /* @__PURE__ */ new Date();
+      const dia = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+      const extensao = tipoConteudo.includes("spreadsheetml") ? "xlsx" : tipoConteudo.includes("pdf") ? "pdf" : "csv";
+      return `${this.el.id || "lista"}-${tipo === "filtro" ? "filtrado" : "completo"}-${dia}.${extensao}`;
+    }
+    baixarBlob(arquivo, nome) {
+      const href = URL.createObjectURL(arquivo);
+      this.baixarLink(href, nome);
+      setTimeout(() => URL.revokeObjectURL(href), 6e4);
+    }
+    baixarLink(href, nome) {
+      const a = document.createElement("a");
+      a.href = href;
+      a.setAttribute("download", nome || "");
+      a.setAttribute("data-form-generated", "lista-exportar");
+      a.hidden = true;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
     transporte() {
       const registro = this.AlpineForm.registry;
@@ -8005,6 +8121,12 @@
         if (el.hidden !== ocultar) el.hidden = ocultar;
       }
       for (const select of this.elementos("[data-lista-tamanho]")) if (select.value !== String(s.porPagina)) select.value = String(s.porPagina);
+      desabilitar("[data-lista-exportar]", !!s.exportando);
+      for (const botao of this.elementos("[data-lista-exportar]")) {
+        const ocupado = s.exportando !== null && (botao.getAttribute("data-lista-exportar") || "filtro") === s.exportando;
+        if (ocupado && botao.getAttribute("aria-busy") !== "true") botao.setAttribute("aria-busy", "true");
+        else if (!ocupado && botao.hasAttribute("aria-busy")) botao.removeAttribute("aria-busy");
+      }
       for (const nav of this.elementos("[data-lista-paginacao]")) this.renderizarPaginacao(nav);
     }
     renderizarPaginacao(nav) {
@@ -8089,6 +8211,7 @@
     destroy() {
       this.destruida = true;
       this.requisicao?.abort();
+      this.exportacao?.abort();
       clearTimeout(this.timerFiltro);
       clearTimeout(this.timerAtualizar);
       this.observadorSentinela?.disconnect();
@@ -8104,6 +8227,25 @@
       ativas.delete(this);
     }
   };
+  function nomeDoArquivo(cabecalho) {
+    if (!cabecalho) return null;
+    let nome = null;
+    const estendido = /filename\*\s*=\s*(?:UTF-8|utf-8)''([^;]+)/.exec(cabecalho);
+    if (estendido) {
+      try {
+        nome = decodeURIComponent(estendido[1].trim());
+      } catch {
+        nome = null;
+      }
+    }
+    if (!nome) {
+      const simples = /filename\s*=\s*(?:"([^"]*)"|([^;]+))/.exec(cabecalho);
+      nome = simples ? (simples[1] ?? simples[2] ?? "").trim() : null;
+    }
+    if (!nome) return null;
+    nome = nome.replace(/[\\/]/g, "_").replace(/[\u0000-\u001f\u007f]/g, "").replace(/^\.+/, "").slice(0, 150);
+    return nome || null;
+  }
   function listaDe(el) {
     let atual = el;
     while (atual) {
@@ -8168,7 +8310,8 @@
         adaptadores.set(nome, fn);
       },
       janelaDePaginas,
-      adaptadorPadrao
+      adaptadorPadrao,
+      nomeDoArquivo
     };
   }
 

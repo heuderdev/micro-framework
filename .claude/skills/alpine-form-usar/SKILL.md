@@ -10,7 +10,7 @@ Referência completa com exemplos testados: `docs-src/pages/*.html` (ou `docs/in
 ## 1. Carregamento (ordem obrigatória)
 
 ```html
-<!-- atalho: alpine-form-completo.min.js substitui o núcleo e TODOS os módulos abaixo (255 KiB) -->
+<!-- atalho: alpine-form-completo.min.js substitui o núcleo e TODOS os módulos abaixo (260 KiB) -->
 <script src="/js/alpine-form/alpine-form.min.js"></script>            <!-- sempre -->
 <script src="/js/alpine-form/alpine-form-masks.min.js"></script>      <!-- só se usar data-form-mask -->
 <script src="/js/alpine-form/alpine-form-chunks.min.js"></script>     <!-- só se usar data-form-chunked -->
@@ -73,6 +73,7 @@ Checklist: `x-data` (no form ou ancestral) + `x-form` + `novalidate` + `name` em
 | Escolher cliente/produto digitando (autocomplete) | módulo autocompletar + `<div data-form-component="autocompletar" data-form-name="cliente_id" data-form-v="required" data-form-autocompletar="/api/clientes?busca={termo}" data-form-autocompletar-texto="nome"><input type="text" aria-label="Cliente"></div>` (input sem name); edição com `-inicial` + value; ver `autocompletar.html` |
 | Tabela/lista paginada vinda da API | módulo lista + `<section id="x" x-data x-lista data-lista-url="/api/...">` com `x-for="item in $lista.itens"`, `data-lista-filtros`, `data-lista-ordenar`, `<nav data-lista-paginacao>`, `data-lista-url-sincronizar`. Servidor: `page`/`per_page`/`sort`/`direction`, ordenação por lista branca (ver `lista.html`) |
 | Backend PHP sem framework (ou Joomla 3) | `php/alpine-form.php`: `Resposta::sucesso/invalido/erro`, `Entrada::ler()`, `Validador` (mesmas regras do HTML), `Consulta::ler($_GET, ['ordenaveis' => [...]])` para listagens; ver `php.html` |
+| Botões "Filtro CSV" e "CSV completo" na tabela | na lista: `data-lista-exportar-url="/api/x/exportar"` e `data-lista-exportar-completo-url="/api/x/exportar-tudo"`; botões `data-lista-exportar="filtro"` / `="completo"`; servidor com `Csv::enviar()` (helpers PHP) reaproveitando o filtro da listagem; ver `lista.html#exportar` |
 | Atualizar listas depois de cadastrar/excluir | `data-form-lista="idDaLista grupo"` no `<form>`; `data-lista-destacar` na lista para realçar `data.id` |
 
 Para o formulário completo de um caso comum, comece pelas receitas: `docs-src/pages/receitas.html` (cadastro PF/PJ, CEP, login, senha, pedido com itens, wizard, avatar, importação CSV, modal, busca).

@@ -30,7 +30,9 @@ layout_start('Listagens', 'Módulo opcional <code>alpine-form-lista</code>: pagi
          data-lista-url="/api/demo/clientes"
          data-lista-por-pagina="10"
          data-lista-ordem="nome"
-         data-lista-url-sincronizar>
+         data-lista-url-sincronizar
+         data-lista-exportar-url="/api/demo/clientes-csv"
+         data-lista-exportar-completo-url="/api/demo/clientes-csv-completo">
     <h2>Clientes</h2>
 
     <form class="row" data-lista-filtros role="search" aria-label="Filtrar clientes">
@@ -60,11 +62,14 @@ layout_start('Listagens', 'Módulo opcional <code>alpine-form-lista</code>: pagi
         <div class="actions">
             <button type="button" data-lista-limpar>Limpar filtros</button>
             <button type="button" data-lista-recarregar>Recarregar</button>
-            <a x-bind:href="$lista.urlCom('/api/demo/clientes')" target="_blank" rel="noopener">Exportar com estes filtros (JSON)</a>
+            <button type="button" data-lista-exportar="filtro" title="Todas as linhas que atendem aos filtros atuais, sem paginação">Filtro CSV</button>
+            <button type="button" data-lista-exportar="completo" title="Todas as linhas, sem filtro nem paginação">CSV completo</button>
         </div>
     </form>
 
     <p data-lista-status class="hint"></p>
+    <p class="hint" x-show="$lista.exportando" role="status">Gerando o arquivo…</p>
+    <p class="erro-exportacao" x-show="$lista.erroExportacao" role="alert" x-text="$lista.erroExportacao && $lista.erroExportacao.message"></p>
     <p class="hint" x-show="$lista.quantidadeSelecionada > 0">
         <strong x-text="$lista.quantidadeSelecionada"></strong> selecionado(s)
         <button type="button" @click="alert('Ids: ' + $lista.selecionados.join(', '))">Ação em lote</button>
@@ -124,7 +129,7 @@ layout_start('Listagens', 'Módulo opcional <code>alpine-form-lista</code>: pagi
 <li>Digite na busca: a requisição sai 300 ms depois que você para de digitar (mínimo de 2 letras), cancelando a anterior. Respostas antigas nunca sobrescrevem as novas.</li>
 <li>Filtros, página, ordenação e tamanho ficam na URL (<code>data-lista-url-sincronizar</code>): recarregar ou compartilhar o link reabre a mesma visão; Voltar/Avançar navegam entre páginas e ordenações.</li>
 <li>A seleção é mantida ao trocar de página; o checkbox do cabeçalho seleciona a página atual.</li>
-<li>O link de exportação usa <code>$lista.urlCom(...)</code>: mesmos filtros e ordenação, sem paginação.</li>
+<li><strong>Filtro CSV</strong> chama <code>data-lista-exportar-url</code> com os filtros e a ordenação atuais (sem paginação); <strong>CSV completo</strong> chama <code>data-lista-exportar-completo-url</code> sem parâmetros (todas as linhas). O servidor gera o arquivo com <code>Csv::enviar()</code> dos helpers PHP.</li>
 <li>O endpoint de demonstração responde no formato do Laravel (<code>data</code> + <code>meta</code>); outros formatos são reconhecidos automaticamente (veja a documentação).</li>
 <li>Os cards usam <code>data-lista-modo="acumular"</code>: "Carregar mais" e o sentinela (rolagem infinita) acrescentam a próxima página.</li>
 </ul>'); ?>

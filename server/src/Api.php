@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AlpineForm\Server;
 
 use AlpineForm\Helpers\Consulta;
+use AlpineForm\Helpers\Csv;
 
 /**
  * Endpoints de REFERÊNCIA usados pelos exemplos e testes E2E.
@@ -415,6 +416,24 @@ final class Api
      */
     public static function listarClientes(array $query, array $extras = [], array $ajustes = []): array
     {
+        $consulta = self::consultaClientes($query);
+        return $consulta->paginarArray(self::clientesDemo($query, $extras, $ajustes));
+    }
+
+    private static function consultaClientes(array $query): Consulta
+    {
+        return Consulta::ler($query, ['ordenaveis' => ['id', 'nome', 'uf', 'status', 'saldo', 'criado_em'], 'ordem' => 'id']);
+    }
+
+    /**
+     * Clientes de demonstração filtrados e ordenados pelos parâmetros (sem paginação) — base da listagem
+     * e das exportações CSV.
+     *
+     * @param array<string, mixed> $query
+     * @return list<array<string, mixed>>
+     */
+    public static function clientesDemo(array $query, array $extras = [], array $ajustes = []): array
+    {
         if (($query['falhar'] ?? '') === '1') {
             throw new HttpError(500, 'Falha simulada ao listar clientes.');
         }
@@ -451,7 +470,7 @@ final class Api
             }
         }
         // parâmetros lidos pelos helpers PHP (php/alpine-form.php): lista branca de ordenação, limites e filtros tipados
-        $consulta = Consulta::ler($query, ['ordenaveis' => ['id', 'nome', 'uf', 'status', 'saldo', 'criado_em'], 'ordem' => 'id']);
+        $consulta = self::consultaClientes($query);
         $busca = mb_strtolower((string) $consulta->texto('busca'));
         if ($busca !== '') {
             $clientes = array_values(array_filter($clientes, static fn (array $c): bool => str_contains(mb_strtolower($c['nome']), $busca) || str_contains($c['email'], $busca)));
@@ -464,7 +483,29 @@ final class Api
         if ($statusFiltro) {
             $clientes = array_values(array_filter($clientes, static fn (array $c): bool => in_array($c['status'], $statusFiltro, true)));
         }
-        return $consulta->paginarArray($consulta->ordenarArray($clientes));
+        return $consulta->ordenarArray($clientes);
+    }
+
+    /**
+     * Exportação CSV de demonstração (botões data-lista-exportar do x-lista):
+     * "filtro" usa os filtros e a ordenação recebidos; "completo" ignora tudo e devolve todas as linhas.
+     *
+     * @param array<string, mixed> $query
+     * @return array{0: int, 1: string, 2: array<string, string>}
+     */
+    public static function exportarClientesDemo(string $tipo, array $query, array $extras, array $ajustes): array
+    {
+        $clientes = self::clientesDemo($tipo === 'completo' ? [] : $query, $extras, $ajustes);
+        $csv = Csv::texto(
+            ['id' => 'Código', 'nome' => 'Nome', 'email' => 'E-mail', 'uf' => 'UF', 'status' => 'Situação', 'saldo' => 'Saldo', 'criado_em' => 'Cadastro'],
+            $clientes
+        );
+        $nome = Csv::nomeSeguro('clientes-' . ($tipo === 'completo' ? 'completo' : 'filtrado') . '-' . date('Y-m-d') . '.csv');
+        return [200, $csv, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="' . $nome . '"',
+            'Cache-Control' => 'no-store',
+        ]];
     }
 
     /**
@@ -637,6 +678,10 @@ final class Api
                 return [429, ['success' => false, 'message' => 'Muitas requisições.'], ['Retry-After' => '30']];
             case 'clientes':
                 return [200, self::listarClientes($request->query, (array) Session::get('clientes_extra', []), (array) Session::get('clientes_ajustes', [])), []];
+            case 'clientes-csv':
+                return self::exportarClientesDemo('filtro', $request->query, (array) Session::get('clientes_extra', []), (array) Session::get('clientes_ajustes', []));
+            case 'clientes-csv-completo':
+                return self::exportarClientesDemo('completo', $request->query, (array) Session::get('clientes_extra', []), (array) Session::get('clientes_ajustes', []));
             case 'clientes-salvar':
                 return $this->salvarClienteDemo($request);
             case 'clientes-excluir':

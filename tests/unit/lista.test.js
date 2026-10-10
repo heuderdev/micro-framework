@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { startAlpine, flush, tick, jsonResponse, textResponse, AlpineForm } from './helpers.js'
-import listaPlugin, { janelaDePaginas, adaptadorPadrao } from '../../src/lista/index.js'
+import listaPlugin, { janelaDePaginas, adaptadorPadrao, nomeDoArquivo } from '../../src/lista/index.js'
 
 startAlpine(listaPlugin)
 
@@ -444,5 +444,131 @@ describe('formulário atualiza listas (data-form-lista)', () => {
         document.dispatchEvent(new CustomEvent('lista:atualizar', { detail: { alvos: ['x1'] } }))
         await esperar(() => t.chamadas.length === 5)
         expect(t.chamadas.filter(u => u.pathname === '/api/a')).toHaveLength(3)
+    })
+})
+
+describe('x-lista: exportação CSV (filtro e completo)', () => {
+    /** fetch simulado para os endpoints de exportação; guarda as URLs pedidas. */
+    function exportador(resposta = () => new Response('﻿Código;Nome\r\n1;Ana\r\n', { status: 200, headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="clientes.csv"' } })) {
+        const pedidos = []
+        vi.stubGlobal('fetch', vi.fn(async (url, opcoes) => {
+            pedidos.push({ url: String(url), opcoes })
+            return resposta(String(url))
+        }))
+        const baixados = []
+        URL.createObjectURL = vi.fn(blob => {
+            baixados.push(blob)
+            return 'blob:teste'
+        })
+        URL.revokeObjectURL = vi.fn()
+        const cliques = []
+        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+            cliques.push({ href: this.getAttribute('href'), download: this.getAttribute('download'), gerado: this.getAttribute('data-form-generated') })
+        })
+        return { pedidos, baixados, cliques }
+    }
+
+    const HTML = `<section id="clientes" x-data x-lista data-lista-url="/api/clientes" data-lista-por-pagina="10" data-lista-ordem="nome"
+            data-lista-exportar-url="/api/clientes/exportar" data-lista-exportar-completo-url="/api/clientes/exportar-tudo">
+        <form data-lista-filtros><input name="busca" data-lista-filtro><select name="uf"><option value="">Todas</option><option>SP</option></select></form>
+        <button type="button" data-lista-exportar="filtro">Filtro CSV</button>
+        <button type="button" data-lista-exportar="completo">CSV completo</button>
+        ${LINHAS}</section>`
+
+    afterEach(() => {
+        vi.unstubAllGlobals()
+        document.body.innerHTML = ''
+    })
+
+    it('"Filtro CSV" chama o endpoint de filtro com filtros e ordenação, sem paginação; "CSV completo" chama o outro sem parâmetros', async () => {
+        AlpineForm.transport('lista', servidor(), { replace: true })
+        const { raiz, lista } = await montar(HTML)
+        await esperar(() => lista.carregado)
+        await lista.definirFiltros({ uf: 'SP', busca: 'cli' })
+        await lista.irPara(2)
+        const { pedidos, baixados, cliques } = exportador()
+        const eventos = []
+        raiz.addEventListener('lista:exportada', e => eventos.push(e.detail))
+
+        raiz.querySelector('[data-lista-exportar="filtro"]').click()
+        await esperar(() => eventos.length === 1)
+        const url = new URL(pedidos[0].url, location.href)
+        expect(url.pathname).toBe('/api/clientes/exportar')
+        expect(Object.fromEntries(url.searchParams)).toEqual({ sort: 'nome', direction: 'asc', uf: 'SP', busca: 'cli' })
+        expect(pedidos[0].opcoes.credentials).toBe('same-origin')
+        expect(cliques[0]).toEqual({ href: 'blob:teste', download: 'clientes.csv', gerado: 'lista-exportar' })
+        expect(await baixados[0].text()).toContain('1;Ana')
+        expect(eventos[0]).toMatchObject({ tipo: 'filtro', arquivo: 'clientes.csv' })
+
+        raiz.querySelector('[data-lista-exportar="completo"]').click()
+        await esperar(() => eventos.length === 2)
+        expect(pedidos[1].url).toBe('/api/clientes/exportar-tudo')
+        expect(eventos[1].tipo).toBe('completo')
+        expect(document.querySelector('a[data-form-generated]')).toBeNull()      // o link temporário não fica no DOM
+    })
+
+    it('durante a exportação os botões ficam desabilitados e o botão ativo com aria-busy; nome padrão sem Content-Disposition', async () => {
+        AlpineForm.transport('lista', servidor(), { replace: true })
+        const { raiz, lista } = await montar(HTML)
+        await esperar(() => lista.carregado)
+        let liberar
+        const { cliques } = exportador(() => new Promise(resolve => {
+            liberar = () => resolve(new Response('a;b\r\n', { status: 200, headers: { 'content-type': 'text/csv' } }))
+        }))
+        const promessa = lista.exportar('completo')
+        await flush()
+        const [filtro, completo] = raiz.querySelectorAll('[data-lista-exportar]')
+        expect([lista.exportando, filtro.disabled, completo.disabled, completo.getAttribute('aria-busy'), filtro.hasAttribute('aria-busy')]).toEqual(['completo', true, true, 'true', false])
+        expect(await lista.exportar('filtro')).toBe(false)                          // uma exportação por vez
+        liberar()
+        expect(await promessa).toBe(true)
+        expect([lista.exportando, filtro.disabled, completo.hasAttribute('aria-busy')]).toEqual([null, false, false])
+        expect(cliques[0].download).toMatch(/^clientes-completo-\d{4}-\d{2}-\d{2}\.csv$/)
+    })
+
+    it('erro do servidor, JSON ou página de login no lugar do arquivo: não baixa, informa o erro', async () => {
+        AlpineForm.transport('lista', servidor(), { replace: true })
+        const { raiz, lista } = await montar(HTML.replace('id="clientes"', 'id="clientes" data-form-log="none"'))
+        await esperar(() => lista.carregado)
+        const respostas = [
+            new Response(JSON.stringify({ success: false, message: 'Sem permissão para exportar.' }), { status: 403, headers: { 'content-type': 'application/json' } }),
+            new Response('<html><form><input type="password"></form></html>', { status: 200, headers: { 'content-type': 'text/html' } }),
+        ]
+        const { cliques } = exportador(() => respostas.shift())
+        const erros = []
+        raiz.addEventListener('lista:exportacao-erro', e => erros.push(e.detail))
+        expect(await lista.exportar('filtro')).toBe(false)
+        expect(lista.erroExportacao).toMatchObject({ kind: 'http', status: 403, message: 'Sem permissão para exportar.' })
+        expect(await lista.exportar('completo')).toBe(false)
+        expect(lista.erroExportacao).toMatchObject({ kind: 'contract', message: 'Não foi possível gerar o arquivo. Tente novamente.' })
+        expect(cliques).toHaveLength(0)
+        expect(erros.map(e => e.tipo)).toEqual(['filtro', 'completo'])
+    })
+
+    it('modo direto baixa pelo próprio navegador (arquivos enormes); configuração errada é recusada', async () => {
+        AlpineForm.transport('lista', servidor(), { replace: true })
+        const { lista } = await montar(HTML.replace('data-lista-por-pagina="10"', 'data-lista-por-pagina="10" data-lista-exportar-modo="direto"'))
+        await esperar(() => lista.carregado)
+        const { pedidos, cliques } = exportador()
+        expect(await lista.exportar('completo')).toBe(true)
+        expect(pedidos).toHaveLength(0)
+        expect(cliques[0]).toMatchObject({ href: '/api/clientes/exportar-tudo', download: '' })
+        expect(() => lista.urlExportacao('xlsx')).toThrow(/filtro.*completo/)
+        document.body.innerHTML = ''
+        const sem = await montar('<section x-data x-lista data-lista-url="/api/clientes"></section>')
+        await esperar(() => sem.lista.carregado)
+        expect(() => sem.lista.urlExportacao('completo')).toThrow(/data-lista-exportar-completo-url/)
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        const fora = await montar('<section x-data x-lista data-lista-url="/api/x" data-lista-exportar-url="https://outro.exemplo/csv"></section>')
+        expect(fora.lista).toBeNull()
+        expect(fora.raiz.getAttribute('data-lista-estado')).toBe('config-error')
+    })
+
+    it('nomeDoArquivo lê filename* e filename e remove caminho', () => {
+        expect(nomeDoArquivo('attachment; filename="clientes.csv"')).toBe('clientes.csv')
+        expect(nomeDoArquivo("attachment; filename*=UTF-8''relat%C3%B3rio.csv; filename=\"x.csv\"")).toBe('relatório.csv')
+        expect(nomeDoArquivo('attachment; filename=../../segredo.csv')).not.toMatch(/\//)
+        expect(nomeDoArquivo('attachment')).toBeNull()
+        expect(nomeDoArquivo(null)).toBeNull()
     })
 })

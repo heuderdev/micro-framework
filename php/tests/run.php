@@ -7,6 +7,7 @@
 require dirname(__DIR__) . '/alpine-form.php';
 
 use AlpineForm\Helpers\Consulta;
+use AlpineForm\Helpers\Csv;
 use AlpineForm\Helpers\Entrada;
 use AlpineForm\Helpers\Resposta;
 use AlpineForm\Helpers\Validador;
@@ -239,6 +240,59 @@ teste('Consulta: ordenar e paginar arrays (estável, natural, sem diferenciar ma
         return (object) $l;
     }, $linhas);
     igual(4, $c->ordenarArray($obj)[0]->k);
+});
+
+// ---------- Csv ----------
+
+teste('Csv: BOM, separador ";", cabeçalho com títulos, aspas RFC 4180 e CRLF', function () {
+    $csv = Csv::texto(['id' => 'Código', 'nome' => 'Nome', 'obs' => 'Observação'], [
+        ['id' => 1, 'nome' => 'Ana; Maria', 'obs' => 'disse "oi"'],
+        ['id' => 2, 'nome' => "Linha\nquebrada", 'obs' => null],
+    ]);
+    igual("\xEF\xBB\xBF" . "Código;Nome;Observação\r\n1;\"Ana; Maria\";\"disse \"\"oi\"\"\"\r\n2;\"Linha\nquebrada\";\r\n", $csv);
+});
+
+teste('Csv: protege contra injeção de fórmula sem estragar números negativos', function () {
+    $csv = Csv::texto(['a'], [['a' => '=HYPERLINK("http://x")'], ['a' => '+1+1'], ['a' => '@SOMA(A1)'], ['a' => '-10.5'], ['a' => '-1+2'], ['a' => "\tx"]], ['bom' => false, 'cabecalho' => false]);
+    igual("\"'=HYPERLINK(\"\"http://x\"\")\"\r\n'+1+1\r\n'@SOMA(A1)\r\n-10.5\r\n'-1+2\r\n'\tx\r\n", $csv);
+    igual('=1', Csv::celula('=1', false));
+});
+
+teste('Csv: aceita gerador, objetos, datas e booleanos; colunas ausentes ficam vazias; conta linhas', function () {
+    $gerador = function () {
+        yield (object) ['id' => 1, 'ativo' => true, 'em' => new DateTimeImmutable('2024-02-29 10:00:00')];
+        yield ['id' => 2, 'ativo' => false];
+    };
+    $mem = fopen('php://temp', 'w+b');
+    $total = Csv::escrever($mem, ['id', 'ativo', 'em'], $gerador(), ['separador' => ',', 'bom' => false]);
+    rewind($mem);
+    igual(2, $total);
+    igual("id,ativo,em\r\n1,1,2024-02-29 10:00:00\r\n2,0,\r\n", stream_get_contents($mem));
+});
+
+teste('Csv: configuração inválida lança exceção; nome de arquivo seguro', function () {
+    lanca('InvalidArgumentException', function () {
+        Csv::texto(['a'], [], ['separador' => ';;']);
+    });
+    lanca('InvalidArgumentException', function () {
+        Csv::texto(['a'], 'não é lista');
+    });
+    lanca('InvalidArgumentException', function () {
+        Csv::texto(['a'], [], ['delimitador' => ',']);
+    });
+    igual('clientes.csv', Csv::nomeSeguro('clientes'));
+    igual('passwd.csv', Csv::nomeSeguro('../../etc/passwd'));
+    igual('relat-rio-2024.csv', Csv::nomeSeguro('relatório "2024".csv'));
+    igual('exportacao.csv', Csv::nomeSeguro('...'));
+});
+
+teste('Csv::enviar escreve cabeçalhos de download e o conteúdo (sem exit em teste)', function () {
+    Resposta::$semExit = true;
+    ob_start();
+    $total = Csv::enviar('clientes.csv', ['id' => 'Código'], [['id' => 7]]);
+    $saida = ob_get_clean();
+    igual(1, $total);
+    igual("\xEF\xBB\xBFCódigo\r\n7\r\n", $saida);
 });
 
 $inicio = microtime(true);

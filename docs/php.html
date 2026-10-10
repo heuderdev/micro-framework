@@ -37,6 +37,7 @@ use AlpineForm\Helpers\Csrf;</code></pre></div>
 <tr><td><code>Entrada</code></td><td>Lê o que o formulário mandou — JSON, urlencoded ou multipart — com nomes aninhados.</td></tr>
 <tr><td><code>Validador</code></td><td>Regras comuns (obrigatório, tamanho, e-mail, CPF, CNPJ, CEP, telefone, decimal, data…) e erros com a chave certa para cada campo.</td></tr>
 <tr><td><code>Consulta</code></td><td>Página, tamanho, ordenação (lista branca) e filtros de uma listagem; resposta no formato do <a href="lista.html">x-lista</a>.</td></tr>
+<tr><td><code>Csv</code></td><td>Exportação CSV em fluxo para os botões "Filtro CSV" / "CSV completo" do x-lista (abre certo no Excel, sem injeção de fórmulas).</td></tr>
 <tr><td><code>Csrf</code></td><td>Token por sessão para PHP puro (no Joomla e no Laravel use o do framework).</td></tr>
 </tbody></table></div>
 
@@ -206,6 +207,31 @@ class LojaControllerClientes extends JControllerLegacy
 
 <h3 id="laravel" data-titulo="Laravel">Laravel</h3>
 <p>No Laravel, prefira <code>$request-&gt;validate()</code> e <code>paginate()</code> (o x-lista já lê o formato). <code>Consulta</code> continua útil para a lista branca de ordenação: <code>$c = Consulta::ler($request-&gt;query(), [...]); $query-&gt;orderBy($c-&gt;coluna(), $c-&gt;direcao())-&gt;paginate($c-&gt;porPagina())</code>.</p>
+
+<h2 id="csv" data-titulo="Csv (exportação)">Csv (exportação)</h2>
+<div class="codigo"><pre><code data-lang="php">use AlpineForm\Helpers\{Consulta, Csv};
+
+$c = Consulta::ler($_GET, ['ordenaveis' =&gt; ['nome' =&gt; 'c.nome'], 'ordem' =&gt; 'nome']);   // filtros e ordem, sem paginação
+$st = $pdo-&gt;prepare(&quot;SELECT id, nome, email, saldo, criado_em FROM clientes c WHERE ... ORDER BY {$c-&gt;sqlOrdem('c.id')}&quot;);
+$st-&gt;execute($params);
+
+Csv::enviar('clientes.csv', [
+    'id' =&gt; 'Código', 'nome' =&gt; 'Nome', 'email' =&gt; 'E-mail', 'saldo' =&gt; 'Saldo', 'criado_em' =&gt; 'Cadastro',
+], $st);</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Método</th><th>Faz</th></tr></thead><tbody>
+<tr><td><code>Csv::enviar($nome, $colunas, $linhas, $opcoes)</code></td><td>Cabeçalhos de download (<code>text/csv; charset=utf-8</code>, <code>Content-Disposition</code> com nome seguro, <code>no-store</code>, <code>nosniff</code>), escreve e encerra.</td></tr>
+<tr><td><code>Csv::escrever($recurso, $colunas, $linhas, $opcoes)</code></td><td>Escreve num recurso aberto (<code>php://output</code>, arquivo, <code>php://temp</code>); devolve a quantidade de linhas.</td></tr>
+<tr><td><code>Csv::texto($colunas, $linhas, $opcoes)</code></td><td>O CSV como texto (testes, anexo de e-mail, frameworks que esperam o corpo pronto).</td></tr>
+<tr><td><code>Csv::nomeSeguro($nome)</code></td><td>Nome de arquivo sem caminho, aspas nem acentos; garante extensão.</td></tr>
+</tbody></table></div>
+<ul>
+    <li><code>$colunas</code>: <code>['chave' =&gt; 'Título']</code> (ordem e títulos do arquivo) ou lista de chaves. Chave ausente na linha vira célula vazia — colunas extras do <code>SELECT</code> não vazam para o arquivo.</li>
+    <li><code>$linhas</code>: array, <code>PDOStatement</code>, gerador (<code>yield</code>) ou qualquer <code>Traversable</code> de arrays/objetos — escrito linha a linha, sem carregar a tabela na memória.</li>
+    <li>Padrões para o Excel em português: separador <code>;</code>, BOM UTF-8 (acentos corretos), quebra <code>\r\n</code>, aspas conforme RFC 4180. Opções: <code>separador</code>, <code>bom</code>, <code>cabecalho</code>, <code>protegerFormulas</code>.</li>
+    <li><strong>Injeção de fórmulas</strong>: célula que começa com <code>=</code>, <code>+</code>, <code>-</code>, <code>@</code>, tab ou CR recebe um apóstrofo na frente (<code>'=HYPERLINK(...)</code>), para o Excel não executar o que alguém digitou num cadastro. Números como <code>-10.5</code> ficam intactos.</li>
+    <li><code>null</code> vira vazio, <code>true</code>/<code>false</code> viram <code>1</code>/<code>0</code>, datas (<code>DateTimeInterface</code>) viram <code>Y-m-d H:i:s</code>.</li>
+    <li>Exportações grandes: <code>set_time_limit(300)</code> antes; se houver buffer de saída ativo (<code>ob_start</code>), descarte-o para o arquivo sair em fluxo.</li>
+</ul>
 
 <h2 id="csrf" data-titulo="CSRF">CSRF (PHP puro)</h2>
 <div class="codigo"><pre><code data-lang="php">// no layout (a sessão é iniciada se ainda não estiver)

@@ -239,11 +239,65 @@ public function index(Request $request)
     <li><code>data-lista-atualizar="30s"</code> recarrega periodicamente (pausa com a aba oculta) — painéis e filas de atendimento.</li>
 </ul>
 
-<h2 id="exportar" data-titulo="Exportar com os filtros atuais">Exportar com os filtros atuais</h2>
+<h2 id="exportar" data-titulo="Exportar CSV: com filtro e completo">Exportar CSV: com filtro e completo</h2>
+<p>Dois botões, dois endpoints: um baixa <strong>o que está filtrado</strong> (todas as páginas), o outro baixa <strong>tudo</strong>, sem filtro nem paginação.</p>
 @@@html
-<a x-bind:href="$lista.urlCom('/clientes/exportar.csv')">Exportar CSV</a>
+<section id="clientes" x-data x-lista data-lista-url="/api/clientes"
+         data-lista-exportar-url="/api/clientes/exportar"
+         data-lista-exportar-completo-url="/api/clientes/exportar-tudo">
+    <form data-lista-filtros role="search">
+        <input name="busca" type="search" aria-label="Buscar">
+        <select name="uf" aria-label="UF"><option value="">Todas</option><option>SP</option><option>RJ</option></select>
+    </form>
+
+    <button type="button" data-lista-exportar="filtro">Filtro CSV</button>
+    <button type="button" data-lista-exportar="completo">CSV completo</button>
+    <span x-show="$lista.exportando" role="status">Gerando o arquivo…</span>
+    <span x-show="$lista.erroExportacao" role="alert" x-text="$lista.erroExportacao && $lista.erroExportacao.message"></span>
+
+    <template x-for="item in $lista.itens" :key="item.id"><p x-text="item.nome"></p></template>
+</section>
 @@@
-<p><code>urlCom(base)</code> devolve a URL com os mesmos filtros e ordenação, sem paginação. <code>$lista.parametros</code> e <code>$lista.queryString</code> dão acesso aos parâmetros atuais.</p>
+<div class="tabela"><table><thead><tr><th>Botão</th><th>Requisição</th><th>O servidor devolve</th></tr></thead><tbody>
+<tr><td><code>data-lista-exportar="filtro"</code></td><td><code>GET /api/clientes/exportar?busca=ana&amp;uf=SP&amp;sort=nome&amp;direction=asc</code> — filtros e ordenação atuais, <strong>sem</strong> <code>page</code>/<code>per_page</code></td><td>Todas as linhas que atendem ao filtro.</td></tr>
+<tr><td><code>data-lista-exportar="completo"</code></td><td><code>GET /api/clientes/exportar-tudo</code> — <strong>sem nenhum parâmetro</strong></td><td>Todas as linhas da tabela.</td></tr>
+</tbody></table></div>
+<ul>
+    <li>O arquivo é baixado sem sair da página; o nome vem do <code>Content-Disposition</code> do servidor (senão, <code>clientes-filtrado-2026-10-10.csv</code> / <code>clientes-completo-…</code>, usando o <code>id</code> da lista).</li>
+    <li>Enquanto gera: <code>$lista.exportando</code> vale <code>"filtro"</code> ou <code>"completo"</code>, os dois botões ficam desabilitados (não gera duas vezes) e o botão ativo recebe <code>aria-busy="true"</code>.</li>
+    <li>Se o servidor responder erro (403, 500), JSON ou HTML (página de login) no lugar do arquivo, <strong>nada é baixado</strong>: <code>$lista.erroExportacao</code> traz <code>{ kind, status, message }</code> (a <code>message</code> do JSON do servidor, quando houver) e a lista dispara <code>lista:exportacao-erro</code>. Sucesso dispara <code>lista:exportada</code> (<code>{ tipo, url, arquivo, bytes }</code>).</li>
+    <li>Os endpoints são da mesma origem (cookies de sessão vão juntos); outra origem é erro de configuração. Tempo máximo: <code>data-lista-exportar-timeout</code> (padrão 2min).</li>
+    <li><strong>Arquivos enormes</strong> (centenas de MB): <code>data-lista-exportar-modo="direto"</code> entrega a URL ao navegador, que baixa em fluxo direto do servidor sem passar pela memória da página (sem estado de "gerando" nem tratamento de erro na página).</li>
+    <li>Pelo código: <code>$lista.exportar('filtro')</code>, <code>$lista.exportar('completo')</code>, <code>$lista.urlExportacao('filtro')</code>. Para montar outras URLs com os filtros atuais: <code>$lista.urlCom('/relatorio.pdf')</code>.</li>
+</ul>
+@@@php Servidor (PHP puro, Helpers PHP)
+<?php
+require_once __DIR__ . '/../lib/alpine-form.php';
+use AlpineForm\Helpers\{Consulta, Csv};
+
+// exportar.php      (data-lista-exportar-url):          exportarClientes($pdo, $_GET, 'clientes-filtrado.csv');
+// exportar-tudo.php (data-lista-exportar-completo-url): exportarClientes($pdo, [], 'clientes-completo.csv');
+function exportarClientes(PDO $pdo, array $query, $arquivo)
+{
+    $c = Consulta::ler($query, ['ordenaveis' => ['nome' => 'c.nome', 'uf' => 'c.uf'], 'ordem' => 'nome']);
+    list($where, $params) = filtrosDeClientes($c);   // a MESMA função de filtro usada na listagem
+    set_time_limit(300);
+    $st = $pdo->prepare("SELECT c.id, c.nome, c.email, c.uf FROM clientes c WHERE $where ORDER BY {$c->sqlOrdem('c.id')}");
+    $st->execute($params);
+    Csv::enviar($arquivo, ['id' => 'Código', 'nome' => 'Nome', 'email' => 'E-mail', 'uf' => 'UF'], $st);   // linha a linha
+}
+@@@
+@@@php Laravel
+Route::get('/api/clientes/exportar', fn (Request $r) => exportarClientes(Cliente::filtrar($r)));   // mesmo escopo da listagem
+Route::get('/api/clientes/exportar-tudo', fn () => exportarClientes(Cliente::query()));
+
+function exportarClientes($query) {
+    return response()->streamDownload(function () use ($query) {
+        Csv::escrever(fopen('php://output', 'wb'), ['id' => 'Código', 'nome' => 'Nome'], $query->orderBy('id')->lazy());
+    }, 'clientes.csv', ['Content-Type' => 'text/csv; charset=utf-8']);
+}
+@@@
+<div class="nota aviso"><p>O endpoint de exportação precisa da <strong>mesma autorização</strong> da listagem (e, para o completo, normalmente uma permissão a mais): quem chama a URL direto não passa pela tela. Use a mesma função de filtro da listagem para o CSV bater com o que a pessoa vê, e proteja células contra injeção de fórmulas (o <code>Csv</code> dos <a href="php.html#csv">Helpers PHP</a> já faz). Em ambiente regulado, registre quem exportou e o quê.</p></div>
 
 <h2 id="adaptador" data-titulo="Outro formato de resposta">Outro formato de resposta</h2>
 @@@js
@@ -278,6 +332,8 @@ AlpineForm.lista.adaptador('erp', json => ({
 <tr><td><code>data-lista-atualizar</code></td><td>—</td><td>Recarga periódica (ex.: <code>30s</code>).</td></tr>
 <tr><td><code>data-lista-timeout</code></td><td>15s</td><td>Tempo máximo da requisição.</td></tr>
 <tr><td><code>data-lista-grupo</code> · <code>data-lista-ao-atualizar</code> · <code>data-lista-destacar</code></td><td>— · recarregar · —</td><td>Atualização por formulário.</td></tr>
+<tr><td><code>data-lista-exportar-url</code> · <code>data-lista-exportar-completo-url</code></td><td>—</td><td>Endpoints do CSV com filtro e completo.</td></tr>
+<tr><td><code>data-lista-exportar-modo</code> · <code>data-lista-exportar-timeout</code></td><td>baixar · 2min</td><td><code>direto</code> para arquivos enormes.</td></tr>
 </tbody></table></div>
 <div class="tabela"><table><caption>Atributos de elementos dentro da lista</caption><thead><tr><th>Atributo</th><th>Função</th></tr></thead><tbody>
 <tr><td><code>data-lista-filtros</code> (form) · <code>data-lista-filtro</code> (campo) · <code>data-lista-minimo</code> · <code>data-lista-ignorar</code> · <code>data-lista-aplicar-ao-enviar</code></td><td>Filtros</td></tr>
@@ -287,11 +343,12 @@ AlpineForm.lista.adaptador('erp', json => ({
 <tr><td><code>data-lista-mais</code> · <code>data-lista-sentinela</code></td><td>Carregar mais / rolagem infinita</td></tr>
 <tr><td><code>data-lista-selecionar="id"</code> · <code>data-lista-selecionar-todos</code></td><td>Seleção</td></tr>
 <tr><td><code>data-lista-recarregar</code> · <code>data-lista-limpar</code></td><td>Botões de ação</td></tr>
+<tr><td><code>data-lista-exportar="filtro"</code> · <code>data-lista-exportar="completo"</code></td><td>Botões de exportação CSV</td></tr>
 <tr><td><code>data-lista-para="idDaLista"</code></td><td>Num elemento fora da lista: <code>$lista</code> passa a se referir a ela (barras de ferramentas, contadores).</td></tr>
 </tbody></table></div>
 <div class="tabela"><table><caption>$lista</caption><thead><tr><th>Propriedades</th><th>Métodos</th></tr></thead><tbody>
 <tr><td><code>itens</code>, <code>carregando</code>, <code>carregado</code>, <code>erro</code>, <code>vazio</code>, <code>pagina</code>, <code>porPagina</code>, <code>total</code>, <code>ultimaPagina</code>, <code>temProxima</code>, <code>temAnterior</code>, <code>de</code>, <code>ate</code>, <code>paginas</code>, <code>resumo</code>, <code>ordem</code>, <code>direcao</code>, <code>filtros</code>, <code>parametros</code>, <code>queryString</code>, <code>selecionados</code>, <code>quantidadeSelecionada</code>, <code>todosSelecionados</code>, <code>algunsSelecionados</code>, <code>destaque</code></td>
-<td><code>irPara(n)</code>, <code>proxima()</code>, <code>anterior()</code>, <code>ordenar(campo, dir?)</code>, <code>direcaoDe(campo)</code>, <code>filtrar(nome, valor)</code>, <code>definirFiltros(obj)</code>, <code>limparFiltros()</code>, <code>definirPorPagina(n)</code>, <code>recarregar()</code>, <code>maisItens()</code>, <code>alternar(id)</code>, <code>alternarTodos()</code>, <code>limparSelecao()</code>, <code>selecionado(id)</code>, <code>itensSelecionados()</code>, <code>urlCom(base)</code></td></tr>
+<td><code>irPara(n)</code>, <code>proxima()</code>, <code>anterior()</code>, <code>ordenar(campo, dir?)</code>, <code>direcaoDe(campo)</code>, <code>filtrar(nome, valor)</code>, <code>definirFiltros(obj)</code>, <code>limparFiltros()</code>, <code>definirPorPagina(n)</code>, <code>recarregar()</code>, <code>maisItens()</code>, <code>alternar(id)</code>, <code>alternarTodos()</code>, <code>limparSelecao()</code>, <code>selecionado(id)</code>, <code>itensSelecionados()</code>, <code>urlCom(base)</code>, <code>exportar(tipo)</code>, <code>urlExportacao(tipo)</code>; estado <code>exportando</code>, <code>erroExportacao</code></td></tr>
 </tbody></table></div>
-<p>Global: <code>AlpineForm.lista.get(idOuElemento)</code>, <code>AlpineForm.lista.atualizar(alvos)</code>, <code>AlpineForm.lista.adaptador(nome, fn)</code>. Eventos no elemento: <code>lista:carregada</code>, <code>lista:erro</code>, <code>lista:selecao</code>, <code>lista:atualizada</code>. Mensagens personalizáveis em <code>AlpineForm.messages</code> (<code>lista.carregando</code>, <code>lista.vazio</code>, <code>lista.resumo</code>, <code>lista.erro</code>…).</p>
+<p>Global: <code>AlpineForm.lista.get(idOuElemento)</code>, <code>AlpineForm.lista.atualizar(alvos)</code>, <code>AlpineForm.lista.adaptador(nome, fn)</code>. Eventos no elemento: <code>lista:carregada</code>, <code>lista:erro</code>, <code>lista:selecao</code>, <code>lista:atualizada</code>, <code>lista:exportada</code>, <code>lista:exportacao-erro</code>. Mensagens personalizáveis em <code>AlpineForm.messages</code> (<code>lista.carregando</code>, <code>lista.vazio</code>, <code>lista.resumo</code>, <code>lista.erro</code>…).</p>
 <div class="nota"><p>CSP estrita: o módulo não avalia código; com a versão CSP do Alpine use propriedades (<code>x-show="$lista.vazio"</code>) e os atributos <code>data-lista-*</code> em vez de chamadas com argumentos.</p></div>

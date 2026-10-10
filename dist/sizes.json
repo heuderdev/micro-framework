@@ -37,9 +37,9 @@
   },
   {
     "module": "alpine-form-lista",
-    "min": 27955,
-    "gzip": 8720,
-    "esm": 43790
+    "min": 32612,
+    "gzip": 10132,
+    "esm": 51012
   },
   {
     "module": "alpine-form-opcoes",
@@ -67,8 +67,8 @@
   },
   {
     "module": "alpine-form-completo",
-    "min": 261971,
-    "gzip": 79172,
-    "esm": 423050
+    "min": 266632,
+    "gzip": 80528,
+    "esm": 430258
   }
 ]

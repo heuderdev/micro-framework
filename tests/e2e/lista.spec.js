@@ -1,4 +1,5 @@
 import { test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { expect } from './helpers.js'
 
 const estado = (page, id) => page.evaluate(i => {
@@ -92,6 +93,42 @@ test.describe('listagens (módulo alpine-form-lista)', () => {
         await expect(page.locator('#cards .mini-card strong').first()).toHaveText(nome)
         await expect(page.locator('#n-nome')).toHaveValue('')
         await expect(page.locator('#clientes tbody tr.linha-nova')).toHaveCount(0, { timeout: 8000 })
+        expect(problemas).toEqual([])
+    })
+})
+
+test.describe('listagens: exportação CSV', () => {
+    test('"Filtro CSV" baixa só as linhas filtradas; "CSV completo" baixa todas, cada um no seu endpoint', async ({ page }) => {
+        const problemas = await abrir(page)
+        const pedidos = []
+        page.on('request', r => {
+            if (r.url().includes('clientes-csv')) pedidos.push(new URL(r.url()))
+        })
+        await page.selectOption('#f-uf', 'SP')
+        await expect.poll(() => estado(page, 'clientes').then(s => s.filtros.uf)).toBe('SP')
+        await expect.poll(() => estado(page, 'clientes').then(s => s.carregando)).toBe(false)
+        const totalFiltrado = (await estado(page, 'clientes')).total
+
+        const [arquivoFiltro] = await Promise.all([page.waitForEvent('download'), page.click('[data-lista-exportar="filtro"]')])
+        expect(arquivoFiltro.suggestedFilename()).toMatch(/^clientes-filtrado-\d{4}-\d{2}-\d{2}\.csv$/)
+        const csvFiltro = readFileSync(await arquivoFiltro.path(), 'utf8')
+        expect(csvFiltro.charCodeAt(0)).toBe(0xfeff)                                    // BOM: acentos certos no Excel
+        const linhasFiltro = csvFiltro.trim().split('\r\n')
+        expect(linhasFiltro[0]).toBe('Código;Nome;E-mail;UF;Situação;Saldo;Cadastro')        // trim() remove o BOM
+        expect(linhasFiltro).toHaveLength(totalFiltrado + 1)
+        expect(linhasFiltro.slice(1).every(l => l.split(';')[3] === 'SP')).toBe(true)
+        expect(pedidos[0].pathname).toBe('/api/demo/clientes-csv')
+        expect(pedidos[0].searchParams.get('uf')).toBe('SP')
+        expect(pedidos[0].searchParams.has('page')).toBe(false)
+
+        const [arquivoCompleto] = await Promise.all([page.waitForEvent('download'), page.click('[data-lista-exportar="completo"]')])
+        expect(arquivoCompleto.suggestedFilename()).toMatch(/^clientes-completo-/)
+        const linhasCompleto = readFileSync(await arquivoCompleto.path(), 'utf8').trim().split('\r\n')
+        expect(linhasCompleto.length - 1).toBeGreaterThanOrEqual(137)
+        expect(linhasCompleto.length).toBeGreaterThan(linhasFiltro.length)
+        expect(pedidos[1].pathname).toBe('/api/demo/clientes-csv-completo')
+        expect(pedidos[1].search).toBe('')
+        await expect(page.locator('[data-lista-exportar="filtro"]')).toBeEnabled()
         expect(problemas).toEqual([])
     })
 })
