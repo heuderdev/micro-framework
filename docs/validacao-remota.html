@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validação remota · AlpineForm</title>
+<meta name="description" content="Perguntar ao servidor se um valor é aceito (e-mail já cadastrado, usuário disponível, cupom válido) enquanto a pessoa preenche.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Formulários › Validação remota</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" class="ativo" aria-current="page" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Validação remota</h1>
+<p class="lead">Perguntar ao servidor se um valor é aceito (e-mail já cadastrado, usuário disponível, cupom válido) enquanto a pessoa preenche.</p>
+<div id="nesta-pagina"></div>
+<h2 id="basico" data-titulo="Uso básico">Uso básico</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;
+       data-form-remote=&quot;/api/validar-email&quot;
+       data-form-msg.remote=&quot;Este e-mail já está cadastrado.&quot;&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">validar-email.php</div><pre><code data-lang="php">&lt;?php
+header('Content-Type: application/json; charset=utf-8');
+$email = strtolower(trim($_POST['email'] ?? ''));
+
+$existe = in_array($email, ['admin@exemplo.com', 'teste@exemplo.com'], true);   // consulte o banco
+
+echo json_encode(['valid' =&gt; !$existe, 'message' =&gt; $existe ? 'Este e-mail já está cadastrado.' : null]);</code></pre></div>
+<ol class="passos">
+    <li>As regras locais rodam primeiro. Só se passarem o servidor é consultado.</li>
+    <li>Enquanto espera, o campo mostra "Verificando..." e <code>$form.fields.email.remote</code> vale <code>pending</code>.</li>
+    <li>Se a pessoa digita de novo, a consulta anterior é <strong>cancelada</strong>; uma resposta antiga nunca é aplicada a um valor novo.</li>
+    <li>Resposta <code>{"valid": false}</code> mostra a mensagem: <code>data-form-msg.remote</code> do campo, senão a <code>message</code> do servidor, senão "Este valor não está disponível.".</li>
+</ol>
+
+<h2 id="contrato" data-titulo="O que é enviado e o que se espera">O que é enviado e o que se espera</h2>
+<div class="tabela"><table><thead><tr><th>Envio (POST, <code>application/x-www-form-urlencoded</code>)</th><th>Resposta esperada (JSON)</th></tr></thead><tbody>
+<tr><td><code>email=ana@ex.com&amp;_field=email</code> + campos de <code>data-form-remote-fields</code></td><td><code>{"valid": true}</code> ou <code>{"valid": false, "message": "…"}</code> (aceita <code>mensagem</code>)</td></tr>
+</tbody></table></div>
+<p>O cabeçalho CSRF vai junto quando a URL é da mesma origem.</p>
+
+<h2 id="opcoes" data-titulo="Opções">Opções</h2>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-remote</code></td><td>—</td><td>URL consultada.</td></tr>
+<tr><td><code>data-form-remote-method</code></td><td><code>post</code></td><td><code>get</code> coloca os dados na URL.</td></tr>
+<tr><td><code>data-form-remote-param</code></td><td>o <code>name</code></td><td>Nome do parâmetro com o valor.</td></tr>
+<tr><td><code>data-form-remote-fields</code></td><td>—</td><td>Outros campos enviados junto, separados por vírgula. Mudar um deles revalida.</td></tr>
+<tr><td><code>data-form-remote-debounce</code></td><td>400 ms</td><td>Espera extra antes de consultar durante a digitação.</td></tr>
+<tr><td><code>data-form-remote-timeout</code></td><td>8 s</td><td>Tempo máximo da consulta.</td></tr>
+<tr><td><code>data-form-remote-cache</code> / <code>-cache-ttl</code></td><td>20 / 60 s</td><td>Respostas guardadas para não repetir a consulta (0 desliga).</td></tr>
+<tr><td><code>data-form-remote-inconclusive</code></td><td><code>allow</code></td><td>O que fazer se o servidor não responder: <code>allow</code> deixa enviar, <code>block</code> mostra erro.</td></tr>
+<tr><td><code>data-form-remote-adapter</code></td><td><code>default</code></td><td>Lê respostas em outro formato (<a href="#adaptador">abaixo</a>).</td></tr>
+<tr><td><code>data-form-remote-allow-query</code></td><td>—</td><td>Autoriza GET em campo sensível (senha).</td></tr>
+</tbody></table></div>
+
+<h2 id="edicao" data-titulo="Edição: ignorar o próprio registro">Edição: ignorar o próprio registro</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input type=&quot;hidden&quot; name=&quot;id&quot; value=&quot;7&quot;&gt;
+&lt;input name=&quot;email&quot; type=&quot;email&quot; value=&quot;joao@exemplo.com&quot; data-form-v=&quot;required|email&quot;
+       data-form-remote=&quot;/api/validar-email&quot; data-form-remote-fields=&quot;id&quot;&gt;</code></pre></div>
+<div class="codigo"><pre><code data-lang="php">$id = (int) ($_POST['id'] ?? 0);
+$existe = $db-&gt;fetchOne('SELECT 1 FROM clientes WHERE email = ? AND id &lt;&gt; ?', [$email, $id]);</code></pre></div>
+
+<h2 id="get" data-titulo="Consulta por GET">Consulta por GET</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;usuario&quot; data-form-v=&quot;required|alphanumeric|min:4&quot;
+       data-form-remote=&quot;/api/usuario-disponivel&quot; data-form-remote-method=&quot;get&quot;
+       data-form-remote-param=&quot;u&quot;&gt;
+&lt;!-- GET /api/usuario-disponivel?u=joao&amp;_field=usuario --&gt;</code></pre></div>
+
+<h2 id="inconclusivo" data-titulo="Servidor fora do ar">Servidor fora do ar (inconclusivo)</h2>
+<p>Erro de rede, tempo esgotado, HTTP fora de 2xx ou resposta fora do contrato não dizem "válido" nem "inválido": o resultado é <strong>inconclusivo</strong>. A consulta é repetida uma vez em erros de rede e em 408/429/5xx.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;!-- allow (padrão): sem erro, aviso &quot;Não foi possível verificar agora. O valor será conferido no envio.&quot; --&gt;
+&lt;input name=&quot;email&quot; data-form-v=&quot;email&quot; data-form-remote=&quot;/api/validar-email&quot;&gt;
+
+&lt;!-- block: erro &quot;Não foi possível verificar este valor agora.&quot; até conseguir consultar --&gt;
+&lt;input name=&quot;cupom&quot; data-form-v=&quot;required&quot; data-form-remote=&quot;/api/cupom&quot; data-form-remote-inconclusive=&quot;block&quot;&gt;</code></pre></div>
+
+<h2 id="adaptador" data-titulo="Resposta em outro formato">Resposta em outro formato</h2>
+<div class="codigo"><pre><code data-lang="js">// sua API responde { &quot;disponivel&quot;: true } ou { &quot;disponivel&quot;: false, &quot;motivo&quot;: &quot;…&quot; }
+AlpineForm.remoteAdapter('disponibilidade', json =&gt; ({
+    valid: json.disponivel === true,
+    message: json.motivo,
+}))</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;usuario&quot; data-form-v=&quot;required&quot; data-form-remote=&quot;/api/usuario&quot; data-form-remote-adapter=&quot;disponibilidade&quot;&gt;</code></pre></div>
+
+<h2 id="cache" data-titulo="Cache">Cache</h2>
+<p>Só respostas definitivas (<code>valid</code> verdadeiro ou falso) entram no cache. Quando o servidor devolve erro para o campo no envio, a entrada daquele valor é descartada. Para limpar manualmente:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;button type=&quot;button&quot; @click=&quot;$form.clearRemoteCache('email')&quot;&gt;Verificar de novo&lt;/button&gt;</code></pre></div>
+<div class="nota aviso"><p>A validação remota não substitui a validação no envio: entre a consulta e o envio, outra pessoa pode ter cadastrado o mesmo e-mail. O servidor sempre confere de novo (por exemplo, com índice único no banco).</p></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="condicionais.html"><small>← Anterior</small>Condicionais e dependências</a><a class="proxima" href="mascaras.html"><small>Próxima →</small>Máscaras</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

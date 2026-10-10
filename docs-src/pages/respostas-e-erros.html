@@ -1,0 +1,135 @@
+titulo: Respostas e erros
+lead: O formato de resposta que o AlpineForm entende, como cada erro do servidor chega ao campo certo, e como ler respostas do Laravel, do Joomla ou de outro formato.
+---
+<h2 id="contrato" data-titulo="Formato de resposta">Formato de resposta</h2>
+@@@js Sucesso
+HTTP 200
+{ "success": true, "message": "Cadastro realizado.", "data": { "id": 15 } }
+@@@
+@@@js Erro de validação
+HTTP 422
+{
+  "success": false,
+  "message": "Confira os campos destacados.",
+  "errors": {
+    "email": ["Este e-mail já está em uso."],
+    "itens.1.quantidade": "Estoque insuficiente.",
+    "": ["Seu plano não permite mais cadastros."]
+  }
+}
+@@@
+<ul>
+    <li><code>message</code> (ou <code>mensagem</code>) aparece em <code>[data-form-status]</code>.</li>
+    <li><code>errors</code>: chave = campo; valor = texto ou lista de textos.</li>
+    <li><code>data</code> fica em <code>$form.result.data</code>.</li>
+    <li>Opcionais: <code>redirect</code> (com <code>data-form-redirect="response"</code>), <code>request_id</code> (registrado no console em erros), <code>job</code> (<a href="processamento.html">processamento</a>).</li>
+</ul>
+
+<h2 id="http-logico" data-titulo="HTTP e sucesso lógico">HTTP e sucesso lógico</h2>
+<div class="tabela"><table><thead><tr><th>Resposta</th><th>Resultado</th><th><code>$form.error.kind</code></th></tr></thead><tbody>
+<tr><td>2xx sem <code>success</code> ou com <code>success: true</code></td><td>sucesso</td><td>—</td></tr>
+<tr><td><strong>200 com <code>success: false</code></strong></td><td><strong>erro</strong></td><td><code>validation</code> (com erros por campo) ou <code>logical</code></td></tr>
+<tr><td>204 ou corpo vazio</td><td>sucesso, <code>data = null</code></td><td>—</td></tr>
+<tr><td>202 com <code>job</code></td><td>processamento</td><td>—</td></tr>
+<tr><td>422</td><td>erro</td><td><code>validation</code></td></tr>
+<tr><td>401 · 403 · 419</td><td>erro</td><td><code>auth</code> · <code>forbidden</code> · <code>csrf</code></td></tr>
+<tr><td>413 · 429</td><td>erro</td><td><code>too_large</code> · <code>rate_limited</code></td></tr>
+<tr><td>5xx · outros 4xx</td><td>erro</td><td><code>server</code> · <code>http</code></td></tr>
+<tr><td>Página HTML (login, erro de proxy)</td><td>erro</td><td><code>html</code></td></tr>
+<tr><td>Texto ou JSON quebrado</td><td>erro</td><td><code>parse</code></td></tr>
+<tr><td>Sem conexão · tempo esgotado</td><td>erro</td><td><code>network</code> · <code>timeout</code> · <code>unknown</code></td></tr>
+</tbody></table></div>
+<p>Sem <code>message</code>, cada tipo tem uma mensagem padrão em português (ex.: 401 → "Sua sessão expirou ou você não tem permissão. Entre novamente e tente outra vez."). Personalize em <code>AlpineForm.configure({ messages: { 'submit.auth': '…' } })</code> — chaves em <a href="referencia-rapida.html#mensagens">Referência rápida</a>.</p>
+<div class="nota dica"><strong class="rotulo">Resposta HTML</strong><p>Se o servidor devolve uma página (geralmente a tela de login após a sessão expirar), a mensagem é "O servidor respondeu com uma página HTML em vez de dados. Isso costuma indicar sessão expirada, redirecionamento para login ou erro de proxy." e <code>$form.error.diagnostic</code> traz o trecho e <code>looksLikeLogin</code>.</p></div>
+
+<h2 id="associacao" data-titulo="Erro no campo certo">Erro no campo certo</h2>
+<div class="tabela"><table><thead><tr><th>Chave enviada pelo servidor</th><th>Vai para</th></tr></thead><tbody>
+<tr><td><code>email</code></td><td>campo <code>name="email"</code></td></tr>
+<tr><td><code>itens.1.quantidade</code> ou <code>itens[1][quantidade]</code></td><td>campo <code>name="itens[1][quantidade]"</code></td></tr>
+<tr><td><code>jform.title</code> ou <code>jform[title]</code></td><td>campo <code>name="jform[title]"</code></td></tr>
+<tr><td><code>documentos.1</code></td><td>2º arquivo enviado em <code>name="documentos[]"</code> (mensagem no item da lista e no campo)</td></tr>
+<tr><td><code>interesses.2</code></td><td>grupo de checkboxes <code>interesses[]</code></td></tr>
+<tr><td><code>""</code>, <code>"_"</code>, <code>"_general"</code>, <code>"*"</code></td><td>resumo (erro geral)</td></tr>
+<tr><td>campo que não existe na tela</td><td>resumo — nunca é descartado</td></tr>
+</tbody></table></div>
+<ul>
+    <li>O campo recebe o erro, fica marcado como tocado e o foco vai para o primeiro campo com erro.</li>
+    <li>Ao editar o campo, o erro do servidor some (<code>data-form-server-errors="clear-on-change"</code>, padrão). Com <code>keep</code>, fica até o próximo envio.</li>
+    <li>Se a pessoa alterou o campo enquanto a resposta não chegava, o erro daquele campo é ignorado (era sobre o valor antigo).</li>
+</ul>
+
+<h2 id="geral" data-titulo="Erros gerais e resumo">Erros gerais e resumo</h2>
+<p>Erros sem campo, falhas de rede e mensagens de 401/403/5xx vão para <code>$form.generalErrors</code> e para o <a href="validacao.html#resumo">resumo</a>. Para exibir do seu jeito:</p>
+@@@html
+<form x-data x-form action="/api/x" method="post" data-form-summary="none" novalidate>
+    <div class="alerta" x-show="$form.generalErrors.length">
+        <template x-for="msg in $form.generalErrors"><p x-text="msg"></p></template>
+    </div>
+    ...
+</form>
+@@@
+
+<h2 id="laravel" data-titulo="Laravel">Laravel</h2>
+@@@html
+<form x-data x-form action="/clientes" method="post" data-form-response-adapter="laravel" novalidate>
+@@@
+<p>O 422 padrão do Laravel (<code>{ message, errors: { "itens.0.nome": [...] } }</code>) é lido direto; a mensagem genérica em inglês ("The given data was invalid.") é descartada quando há erros por campo. 419 = token CSRF expirado. Controller em <a href="backend.html#laravel">Backend › Laravel</a>.</p>
+
+<h2 id="joomla" data-titulo="Joomla">Joomla</h2>
+@@@html
+<form x-data x-form action="index.php?option=com_loja&amp;task=cliente.salvar&amp;format=json" method="post"
+      data-form-response-adapter="joomla" novalidate>
+@@@
+<p>Lê o <code>JsonResponse</code>/<code>JResponseJson</code>: <code>{ success, message, messages: { error: [], warning: [] }, data }</code>. As mensagens enfileiradas (<code>enqueueMessage</code>) de erro e aviso vão para o resumo; erros por campo são lidos de <code>data.errors</code> (ex.: <code>{ "jform[title]": "Título obrigatório." }</code>). Controller em <a href="backend.html#joomla">Backend › Joomla</a>.</p>
+
+<h2 id="outro-formato" data-titulo="Outro formato de API">Outro formato de API</h2>
+@@@js
+// API que responde { ok: true, payload: {...} } ou { ok: false, fieldErrors: [{ field, msg }] }
+AlpineForm.responseAdapter('minha-api', (raw, ctx) => {
+    const base = AlpineForm.registry.get('responseAdapter', 'default')(raw, ctx)
+    let json = null
+    try { json = JSON.parse(raw.text) } catch (e) { return base }
+    if (!json || typeof json.ok !== 'boolean') return base
+
+    const errors = {}
+    for (const e of json.fieldErrors || []) {
+        if (!errors[e.field]) errors[e.field] = []
+        errors[e.field].push(e.msg)
+    }
+    return {
+        ...base,
+        ok: json.ok,
+        kind: json.ok ? 'success' : (Object.keys(errors).length ? 'validation' : 'logical'),
+        message: json.mensagem || null,
+        errors,
+        data: json.payload ?? null,
+    }
+})
+@@@
+@@@html
+<form x-data x-form action="/api/x" method="post" data-form-response-adapter="minha-api" novalidate>
+@@@
+
+<h2 id="pelo-codigo" data-titulo="Mostrar erros pelo código">Mostrar erros pelo código</h2>
+@@@js
+const form = AlpineForm.get('cadastro')
+
+form.setErrors({ email: 'Já cadastrado.', 'itens.0.qtd': ['Mínimo 1.'] })     // como se viessem do servidor
+form.setErrors(['Erro geral exibido no resumo.'])
+form.setErrors({ cpf: 'Inválido.' }, { replace: false })                      // soma aos existentes
+form.clearErrors('email')
+form.clearErrors()                                                             // todos
+@@@
+
+<h2 id="estado" data-titulo="Lendo o resultado">Lendo o resultado</h2>
+@@@html
+<p x-show="$form.success" x-text="$form.result?.message"></p>
+<p x-show="$form.failed" class="erro" x-text="$form.error?.message"></p>
+<p x-show="$form.error?.kind === 'auth'"><a href="/login">Entrar novamente</a></p>
+@@@
+<div class="tabela"><table><thead><tr><th>Propriedade</th><th>Conteúdo</th></tr></thead><tbody>
+<tr><td><code>$form.result</code></td><td><code>{ status, kind, message, data, requestId, job }</code></td></tr>
+<tr><td><code>$form.error</code></td><td><code>{ kind, message, status, requestId, diagnostic }</code></td></tr>
+<tr><td><code>$form.errors</code></td><td><code>{ "email": ["…"], "itens.0.qtd": ["…"] }</code> — só campos com erro</td></tr>
+<tr><td><code>$form.generalErrors</code></td><td>lista de mensagens sem campo</td></tr>
+</tbody></table></div>

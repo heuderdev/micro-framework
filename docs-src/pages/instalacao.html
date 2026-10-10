@@ -1,0 +1,110 @@
+titulo: Instalação
+lead: Quais arquivos copiar, em que ordem carregar e como fazer isso numa página HTML, no Joomla, no Laravel e com bundler (Vite).
+---
+<h2 id="arquivos" data-titulo="Arquivos">Arquivos</h2>
+<p>Gere os arquivos com <code>npm install</code> e <code>npm run build</code> (ou use os que já estão em <code>dist/</code>) e copie para a pasta pública do seu projeto só o que for usar:</p>
+<div class="tabela"><table><thead><tr><th>Arquivo</th><th>Quando carregar</th></tr></thead><tbody>
+<tr><td><code>dist/alpine-form.min.js</code></td><td><strong>Sempre</strong>. Núcleo.</td></tr>
+<tr><td><code>dist/alpine-form-masks.min.js</code></td><td>Se usar <code>data-form-mask</code>.</td></tr>
+<tr><td><code>dist/alpine-form-chunks.min.js</code></td><td>Se usar <code>data-form-chunked</code> (upload em partes).</td></tr>
+<tr><td><code>dist/alpine-form-inspectors.min.js</code></td><td>Se usar as regras <code>csv</code>, <code>csv_headers</code>, <code>json</code>, <code>pdf_signature</code>, <code>xlsx_signature</code>, <code>media_duration_*</code>.</td></tr>
+<tr><td><code>dist/alpine-form-bootstrap.min.js</code></td><td>Se a página usa Bootstrap 5 e você quer <code>data-form-ui="bootstrap"</code>.</td></tr>
+<tr><td><code>css/alpine-form.css</code></td><td>Opcional: estilo mínimo para erros, resumo, lista de arquivos e barra de progresso (dispensável com Bootstrap).</td></tr>
+<tr><td>Alpine.js 3</td><td><strong>Sempre</strong>. Não vem junto: use <code>node_modules/alpinejs/dist/cdn.min.js</code> ou a cópia que seu projeto já tem.</td></tr>
+</tbody></table></div>
+<p>Cada módulo existe em três versões: <code>.min.js</code> (produção), <code>.js</code> (mesmo código legível, para depurar) e <code>.esm.js</code> (para <code>import</code>).</p>
+
+<h2 id="ordem" data-titulo="Ordem de carregamento">Ordem de carregamento</h2>
+<ol class="passos">
+    <li><code>alpine-form.min.js</code> — define <code>window.AlpineForm</code> e espera o Alpine iniciar.</li>
+    <li>Módulos opcionais — se registram em <code>window.AlpineForm</code>.</li>
+    <li>Suas extensões e <code>AlpineForm.configure()</code>, se houver.</li>
+    <li>Alpine.js com <code>defer</code> — <strong>sempre por último</strong>.</li>
+</ol>
+@@@html HTML puro
+<head>
+    <meta name="csrf-token" content="TOKEN_GERADO_PELO_SERVIDOR">   <!-- opcional: ver abaixo -->
+    <link rel="stylesheet" href="/js/alpine-form/alpine-form.css">
+
+    <script src="/js/alpine-form/alpine-form.min.js"></script>
+    <script src="/js/alpine-form/alpine-form-masks.min.js"></script>
+    <script>
+        AlpineForm.configure({ debounce: 300 })   // opcional
+    </script>
+    <script defer src="/js/alpine.min.js"></script>
+</head>
+@@@
+<div class="nota aviso"><strong class="rotulo">Alpine antes do AlpineForm</strong><p>Se o Alpine iniciar antes do núcleo carregar, os formulários já processados não são inicializados e o console avisa "O Alpine parece já ter sido iniciado; carregue alpine-form antes do Alpine". Ponha o Alpine por último e com <code>defer</code>.</p></div>
+
+<h2 id="csrf" data-titulo="Token CSRF">Token CSRF</h2>
+<p>Duas formas, use a que o seu backend espera:</p>
+<ul>
+    <li><strong>Meta tag + cabeçalho:</strong> com <code>&lt;meta name="csrf-token" content="…"&gt;</code> na página, todo envio para a <strong>mesma origem</strong> leva o cabeçalho <code>X-CSRF-TOKEN</code>. É o padrão do Laravel.</li>
+    <li><strong>Campo oculto:</strong> qualquer <code>&lt;input type="hidden"&gt;</code> dentro do form é enviado normalmente. É o padrão do Joomla (<code>HTMLHelper::_('form.token')</code>).</li>
+</ul>
+@@@js Outro nome de meta ou de cabeçalho
+AlpineForm.configure({ csrf: { meta: 'xsrf', header: 'X-XSRF-TOKEN' } })
+AlpineForm.configure({ csrf: null })   // desliga o envio automático do cabeçalho
+@@@
+
+<h2 id="joomla" data-titulo="Joomla 3, 4 e 5">Joomla 3, 4 e 5</h2>
+<p>Copie os arquivos para <code>media/com_seucomponente/js/</code> e carregue na view, nesta ordem:</p>
+@@@php tmpl/default.php
+use Joomla\CMS\HTML\HTMLHelper;   // Joomla 3: use JHtml no lugar de HTMLHelper
+
+HTMLHelper::_('stylesheet', 'com_loja/alpine-form.css', ['version' => 'auto', 'relative' => true]);
+HTMLHelper::_('script', 'com_loja/alpine-form.min.js', ['version' => 'auto', 'relative' => true]);
+HTMLHelper::_('script', 'com_loja/alpine-form-masks.min.js', ['version' => 'auto', 'relative' => true]);
+HTMLHelper::_('script', 'com_loja/alpine.min.js', ['version' => 'auto', 'relative' => true], ['defer' => true]);
+@@@
+<p>Com <code>'relative' =&gt; true</code>, o Joomla procura <code>com_loja/alpine-form.min.js</code> em <code>media/com_loja/js/</code> (e o CSS em <code>media/com_loja/css/</code>).</p>
+@@@html Formulário com token do Joomla
+<form x-data x-form action="<?php echo JRoute::_('index.php?option=com_loja&task=cliente.salvar&format=json'); ?>"
+      method="post" data-form-response-adapter="joomla" novalidate>
+    <input name="jform[nome]" data-form-v="required|min:3" data-form-label="Nome">
+    <button type="submit">Salvar</button>
+    <p data-form-status></p>
+    <?php echo HTMLHelper::_('form.token'); ?>
+</form>
+@@@
+<div class="nota dica"><p>Confira no código-fonte da página gerada se o <code>alpine.min.js</code> ficou depois dos outros scripts. Se o template já carrega o Alpine, não carregue de novo: apenas garanta que <code>alpine-form.min.js</code> venha antes dele. O controller está em <a href="backend.html#joomla">Backend › Joomla</a>.</p></div>
+
+<h2 id="laravel" data-titulo="Laravel">Laravel</h2>
+@@@html resources/views/layouts/app.blade.php
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="stylesheet" href="{{ asset('js/alpine-form/alpine-form.css') }}">
+<script src="{{ asset('js/alpine-form/alpine-form.min.js') }}"></script>
+<script src="{{ asset('js/alpine-form/alpine-form-masks.min.js') }}"></script>
+<script defer src="{{ asset('js/alpine.min.js') }}"></script>
+@@@
+<p>Com a meta tag, o cabeçalho <code>X-CSRF-TOKEN</code> segue automaticamente. Use <code>data-form-response-adapter="laravel"</code> para ler o 422 de validação (<a href="backend.html#laravel">exemplo de controller</a>).</p>
+
+<h2 id="esm" data-titulo="Vite / bundler (ESM)">Vite / bundler (ESM)</h2>
+@@@js main.js
+import Alpine from 'alpinejs'
+import AlpineFormPlugin, { AlpineForm } from 'alpine-form'
+import masks from 'alpine-form/masks'
+import chunks from 'alpine-form/chunks'
+import inspectors from 'alpine-form/inspectors'
+import bootstrap from 'alpine-form/bootstrap'
+import 'alpine-form/css'
+
+AlpineForm.use(masks).use(chunks).use(inspectors).use(bootstrap)
+AlpineForm.configure({ validation: 'live' })
+
+Alpine.plugin(AlpineFormPlugin)
+window.Alpine = Alpine
+window.AlpineForm = AlpineForm   // opcional: acesso pelo console
+Alpine.start()
+@@@
+<p>Sem bundler, o mesmo funciona com <code>&lt;script type="module"&gt;</code> apontando para os <code>.esm.js</code> (veja <code>examples/esm-boot.js</code>).</p>
+
+<h2 id="conferir" data-titulo="Conferindo se funcionou">Conferindo se funcionou</h2>
+<p>Abra o console do navegador na página:</p>
+@@@js Console
+AlpineForm.version              // "1.0.0"
+AlpineForm.diagnose()           // [] = todos os <form x-form> foram inicializados
+AlpineForm.get('meuForm')       // estado do formulário com id="meuForm" (ou null)
+AlpineForm.registry.names('mask')   // máscaras disponíveis (vazio se o módulo não carregou)
+@@@
+<div class="nota"><p>Se <code>diagnose()</code> listar formulários, falta <code>x-data</code> no form (ou num elemento acima dele), ou ele está dentro de <code>x-ignore</code>. Veja <a href="erros-e-solucoes.html#nao-inicializado">Erros e soluções</a>.</p></div>

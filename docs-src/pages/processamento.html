@@ -1,0 +1,102 @@
+titulo: Processamento (jobs)
+lead: Quando o servidor aceita o envio e processa depois (importação de planilha, geração de relatório, conversão de vídeo): resposta 202, acompanhamento do progresso sem sobrecarregar o servidor, cancelamento e retomada após recarregar.
+---
+<h2 id="como" data-titulo="Como funciona">Como funciona</h2>
+<div class="fluxo">
+    <div class="etapa"><strong>Envio</strong><span>o formulário sobe o arquivo normalmente</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>Servidor responde 202</strong><span>{ "job": { "id", "status_url", "cancel_url" } }</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>Fase processing</strong><span>a biblioteca consulta status_url em intervalos</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>succeeded / failed / canceled</strong><span>vira success ou error no formulário</span></div>
+</div>
+<p>Nenhum atributo é necessário para ativar: basta o servidor responder 202 com <code>job</code>.</p>
+
+<h2 id="html" data-titulo="Formulário">Formulário</h2>
+@@@html
+<form x-data x-form action="/api/importacoes" method="post" enctype="multipart/form-data"
+      data-form-job-interval="1s" data-form-job-max-interval="5s" data-form-job-timeout="10min"
+      data-form-job-persist novalidate>
+    <input name="planilha" type="file" accept=".csv" data-form-v="required|ext:csv|file_max:50MB">
+
+    <button type="submit" :disabled="$form.submitting">Importar</button>
+    <button type="button" data-form-cancel>Parar de acompanhar</button>
+    <button type="button" x-show="$form.processing" @click="$form.cancelJob().catch(e => alert(e.message))">
+        Cancelar importação
+    </button>
+
+    <div data-form-progress>
+        <progress data-form-progress-bar max="100" aria-label="Progresso"></progress>
+        <p data-form-status></p>
+        <p x-show="$form.job" x-text="$form.job && $form.job.status"></p>
+    </div>
+
+    <template x-if="$form.success && $form.result.data">
+        <p>Linhas importadas: <strong x-text="$form.result.data.linhas"></strong></p>
+    </template>
+</form>
+@@@
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-job-interval</code></td><td>1,5 s</td><td>Intervalo inicial entre consultas.</td></tr>
+<tr><td><code>data-form-job-max-interval</code></td><td>10 s</td><td>Sem mudanças, o intervalo cresce 1,5× até este limite.</td></tr>
+<tr><td><code>data-form-job-timeout</code></td><td>10 min</td><td>Tempo máximo acompanhando ("O processamento está demorando mais que o esperado. Consulte o status mais tarde.").</td></tr>
+<tr><td><code>data-form-job-persist</code></td><td>falso</td><td>Guarda o id do job no <code>sessionStorage</code>: ao recarregar, o acompanhamento continua.</td></tr>
+<tr><td><code>data-form-job-url</code> · <code>data-form-job-cancel-url</code></td><td>—</td><td>Modelos com <code>{id}</code> quando a resposta traz só o id: <code>/api/jobs/{id}</code>.</td></tr>
+</tbody></table></div>
+
+<h2 id="contrato" data-titulo="Respostas do servidor">Respostas do servidor</h2>
+@@@js Ao receber o envio
+HTTP 202
+{ "success": true, "message": "Arquivo recebido. Processando…",
+  "job": { "id": "a3c0…", "status_url": "/api/jobs/a3c0…", "cancel_url": "/api/jobs/a3c0…" } }
+@@@
+@@@js GET status_url
+{ "status": "processing", "progress": 42, "message": "Lendo linhas…" }
+
+{ "status": "succeeded", "progress": 100, "result": { "linhas": 5000 } }
+
+{ "status": "failed", "error": { "message": "Coluna 'valor' ausente." } }
+@@@
+<ul>
+    <li><code>status</code>: <code>queued</code>, <code>processing</code>, <code>succeeded</code>, <code>failed</code> ou <code>canceled</code> (outro valor é erro de contrato).</li>
+    <li><code>progress</code> (0 a 100) é opcional: sem ele, a barra fica indeterminada. Nunca é inventado.</li>
+    <li><code>result</code> vira <code>$form.result.data</code> no sucesso.</li>
+    <li>Também são aceitos <code>job_id</code>/<code>jobId</code> e <code>statusUrl</code>/<code>cancelUrl</code>.</li>
+    <li>Uma consulta só é feita depois que a anterior terminou. <code>Retry-After</code> é respeitado; até 5 falhas de rede seguidas são toleradas; 404/410 encerra com erro.</li>
+</ul>
+
+<h2 id="cancelar" data-titulo="Cancelar">Cancelar</h2>
+<div class="tabela"><table><thead><tr><th>Ação</th><th>O que faz</th></tr></thead><tbody>
+<tr><td><code>data-form-cancel</code> / <code>$form.cancel()</code></td><td>Para de <strong>acompanhar</strong>. O processamento continua no servidor ("Acompanhamento encerrado. O processamento pode continuar no servidor.").</td></tr>
+<tr><td><code>$form.cancelJob()</code></td><td>Envia <code>DELETE</code> para <code>cancel_url</code>, pedindo ao servidor para cancelar. O acompanhamento continua até o status virar <code>canceled</code>.</td></tr>
+</tbody></table></div>
+
+<h2 id="php" data-titulo="Servidor (PHP)">Servidor (PHP)</h2>
+@@@php importacoes.php (resumo)
+// 1. recebe o arquivo, guarda, cria o job e responde 202
+$id = bin2hex(random_bytes(16));
+move_uploaded_file($_FILES['planilha']['tmp_name'], "/dados/importacoes/$id.csv");
+$db->insert('jobs', ['id' => $id, 'dono' => $usuarioId, 'status' => 'queued', 'progress' => 0]);
+
+http_response_code(202);
+echo json_encode([
+    'success' => true,
+    'message' => 'Arquivo recebido. Processando…',
+    'job' => ['id' => $id, 'status_url' => "/api/jobs/$id", 'cancel_url' => "/api/jobs/$id"],
+]);
+@@@
+@@@php jobs.php (GET /api/jobs/{id})
+$job = $db->fetch('SELECT * FROM jobs WHERE id = ? AND dono = ?', [$id, $usuarioId]);
+if (!$job) { http_response_code(404); exit; }
+
+echo json_encode([
+    'status' => $job['status'],
+    'progress' => (int) $job['progress'],
+    'message' => $job['mensagem'],
+    'result' => $job['status'] === 'succeeded' ? json_decode($job['resultado'], true) : null,
+    'error' => $job['status'] === 'failed' ? ['message' => $job['erro']] : null,
+]);
+@@@
+<p>O processamento em si roda num worker (cron, fila, supervisor), que atualiza <code>status</code> e <code>progress</code>. O backend de referência tem uma fila em arquivos e um worker real: <code>server/src/JobQueue.php</code> e <code>php server/bin/worker.php</code>.</p>
+<div class="nota"><p>Sem o worker rodando, o job fica em <code>queued</code> para sempre: a biblioteca não tem como saber que ninguém está processando, e encerra no <code>data-form-job-timeout</code>.</p></div>

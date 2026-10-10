@@ -26,5 +26,5 @@ layout_start('Arquivo único', 'Regras de arquivo declaradas no input. O navegad
 <?php layout_end('<ul>
 <li><code>file_max:5MB</code> usa megabytes decimais (5.000.000 bytes); use <code>5MiB</code> para 5.242.880 bytes.</li>
 <li>Renomeie um arquivo de texto para <code>.pdf</code>: o navegador aceita (MIME pelo nome), o servidor recusa pelo conteúdo e o erro aparece no campo (<code>contrato.0</code>).</li>
-<li>Limites do PHP (<code>upload_max_filesize</code>, <code>post_max_size</code>) podem recusar o envio antes do código da aplicação: veja docs/backend.md.</li>
+<li>Limites do PHP (<code>upload_max_filesize</code>, <code>post_max_size</code>) podem recusar o envio antes do código da aplicação: veja <a href="/docs/arquivos.html#servidor">docs/arquivos.html</a>.</li>
 </ul>'); ?>

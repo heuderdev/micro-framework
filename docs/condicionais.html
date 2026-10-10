@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Condicionais e dependências · AlpineForm</title>
+<meta name="description" content="Campos que dependem de outros (confirmação de senha, intervalo de datas, &quot;obrigatório se&quot;) e campos que aparecem e somem com x-show, x-if ou disabled.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Formulários › Condicionais e dependências</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" class="ativo" aria-current="page" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Condicionais e dependências</h1>
+<p class="lead">Campos que dependem de outros (confirmação de senha, intervalo de datas, "obrigatório se") e campos que aparecem e somem com x-show, x-if ou disabled.</p>
+<div id="nesta-pagina"></div>
+<h2 id="dependencias" data-titulo="Dependências entre campos">Dependências entre campos</h2>
+<p>Toda regra que cita outro campo (<code>same</code>, <code>different</code>, <code>required_if</code>, <code>required_unless</code>, <code>required_with</code>, <code>required_without</code>, <code>greater_than</code>… e datas com nome de campo) cria uma <strong>dependência</strong>: quando o campo citado muda, o dependente é revalidado automaticamente — se ele já foi validado, tocado ou se o envio já foi tentado.</p>
+<div class="codigo"><div class="titulo-codigo">Confirmação de senha</div><pre><code data-lang="html">&lt;input name=&quot;senha&quot; type=&quot;password&quot; data-form-v=&quot;required|min:8&quot;&gt;
+&lt;input name=&quot;senha_confirmacao&quot; type=&quot;password&quot; data-form-v=&quot;required|same:senha&quot;
+       data-form-msg.same=&quot;As senhas não conferem.&quot;&gt;</code></pre></div>
+<p>Se a pessoa preenche a confirmação e depois altera a senha, o erro "As senhas não conferem." aparece (ou some) na confirmação sem que ela precise tocar nela.</p>
+<div class="codigo"><div class="titulo-codigo">Intervalo de datas</div><pre><code data-lang="html">&lt;input name=&quot;inicio&quot; type=&quot;date&quot; data-form-v=&quot;required|after_or_equal:today&quot;&gt;
+&lt;input name=&quot;fim&quot; type=&quot;date&quot; data-form-v=&quot;required|after_or_equal:inicio&quot;
+       data-form-msg.after_or_equal=&quot;O fim não pode ser antes do início.&quot;&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Faixa de valores</div><pre><code data-lang="html">&lt;input name=&quot;minimo&quot; data-form-mask=&quot;currency&quot; data-form-v=&quot;required&quot;&gt;
+&lt;input name=&quot;maximo&quot; data-form-mask=&quot;currency&quot; data-form-v=&quot;required|greater_than:minimo&quot;&gt;</code></pre></div>
+<div class="nota"><p>Referência a um campo inexistente é erro de configuração ("O campo "fim" referencia "inicioo", que não existe neste formulário."). Ciclos (A depende de B e B de A) são permitidos: a revalidação é de um nível e não entra em laço.</p></div>
+
+<h2 id="obrigatorio-se" data-titulo="Obrigatório só em certas condições">Obrigatório só em certas condições</h2>
+<div class="codigo"><div class="titulo-codigo">Pessoa física ou jurídica</div><pre><code data-lang="html">&lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;tipo&quot; value=&quot;pf&quot; data-form-v=&quot;required&quot;&gt; Física&lt;/label&gt;
+&lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;tipo&quot; value=&quot;pj&quot;&gt; Jurídica&lt;/label&gt;
+
+&lt;input name=&quot;cpf&quot;  data-form-mask=&quot;cpf&quot;  data-form-v=&quot;required_if:tipo,pf|cpf&quot;&gt;
+&lt;input name=&quot;cnpj&quot; data-form-mask=&quot;cnpj&quot; data-form-v=&quot;required_if:tipo,pj|cnpj&quot;&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">&quot;Outro&quot; com campo de texto</div><pre><code data-lang="html">&lt;select name=&quot;origem&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;option value=&quot;&quot;&gt;Selecione&lt;/option&gt;
+    &lt;option value=&quot;busca&quot;&gt;Busca&lt;/option&gt;
+    &lt;option value=&quot;indicacao&quot;&gt;Indicação&lt;/option&gt;
+    &lt;option value=&quot;outro&quot;&gt;Outro&lt;/option&gt;
+&lt;/select&gt;
+&lt;input name=&quot;origem_outro&quot; data-form-v=&quot;required_if:origem,outro|max:80&quot;&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Pelo menos um contato</div><pre><code data-lang="html">&lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required_without:telefone|email&quot;
+       data-form-msg.required_without=&quot;Informe e-mail ou telefone.&quot;&gt;
+&lt;input name=&quot;telefone&quot; data-form-mask=&quot;telefone_br&quot; data-form-v=&quot;required_without:email|telefone&quot;
+       data-form-msg.required_without=&quot;Informe e-mail ou telefone.&quot;&gt;</code></pre></div>
+
+<h2 id="mostrar-esconder" data-titulo="Mostrar e esconder campos">Mostrar e esconder campos</h2>
+<p>Campos escondidos <strong>não</strong> são dispensados automaticamente — você escolhe a política. Três formas:</p>
+<div class="tabela"><table><thead><tr><th>Forma</th><th>Valida quando escondido?</th><th>Envia quando escondido?</th><th>Quando usar</th></tr></thead><tbody>
+<tr><td><code>x-show</code> + <code>data-form-hidden="skip"</code></td><td>Não</td><td>Sim (valor atual)</td><td>Bloco que só aparece em certas condições, mas o servidor ignora os valores.</td></tr>
+<tr><td><code>:disabled</code></td><td>Não</td><td>Não</td><td>O servidor não deve receber o campo.</td></tr>
+<tr><td><code>x-if</code></td><td>Não (o campo deixa de existir)</td><td>Não</td><td>O campo não faz sentido; ao voltar, começa limpo.</td></tr>
+</tbody></table></div>
+<div class="codigo"><div class="titulo-codigo">x-show + data-form-hidden=&quot;skip&quot;</div><pre><code data-lang="html">&lt;form x-data=&quot;{ entrega: 'retirada' }&quot; x-form action=&quot;/pedido&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;entrega&quot; value=&quot;retirada&quot; x-model=&quot;entrega&quot;&gt; Retirar&lt;/label&gt;
+    &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;entrega&quot; value=&quot;casa&quot; x-model=&quot;entrega&quot;&gt; Entregar&lt;/label&gt;
+
+    &lt;div x-show=&quot;entrega === 'casa'&quot; data-form-hidden=&quot;skip&quot;&gt;
+        &lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|cep&quot;&gt;
+        &lt;input name=&quot;numero&quot; data-form-v=&quot;required|digits&quot;&gt;
+    &lt;/div&gt;
+    &lt;button type=&quot;submit&quot;&gt;Enviar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">:disabled</div><pre><code data-lang="html">&lt;input name=&quot;complemento&quot; :disabled=&quot;entrega !== 'casa'&quot; data-form-v=&quot;max:60&quot;&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">x-if</div><pre><code data-lang="html">&lt;label&gt;&lt;input type=&quot;checkbox&quot; x-model=&quot;temCupom&quot;&gt; Tenho cupom&lt;/label&gt;
+&lt;template x-if=&quot;temCupom&quot;&gt;
+    &lt;input name=&quot;cupom&quot; data-form-v=&quot;required|alphanumeric|length:8&quot;&gt;
+&lt;/template&gt;</code></pre></div>
+<p><code>data-form-hidden</code> pode ficar no campo, num elemento acima dele ou no form (vale para todos). Com o padrão <code>validate</code>, campos escondidos continuam sendo validados — e o erro pode aparecer num campo que a pessoa não vê.</p>
+<div class="nota aviso"><p>Com <code>x-show</code> sem <code>skip</code>, um campo obrigatório escondido bloqueia o envio. Se o erro está num lugar invisível, o foco não consegue chegar nele. Escolha uma das três formas acima.</p></div>
+
+<h2 id="abas" data-titulo="Abas, accordions e modais">Abas, accordions e modais</h2>
+<p>Campos dentro de uma aba fechada continuam visíveis para o AlpineForm (não estão desabilitados). No envio inválido, o hook <code>reveal</code> permite abrir a aba antes do foco:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;{ aba: 'dados' }&quot; x-form=&quot;{ hooks: { reveal: el =&gt; { aba = el.closest('[data-aba]').dataset.aba } } }&quot;
+      action=&quot;/salvar&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;aba = 'dados'&quot;&gt;Dados&lt;/button&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;aba = 'endereco'&quot;&gt;Endereço&lt;/button&gt;
+
+    &lt;div data-aba=&quot;dados&quot; x-show=&quot;aba === 'dados'&quot;&gt;
+        &lt;input name=&quot;nome&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;/div&gt;
+    &lt;div data-aba=&quot;endereco&quot; x-show=&quot;aba === 'endereco'&quot;&gt;
+        &lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|cep&quot;&gt;
+    &lt;/div&gt;
+    &lt;button type=&quot;submit&quot;&gt;Salvar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<p>Alternativa sem hook: escute o evento <code>form:reveal</code> (disparado no campo, sobe até o form): <code>@form:reveal="aba = $event.target.closest('[data-aba]').dataset.aba"</code>.</p>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="tipos-de-campo.html"><small>← Anterior</small>Tipos de campo</a><a class="proxima" href="validacao-remota.html"><small>Próxima →</small>Validação remota</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

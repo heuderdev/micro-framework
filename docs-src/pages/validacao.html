@@ -1,0 +1,152 @@
+titulo: Validação
+lead: Quando validar, como escrever regras, personalizar mensagens, escolher onde o erro aparece e controlar resumo, foco e rolagem.
+---
+<h2 id="sintaxe" data-titulo="Sintaxe de data-form-v">Sintaxe de data-form-v</h2>
+@@@html
+<input name="apelido" data-form-v="required|min:3|max:20|alphanumeric">
+@@@
+<ul>
+    <li><code>|</code> separa regras; <code>:</code> separa o nome dos parâmetros; <code>,</code> separa parâmetros.</li>
+    <li>Espaços em volta são ignorados: <code>required | min: 3</code> funciona.</li>
+    <li>Para usar <code>|</code>, <code>:</code>, <code>,</code> ou <code>\</code> dentro de um parâmetro, escape com <code>\</code>: <code>in:a\,b,c</code> aceita "a,b" e "c".</li>
+    <li>Regras rodam na ordem escrita. As de presença (<code>required</code>, <code>required_if</code>…) rodam primeiro; se o campo está vazio e não é obrigatório, as demais não rodam.</li>
+</ul>
+<p>Todas as regras: <a href="regras.html">Regras</a>.</p>
+
+<h2 id="modos" data-titulo="Quando validar (modos)">Quando validar (modos)</h2>
+<div class="tabela"><table><thead><tr><th><code>data-form-validation</code></th><th>Comportamento</th></tr></thead><tbody>
+<tr><td><code>live</code> (padrão)</td><td>Valida ao sair do campo; depois disso, revalida durante a digitação (com debounce). Selects, radios e checkboxes validam ao mudar.</td></tr>
+<tr><td><code>input</code></td><td>Valida desde a primeira tecla (com debounce).</td></tr>
+<tr><td><code>blur</code></td><td>Só ao sair do campo. Um campo já validado volta a ser revalidado ao digitar.</td></tr>
+<tr><td><code>change</code></td><td>No evento <code>change</code> (ao sair de um campo de texto alterado, ou ao mudar uma escolha).</td></tr>
+<tr><td><code>submit</code></td><td>Só no envio. Depois da primeira tentativa, os campos já validados são revalidados ao digitar.</td></tr>
+</tbody></table></div>
+@@@html Modos por formulário, grupo e campo
+<form x-data x-form action="/salvar" method="post" data-form-validation="blur" novalidate>
+    <input name="nome" data-form-v="required">                                 <!-- blur (do form) -->
+    <div data-form-validation="submit">
+        <textarea name="obs" data-form-v="max:500"></textarea>                 <!-- submit (do grupo) -->
+    </div>
+    <input name="senha" type="password" data-form-v="required|min:8"
+           data-form-validation="input">                                       <!-- input (do campo) -->
+</form>
+@@@
+
+<h2 id="debounce" data-titulo="Debounce">Debounce</h2>
+<p>Espera entre a última tecla e a validação. Padrão 200 ms. Aceita <code>300</code>, <code>300ms</code>, <code>1s</code>. Também herdável por grupo e campo.</p>
+@@@html
+<form x-data x-form data-form-debounce="400" ...>
+<input name="cnpj" data-form-v="required|cnpj" data-form-debounce="0">
+@@@
+
+<h2 id="mensagens" data-titulo="Mensagens">Mensagens</h2>
+<p>Ordem de preferência para escolher a mensagem de um erro:</p>
+<ol class="passos">
+    <li><code>data-form-msg.&lt;regra&gt;</code> no campo;</li>
+    <li><code>data-form-msg</code> no campo (uma mensagem para qualquer regra);</li>
+    <li>mensagens configuradas em <code>AlpineForm.configure({ messages })</code> ou <code>x-form="{ messages }"</code>;</li>
+    <li>mensagem padrão da biblioteca (<code>AlpineForm.messages</code>).</li>
+</ol>
+@@@html Por regra e genérica
+<input name="email" type="email" data-form-v="required|email"
+       data-form-msg.required="Precisamos do seu e-mail."
+       data-form-msg.email="Esse e-mail não parece válido.">
+
+<input name="codigo" data-form-v="required|digits:6"
+       data-form-msg="Digite os 6 números do código.">
+@@@
+@@@js Para todos os formulários
+AlpineForm.configure({
+    messages: {
+        required: 'Preencha :field.',
+        email: 'E-mail inválido.',
+        'min.numeric': ':field deve ser no mínimo :min.',   // variante: números
+    },
+})
+
+// ou alterando o padrão diretamente
+AlpineForm.messages.cpf = 'CPF inválido. Confira os números.'
+@@@
+<h3 id="placeholders">Placeholders</h3>
+<div class="tabela"><table><thead><tr><th>Placeholder</th><th>Valor</th></tr></thead><tbody>
+<tr><td><code>:field</code></td><td>Nome do campo (ver rótulo abaixo).</td></tr>
+<tr><td><code>:value</code></td><td>Valor digitado (vazio em senhas e campos sensíveis; cortado em 60 caracteres).</td></tr>
+<tr><td><code>:min</code>, <code>:max</code>, <code>:length</code>, <code>:step</code>…</td><td>Parâmetros da regra, pelo nome.</td></tr>
+<tr><td><code>:other</code></td><td>Rótulo do outro campo (<code>same</code>, <code>required_with</code>, datas comparadas).</td></tr>
+<tr><td><code>:allowed</code></td><td>Lista permitida (<code>in</code>, <code>ext</code>, <code>mime</code>…).</td></tr>
+<tr><td><code>:file</code></td><td>Nome do arquivo (regras de arquivo).</td></tr>
+</tbody></table></div>
+<h3 id="rotulo">Rótulo (:field)</h3>
+<p>Vem de <code>data-form-label</code>; se não houver, do <code>&lt;label for&gt;</code> ou <code>&lt;label&gt;</code> que envolve o campo; por último, do <code>name</code>.</p>
+@@@html
+<label for="nasc">Data de nascimento</label>
+<input id="nasc" name="nasc" type="date" data-form-v="required">
+<!-- "O campo Data de nascimento é obrigatório." -->
+
+<input name="cpf_resp" data-form-v="required|cpf" data-form-label="CPF do responsável">
+<!-- "O campo CPF do responsável é obrigatório." -->
+@@@
+<div class="nota"><p>Mensagens são sempre inseridas como <strong>texto</strong>: HTML em mensagens (inclusive as do servidor) aparece literalmente, nunca é interpretado.</p></div>
+
+<h2 id="quantos-erros" data-titulo="Um erro ou todos">Um erro ou todos</h2>
+@@@html
+<form x-data x-form data-form-errors="all" ...>          <!-- mostra todos os erros de cada campo -->
+<input name="senha" type="password" data-form-v="min:8|pattern" data-form-pattern="[0-9]"
+       data-form-errors="first">                          <!-- só o primeiro neste campo -->
+@@@
+<p>Padrão: <code>first</code>. Regras assíncronas e a validação remota só rodam se as síncronas passaram.</p>
+
+<h2 id="valido" data-titulo="Marcar campos válidos">Marcar campos válidos</h2>
+<p>Com <code>data-form-show-valid</code>, campos validados e corretos recebem a classe <code>af-valid</code> (<code>is-valid</code> no Bootstrap). Campos ainda não validados nunca aparecem como aprovados.</p>
+@@@html
+<form x-data x-form data-form-show-valid ...>
+@@@
+
+<h2 id="onde-erro" data-titulo="Onde o erro aparece">Onde o erro aparece</h2>
+<p>Por padrão, um elemento <code>&lt;div class="af-error"&gt;</code> é criado logo depois do campo (ou do <code>&lt;label&gt;</code> que envolve o campo). Em grupos de radios/checkboxes dentro de um <code>&lt;fieldset&gt;</code>, ele vai para o final do fieldset. Para escolher outro lugar:</p>
+@@@html
+<div class="linha">
+    <input name="ddd" data-form-v="required|digits:2" data-form-error-target="#erro-telefone">
+    <input name="numero" data-form-v="required|digits" data-form-error-target="#erro-telefone">
+</div>
+<div id="erro-telefone"></div>
+@@@
+<p>Ou exiba você mesmo com Alpine, sem depender do elemento gerado:</p>
+@@@html
+<input name="email" data-form-v="required|email">
+<small class="erro" x-show="$form.hasError('email')" x-text="$form.firstError('email')"></small>
+@@@
+
+<h2 id="resumo" data-titulo="Resumo de erros">Resumo de erros</h2>
+<div class="tabela"><table><thead><tr><th><code>data-form-summary</code></th><th>O que lista</th></tr></thead><tbody>
+<tr><td><code>general</code> (padrão)</td><td>Só erros sem campo visível: erros gerais do servidor, de rede, campos hidden.</td></tr>
+<tr><td><code>all</code></td><td>Todos os erros, cada um com botão que leva ao campo.</td></tr>
+<tr><td><code>none</code></td><td>Nenhum resumo (mostre <code>$form.generalErrors</code> você mesmo).</td></tr>
+</tbody></table></div>
+@@@html Posição do resumo
+<form x-data x-form data-form-summary="all" ...>
+    <div data-form-errors-summary></div>   <!-- o resumo é colocado aqui -->
+    ...
+</form>
+
+<!-- ou fora do form -->
+<form id="pedido" x-data x-form data-form-summary-target="#erros-pedido" ...></form>
+<div id="erros-pedido"></div>
+@@@
+<p>Sem contêiner, o resumo é criado no início do form. Ele recebe <code>role="alert"</code> e título "Corrija os itens abaixo:".</p>
+
+<h2 id="foco" data-titulo="Foco e rolagem">Foco e rolagem</h2>
+<p>No envio inválido, o primeiro campo com erro (na ordem da página) recebe foco e é rolado até o centro da tela, com rolagem suave (instantânea se o sistema pede menos movimento).</p>
+@@@html
+<form x-data x-form data-form-focus="none" ...>     <!-- não foca -->
+<form x-data x-form data-form-scroll="instant" ...> <!-- smooth (padrão) | instant | none -->
+@@@
+<p>Campo dentro de aba, accordion ou modal fechado? Use o hook <code>reveal</code> para abrir antes do foco (<a href="eventos.html#reveal">exemplo</a>).</p>
+
+<h2 id="pela-api" data-titulo="Validar pelo código">Validar pelo código</h2>
+@@@html
+<button type="button" @click="$form.validate().then(r => console.log(r.valid, r.errors))">Conferir</button>
+<button type="button" @click="$form.validateField('email')">Conferir e-mail</button>
+<button type="button" @click="$form.resetValidation()">Limpar erros</button>
+@@@
+<p><code>validate()</code> devolve <code>{ valid, errors, invalidFields }</code>, mostra os erros nos campos, mas não envia nem move o foco.</p>

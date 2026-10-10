@@ -601,7 +601,7 @@ php server/bin/worker.php     # outro terminal, apenas para o exemplo de process
     <li>Cria o elemento de erro <code>.af-error</code> logo após o controle (ou usa <code>data-form-error-target</code>), marcado com <code>data-form-generated="error"</code> e id único por formulário.</li>
     <li>Mensagens via <code>textContent</code>: HTML vindo do servidor não é interpretado.</li>
     <li>Adiciona o id ao <code>aria-describedby</code> preservando valores existentes, define <code>aria-invalid</code>, e guarda os valores originais para restaurá-los no <code>destroy</code>.</li>
-    <li>Classes: <code>af-invalid</code>, <code>af-valid</code>, <code>af-pending</code>, <code>af-group-invalid</code>… (<code>DEFAULT_CLASSES</code>); o plugin Bootstrap troca por <code>is-invalid</code>/<code>invalid-feedback</code> estendendo a mesma classe.</li>
+    <li>Classes: <code>af-invalid</code>, <code>af-valid</code>, <code>af-pending</code>… (<code>DEFAULT_CLASSES</code>); o plugin Bootstrap troca por <code>is-invalid</code>/<code>invalid-feedback</code> estendendo a mesma classe.</li>
     <li>Resumo (<code>renderSummary</code>): com <code>data-form-summary="general"</code> (padrão) lista apenas erros sem campo visível (erros gerais, hiddens sem destino); com <code>all</code>, todos, com botões que focam o campo. Recebe <code>role="alert"</code> e <code>tabindex="-1"</code>.</li>
     <li>Lista de arquivos (<code>renderFileList</code>): <code>&lt;ul data-form-generated="file-list"&gt;</code> com nome, tamanho, erros por arquivo, thumbnail (quando houver) e botão "Remover" com <code>aria-label</code>. O foco é devolvido ao botão equivalente após re-renderizar.</li>
 </ul>
@@ -1317,14 +1317,14 @@ AlpineForm.messages.placa = 'Informe uma placa no padrão antigo (ABC-1234) ou M
     <li><strong>ARIA nos campos:</strong> <code>aria-invalid="true"</code> e <code>aria-describedby</code> apontando para a mensagem, preservando valores existentes e restaurando-os no destroy.</li>
     <li><strong>Mensagens:</strong> os elementos de erro <strong>não</strong> são live regions (evita anúncios a cada tecla); são lidos ao focar o campo. O resumo recebe <code>role="alert"</code> e <code>tabindex="-1"</code>.</li>
     <li><strong>Foco:</strong> no envio inválido, foco no primeiro campo com erro na ordem do documento (radios: o marcado ou o primeiro), após <code>form:reveal</code>/hook <code>reveal</code>; sem campo focável, foco no resumo. Rolagem suave respeita <code>prefers-reduced-motion</code>.</li>
-    <li><strong>Estado de envio:</strong> <code>aria-busy="true"</code> no form durante fases ativas; <code>[data-form-status]</code> para texto de status (adicione <code>aria-live="polite"</code> se quiser anúncio).</li>
+    <li><strong>Estado de envio:</strong> <code>aria-busy="true"</code> no form durante fases ativas; <code>[data-form-status]</code> recebe <code>role="status"</code> e <code>aria-live="polite"</code> (se ainda não tiver), então a mudança de fase é anunciada; os valores originais são restaurados no destroy.</li>
     <li><strong>Teclado:</strong> listas de arquivos com botões reais e <code>aria-label</code> "Remover &lt;arquivo&gt;"; o foco volta ao item equivalente após re-render ou ao input quando a lista esvazia. A dropzone é complementar: o input de arquivo continua acessível.</li>
     <li><strong>Máscaras:</strong> <code>inputmode</code> adequado (numérico, telefone, decimal) sem trocar o <code>type</code>.</li>
 </ul>
 <h3 id="a11y-integrador">Responsabilidades do integrador</h3>
 <ul>
     <li>Usar <code>&lt;label for&gt;</code> (também alimenta <code>:field</code>), <code>&lt;fieldset&gt;/&lt;legend&gt;</code> em grupos e contraste adequado nas classes <code>af-*</code>.</li>
-    <li>Garantir que barras de progresso tenham nome acessível (<code>aria-label</code>) e que status relevantes sejam anunciados.</li>
+    <li>Garantir que barras de progresso tenham nome acessível (<code>aria-label</code>).</li>
     <li>Testar com leitores de tela: não há testes automatizados com leitores de tela neste projeto.</li>
 </ul>
 </section>

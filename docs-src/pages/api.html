@@ -1,0 +1,120 @@
+titulo: API $form
+lead: Todas as propriedades e métodos do estado de um formulário, acessível como $form no HTML e por AlpineForm.get() no JavaScript, além da API global AlpineForm.
+---
+<h2 id="acesso" data-titulo="Como acessar">Como acessar</h2>
+@@@html No HTML (dentro do form ou de um data-form-for)
+<button :disabled="$form.submitting" @click="$form.reset()">Limpar</button>
+@@@
+@@@js No JavaScript
+const form = AlpineForm.get('cadastro')            // pelo id
+const mesmo = AlpineForm.get(document.querySelector('#cadastro'))
+@@@
+<div class="nota aviso"><strong class="rotulo">Em expressões do HTML, espere o ready</strong><p>Os campos são descobertos logo depois que o Alpine processa o formulário. Uma expressão como <code>x-text="$form.getValue('valor')"</code> roda antes disso e lançaria "Campo não encontrado". Proteja com <code>$form.ready</code> ou <code>$form.has('valor')</code>: <code>x-text="$form.ready ? $form.getValue('valor') : ''"</code>. <code>hasError</code>, <code>firstError</code>, <code>field</code> e <code>has</code> já são seguros.</p></div>
+<p>Nomes de campo aceitam a forma do HTML (<code>itens[0][nome]</code>) ou a chave (<code>itens.0.nome</code>). Nome inexistente lança erro, exceto em <code>field</code>, <code>has</code>, <code>hasError</code> e <code>firstError</code>.</p>
+
+<h2 id="propriedades" data-titulo="Propriedades">Propriedades</h2>
+<div class="tabela"><table><thead><tr><th>Propriedade</th><th>Tipo</th><th>Significado</th></tr></thead><tbody>
+<tr><td><code>ready</code></td><td>bool</td><td>Inicializado.</td></tr>
+<tr><td><code>phase</code></td><td>string</td><td><code>idle</code> · <code>validating</code> · <code>uploading</code> · <code>paused</code> · <code>awaiting</code> · <code>processing</code> · <code>success</code> · <code>error</code> · <code>canceled</code></td></tr>
+<tr><td><code>submitting</code></td><td>bool</td><td>Qualquer fase ativa (validando, enviando, aguardando, processando, pausado).</td></tr>
+<tr><td><code>uploading</code> · <code>paused</code> · <code>awaitingResponse</code> · <code>processing</code></td><td>bool</td><td>Fase específica.</td></tr>
+<tr><td><code>success</code> · <code>failed</code> · <code>canceled</code></td><td>bool</td><td>Resultado do último envio.</td></tr>
+<tr><td><code>validating</code></td><td>bool</td><td>Algum campo validando.</td></tr>
+<tr><td><code>dirty</code> · <code>pristine</code></td><td>bool</td><td>Algum valor mudou / nada mudou.</td></tr>
+<tr><td><code>submitted</code> · <code>submitCount</code></td><td>bool · número</td><td>Já houve tentativa de envio / quantas.</td></tr>
+<tr><td><code>errors</code></td><td>objeto</td><td><code>{ chave: [mensagens] }</code> só dos campos com erro.</td></tr>
+<tr><td><code>generalErrors</code></td><td>lista</td><td>Erros sem campo.</td></tr>
+<tr><td><code>configErrors</code></td><td>lista</td><td>Erros de configuração <code>{ field, message }</code>.</td></tr>
+<tr><td><code>fields</code></td><td>objeto</td><td>Estado por campo (ver <a href="conceitos.html#estado-campo">Conceitos</a>).</td></tr>
+<tr><td><code>result</code></td><td>objeto | null</td><td><code>{ status, kind, message, data, requestId, job }</code></td></tr>
+<tr><td><code>error</code></td><td>objeto | null</td><td><code>{ kind, message, status, requestId, diagnostic }</code></td></tr>
+<tr><td><code>status</code></td><td>string</td><td>Texto da fase (o mesmo de <code>[data-form-status]</code>).</td></tr>
+<tr><td><code>progress</code></td><td>objeto</td><td><code>{ loaded, total, percent, indeterminate, speed, eta, elapsed, uploaded }</code></td></tr>
+<tr><td><code>job</code></td><td>objeto | null</td><td><code>{ id, status, progress, message, statusUrl, cancelUrl }</code></td></tr>
+<tr><td><code>uploads</code></td><td>objeto</td><td>Upload em partes, por campo.</td></tr>
+</tbody></table></div>
+
+<h2 id="metodos" data-titulo="Métodos">Métodos</h2>
+<div class="metodo"><h3 id="validate"><code>validate()</code></h3>
+<p class="assinatura"><code>validate(): Promise&lt;{ valid, errors, invalidFields }&gt;</code></p>
+<p>Valida todos os campos e mostra os erros. Não envia, não foca, não mostra resumo.</p>
+@@@js
+const { valid, invalidFields } = await form.validate()
+@@@
+</div>
+<div class="metodo"><h3 id="validateField"><code>validateField(nome)</code></h3>
+<p class="assinatura"><code>validateField(nome): Promise&lt;{ valid, errors }&gt;</code></p>
+<p>Valida um campo agora (marca como tocado; validação remota sem espera).</p>
+</div>
+<div class="metodo"><h3 id="submit"><code>submit({ submitter })</code></h3>
+<p class="assinatura"><code>submit(opções?): Promise&lt;{ ok, result?, reason?, error? }&gt;</code></p>
+<p>Fluxo completo de envio. Durante um envio, devolve a mesma Promise (sem requisição duplicada). <code>reason</code>: <code>invalid</code>, <code>canceled</code>, <code>prevented</code> ou o tipo do erro.</p>
+@@@js
+const r = await form.submit({ submitter: document.querySelector('[value=publicar]') })
+if (r.ok) console.log(r.result.data)
+@@@
+</div>
+<div class="metodo"><h3 id="cancel"><code>cancel()</code></h3>
+<p class="assinatura"><code>cancel(): boolean</code></p>
+<p>Cancela validação/envio em andamento; em processamento, para de acompanhar. Devolve se havia algo a cancelar.</p>
+</div>
+<div class="metodo"><h3 id="reset"><code>reset()</code> · <code>resetValidation()</code></h3>
+<p><code>reset()</code>: volta os valores ao original do HTML, limpa arquivos, erros e resultado (dispara <code>form:reset</code>, cancelável). <code>resetValidation()</code>: só limpa erros e o estado "tocado", mantendo os valores.</p>
+</div>
+<div class="metodo"><h3 id="setValue"><code>setValue(nome, valor, opções)</code></h3>
+<p class="assinatura"><code>setValue(nome, valor, { as = 'display', touch = false, validate, silent = false }): valorExibido</code></p>
+<p>Define o valor de qualquer tipo de campo (texto, select, select múltiplo com lista, radio, checkbox, componente). <code>as</code>: <code>display</code>, <code>raw</code>, <code>formatted</code>, <code>canonical</code> (com máscara). Revalida se o campo já estava validado ou com <code>validate: true</code>. <code>silent</code> não dispara <code>form:change</code>.</p>
+@@@js
+form.setValue('estado', 'SP')
+form.setValue('interesses[]', ['php', 'js'])
+form.setValue('termos', true)
+form.setValue('valor', '1234.5', { as: 'canonical' })
+form.setValue('cep', '01310100', { touch: true, validate: true })
+@@@
+</div>
+<div class="metodo"><h3 id="getValue"><code>getValue(nome, { as })</code> · <code>getValues(opções)</code></h3>
+<p class="assinatura"><code>getValue(nome, { as = 'canonical' })</code> · <code>getValues({ as = 'submit', format = 'object' | 'entries', submitter })</code></p>
+<p><code>as</code>: <code>display</code>, <code>raw</code>, <code>formatted</code>, <code>canonical</code>, <code>validation</code>, <code>submit</code>. <code>getValues({ format: 'entries' })</code> devolve exatamente os pares que seriam enviados.</p>
+@@@js
+form.getValue('cpf', { as: 'raw' })           // "52998224725"
+form.getValues()                               // { nome: "Ana", cpf: "529.982.247-25", ... }
+form.getValues({ format: 'entries' })          // [["nome","Ana"], ["cpf","52998224725"], ...]
+@@@
+</div>
+<div class="metodo"><h3 id="setErrors"><code>setErrors(erros, opções)</code> · <code>clearErrors(nome?)</code></h3>
+<p class="assinatura"><code>setErrors({ campo: msg | [msgs] } | [msgsGerais], { general = [], replace = true })</code></p>
+<p>Mostra erros como se viessem do servidor. Com <code>replace: false</code>, soma aos atuais. <code>clearErrors()</code> limpa tudo; com nome, só o campo.</p>
+</div>
+<div class="metodo"><h3 id="addFiles"><code>addFiles(nome, arquivos)</code> · <code>removeFile(nome, id)</code> · <code>removeExisting(nome, id, removido?)</code></h3>
+<p>Manipulam a lista interna de um campo de arquivo. <code>removeExisting</code> sem o terceiro argumento alterna.</p>
+</div>
+<div class="metodo"><h3 id="pauseUpload"><code>pauseUpload(nome?)</code> · <code>resumeUpload(nome?)</code> · <code>getUploadSession(nome?)</code></h3>
+<p>Upload em partes (requer o módulo). As duas primeiras devolvem Promise&lt;boolean&gt;; <code>getUploadSession</code> devolve na hora a lista de sessões.</p>
+</div>
+<div class="metodo"><h3 id="cancelJob"><code>cancelJob()</code></h3>
+<p class="assinatura"><code>cancelJob(): Promise&lt;true&gt;</code></p>
+<p>Pede ao servidor para cancelar o processamento (DELETE em <code>cancel_url</code>). Erro se não houver <code>cancel_url</code> ou se o servidor recusar.</p>
+</div>
+<div class="metodo"><h3 id="consultas"><code>field(nome)</code> · <code>has(nome)</code> · <code>hasError(nome)</code> · <code>firstError(nome)</code></h3>
+@@@html
+<small x-show="$form.hasError('email')" x-text="$form.firstError('email')"></small>
+<span x-show="$form.field('email')?.remote === 'pending'">verificando…</span>
+@@@
+</div>
+<div class="metodo"><h3 id="outros"><code>refresh()</code> · <code>clearRemoteCache(nome?)</code> · <code>diagnostics()</code> · <code>destroy()</code></h3>
+<p><code>refresh()</code>: redescobre os campos. <code>clearRemoteCache()</code>: esquece respostas da validação remota. <code>diagnostics()</code>: <code>{ configErrors, cycles, fields }</code> com regras, máscara e dependências de cada campo — útil no console. <code>destroy()</code>: desliga o formulário e limpa tudo que a biblioteca criou.</p>
+</div>
+
+<h2 id="global" data-titulo="API global AlpineForm">API global AlpineForm</h2>
+<div class="tabela"><table><thead><tr><th>Membro</th><th>Uso</th></tr></thead><tbody>
+<tr><td><code>AlpineForm.configure(opções)</code></td><td>Padrões para todos os formulários (<a href="referencia-rapida.html#configure">opções</a>).</td></tr>
+<tr><td><code>AlpineForm.get(formOuId)</code></td><td>Estado de um formulário ou <code>null</code>.</td></tr>
+<tr><td><code>AlpineForm.attach(form, opções)</code></td><td>Liga um form sem a diretiva <code>x-form</code>.</td></tr>
+<tr><td><code>AlpineForm.diagnose()</code></td><td>Lista <code>&lt;form x-form&gt;</code> que não foram inicializados.</td></tr>
+<tr><td><code>AlpineForm.use(plugin)</code></td><td>Carrega um módulo (ESM).</td></tr>
+<tr><td><code>AlpineForm.validator</code>, <code>normalizer</code>, <code>mask</code>, <code>transport</code>, <code>responseAdapter</code>, <code>remoteAdapter</code>, <code>uiAdapter</code>, <code>fileInspector</code>, <code>component</code>, <code>fieldAttributes</code>, <code>formHook</code></td><td>Extensões (<a href="extensoes.html">Extensões</a>).</td></tr>
+<tr><td><code>AlpineForm.registry</code></td><td><code>get</code>, <code>has</code>, <code>names</code>, <code>unregister</code>.</td></tr>
+<tr><td><code>AlpineForm.messages</code></td><td>Mensagens padrão (editáveis).</td></tr>
+<tr><td><code>AlpineForm.utils</code></td><td><code>parseSize('10MB')</code>, <code>formatBytes(n)</code>, <code>compareDecimal(a, b)</code>, <code>toFixedScale(v, casas)</code>.</td></tr>
+<tr><td><code>AlpineForm.events</code> · <code>AlpineForm.errors</code> · <code>AlpineForm.version</code></td><td>Nomes de eventos, classes de erro, versão.</td></tr>
+</tbody></table></div>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Respostas e erros · AlpineForm</title>
+<meta name="description" content="O formato de resposta que o AlpineForm entende, como cada erro do servidor chega ao campo certo, e como ler respostas do Laravel, do Joomla ou de outro formato.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Envio › Respostas e erros</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" class="ativo" aria-current="page" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Respostas e erros</h1>
+<p class="lead">O formato de resposta que o AlpineForm entende, como cada erro do servidor chega ao campo certo, e como ler respostas do Laravel, do Joomla ou de outro formato.</p>
+<div id="nesta-pagina"></div>
+<h2 id="contrato" data-titulo="Formato de resposta">Formato de resposta</h2>
+<div class="codigo"><div class="titulo-codigo">Sucesso</div><pre><code data-lang="js">HTTP 200
+{ &quot;success&quot;: true, &quot;message&quot;: &quot;Cadastro realizado.&quot;, &quot;data&quot;: { &quot;id&quot;: 15 } }</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Erro de validação</div><pre><code data-lang="js">HTTP 422
+{
+  &quot;success&quot;: false,
+  &quot;message&quot;: &quot;Confira os campos destacados.&quot;,
+  &quot;errors&quot;: {
+    &quot;email&quot;: [&quot;Este e-mail já está em uso.&quot;],
+    &quot;itens.1.quantidade&quot;: &quot;Estoque insuficiente.&quot;,
+    &quot;&quot;: [&quot;Seu plano não permite mais cadastros.&quot;]
+  }
+}</code></pre></div>
+<ul>
+    <li><code>message</code> (ou <code>mensagem</code>) aparece em <code>[data-form-status]</code>.</li>
+    <li><code>errors</code>: chave = campo; valor = texto ou lista de textos.</li>
+    <li><code>data</code> fica em <code>$form.result.data</code>.</li>
+    <li>Opcionais: <code>redirect</code> (com <code>data-form-redirect="response"</code>), <code>request_id</code> (registrado no console em erros), <code>job</code> (<a href="processamento.html">processamento</a>).</li>
+</ul>
+
+<h2 id="http-logico" data-titulo="HTTP e sucesso lógico">HTTP e sucesso lógico</h2>
+<div class="tabela"><table><thead><tr><th>Resposta</th><th>Resultado</th><th><code>$form.error.kind</code></th></tr></thead><tbody>
+<tr><td>2xx sem <code>success</code> ou com <code>success: true</code></td><td>sucesso</td><td>—</td></tr>
+<tr><td><strong>200 com <code>success: false</code></strong></td><td><strong>erro</strong></td><td><code>validation</code> (com erros por campo) ou <code>logical</code></td></tr>
+<tr><td>204 ou corpo vazio</td><td>sucesso, <code>data = null</code></td><td>—</td></tr>
+<tr><td>202 com <code>job</code></td><td>processamento</td><td>—</td></tr>
+<tr><td>422</td><td>erro</td><td><code>validation</code></td></tr>
+<tr><td>401 · 403 · 419</td><td>erro</td><td><code>auth</code> · <code>forbidden</code> · <code>csrf</code></td></tr>
+<tr><td>413 · 429</td><td>erro</td><td><code>too_large</code> · <code>rate_limited</code></td></tr>
+<tr><td>5xx · outros 4xx</td><td>erro</td><td><code>server</code> · <code>http</code></td></tr>
+<tr><td>Página HTML (login, erro de proxy)</td><td>erro</td><td><code>html</code></td></tr>
+<tr><td>Texto ou JSON quebrado</td><td>erro</td><td><code>parse</code></td></tr>
+<tr><td>Sem conexão · tempo esgotado</td><td>erro</td><td><code>network</code> · <code>timeout</code> · <code>unknown</code></td></tr>
+</tbody></table></div>
+<p>Sem <code>message</code>, cada tipo tem uma mensagem padrão em português (ex.: 401 → "Sua sessão expirou ou você não tem permissão. Entre novamente e tente outra vez."). Personalize em <code>AlpineForm.configure({ messages: { 'submit.auth': '…' } })</code> — chaves em <a href="referencia-rapida.html#mensagens">Referência rápida</a>.</p>
+<div class="nota dica"><strong class="rotulo">Resposta HTML</strong><p>Se o servidor devolve uma página (geralmente a tela de login após a sessão expirar), a mensagem é "O servidor respondeu com uma página HTML em vez de dados. Isso costuma indicar sessão expirada, redirecionamento para login ou erro de proxy." e <code>$form.error.diagnostic</code> traz o trecho e <code>looksLikeLogin</code>.</p></div>
+
+<h2 id="associacao" data-titulo="Erro no campo certo">Erro no campo certo</h2>
+<div class="tabela"><table><thead><tr><th>Chave enviada pelo servidor</th><th>Vai para</th></tr></thead><tbody>
+<tr><td><code>email</code></td><td>campo <code>name="email"</code></td></tr>
+<tr><td><code>itens.1.quantidade</code> ou <code>itens[1][quantidade]</code></td><td>campo <code>name="itens[1][quantidade]"</code></td></tr>
+<tr><td><code>jform.title</code> ou <code>jform[title]</code></td><td>campo <code>name="jform[title]"</code></td></tr>
+<tr><td><code>documentos.1</code></td><td>2º arquivo enviado em <code>name="documentos[]"</code> (mensagem no item da lista e no campo)</td></tr>
+<tr><td><code>interesses.2</code></td><td>grupo de checkboxes <code>interesses[]</code></td></tr>
+<tr><td><code>""</code>, <code>"_"</code>, <code>"_general"</code>, <code>"*"</code></td><td>resumo (erro geral)</td></tr>
+<tr><td>campo que não existe na tela</td><td>resumo — nunca é descartado</td></tr>
+</tbody></table></div>
+<ul>
+    <li>O campo recebe o erro, fica marcado como tocado e o foco vai para o primeiro campo com erro.</li>
+    <li>Ao editar o campo, o erro do servidor some (<code>data-form-server-errors="clear-on-change"</code>, padrão). Com <code>keep</code>, fica até o próximo envio.</li>
+    <li>Se a pessoa alterou o campo enquanto a resposta não chegava, o erro daquele campo é ignorado (era sobre o valor antigo).</li>
+</ul>
+
+<h2 id="geral" data-titulo="Erros gerais e resumo">Erros gerais e resumo</h2>
+<p>Erros sem campo, falhas de rede e mensagens de 401/403/5xx vão para <code>$form.generalErrors</code> e para o <a href="validacao.html#resumo">resumo</a>. Para exibir do seu jeito:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/x&quot; method=&quot;post&quot; data-form-summary=&quot;none&quot; novalidate&gt;
+    &lt;div class=&quot;alerta&quot; x-show=&quot;$form.generalErrors.length&quot;&gt;
+        &lt;template x-for=&quot;msg in $form.generalErrors&quot;&gt;&lt;p x-text=&quot;msg&quot;&gt;&lt;/p&gt;&lt;/template&gt;
+    &lt;/div&gt;
+    ...
+&lt;/form&gt;</code></pre></div>
+
+<h2 id="laravel" data-titulo="Laravel">Laravel</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/clientes&quot; method=&quot;post&quot; data-form-response-adapter=&quot;laravel&quot; novalidate&gt;</code></pre></div>
+<p>O 422 padrão do Laravel (<code>{ message, errors: { "itens.0.nome": [...] } }</code>) é lido direto; a mensagem genérica em inglês ("The given data was invalid.") é descartada quando há erros por campo. 419 = token CSRF expirado. Controller em <a href="backend.html#laravel">Backend › Laravel</a>.</p>
+
+<h2 id="joomla" data-titulo="Joomla">Joomla</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;index.php?option=com_loja&amp;amp;task=cliente.salvar&amp;amp;format=json&quot; method=&quot;post&quot;
+      data-form-response-adapter=&quot;joomla&quot; novalidate&gt;</code></pre></div>
+<p>Lê o <code>JsonResponse</code>/<code>JResponseJson</code>: <code>{ success, message, messages: { error: [], warning: [] }, data }</code>. As mensagens enfileiradas (<code>enqueueMessage</code>) de erro e aviso vão para o resumo; erros por campo são lidos de <code>data.errors</code> (ex.: <code>{ "jform[title]": "Título obrigatório." }</code>). Controller em <a href="backend.html#joomla">Backend › Joomla</a>.</p>
+
+<h2 id="outro-formato" data-titulo="Outro formato de API">Outro formato de API</h2>
+<div class="codigo"><pre><code data-lang="js">// API que responde { ok: true, payload: {...} } ou { ok: false, fieldErrors: [{ field, msg }] }
+AlpineForm.responseAdapter('minha-api', (raw, ctx) =&gt; {
+    const base = AlpineForm.registry.get('responseAdapter', 'default')(raw, ctx)
+    let json = null
+    try { json = JSON.parse(raw.text) } catch (e) { return base }
+    if (!json || typeof json.ok !== 'boolean') return base
+
+    const errors = {}
+    for (const e of json.fieldErrors || []) {
+        if (!errors[e.field]) errors[e.field] = []
+        errors[e.field].push(e.msg)
+    }
+    return {
+        ...base,
+        ok: json.ok,
+        kind: json.ok ? 'success' : (Object.keys(errors).length ? 'validation' : 'logical'),
+        message: json.mensagem || null,
+        errors,
+        data: json.payload ?? null,
+    }
+})</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/x&quot; method=&quot;post&quot; data-form-response-adapter=&quot;minha-api&quot; novalidate&gt;</code></pre></div>
+
+<h2 id="pelo-codigo" data-titulo="Mostrar erros pelo código">Mostrar erros pelo código</h2>
+<div class="codigo"><pre><code data-lang="js">const form = AlpineForm.get('cadastro')
+
+form.setErrors({ email: 'Já cadastrado.', 'itens.0.qtd': ['Mínimo 1.'] })     // como se viessem do servidor
+form.setErrors(['Erro geral exibido no resumo.'])
+form.setErrors({ cpf: 'Inválido.' }, { replace: false })                      // soma aos existentes
+form.clearErrors('email')
+form.clearErrors()                                                             // todos</code></pre></div>
+
+<h2 id="estado" data-titulo="Lendo o resultado">Lendo o resultado</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;p x-show=&quot;$form.success&quot; x-text=&quot;$form.result?.message&quot;&gt;&lt;/p&gt;
+&lt;p x-show=&quot;$form.failed&quot; class=&quot;erro&quot; x-text=&quot;$form.error?.message&quot;&gt;&lt;/p&gt;
+&lt;p x-show=&quot;$form.error?.kind === 'auth'&quot;&gt;&lt;a href=&quot;/login&quot;&gt;Entrar novamente&lt;/a&gt;&lt;/p&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Propriedade</th><th>Conteúdo</th></tr></thead><tbody>
+<tr><td><code>$form.result</code></td><td><code>{ status, kind, message, data, requestId, job }</code></td></tr>
+<tr><td><code>$form.error</code></td><td><code>{ kind, message, status, requestId, diagnostic }</code></td></tr>
+<tr><td><code>$form.errors</code></td><td><code>{ "email": ["…"], "itens.0.qtd": ["…"] }</code> — só campos com erro</td></tr>
+<tr><td><code>$form.generalErrors</code></td><td>lista de mensagens sem campo</td></tr>
+</tbody></table></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="envio.html"><small>← Anterior</small>Envio</a><a class="proxima" href="progresso.html"><small>Próxima →</small>Progresso e cancelamento</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

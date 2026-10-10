@@ -1,0 +1,95 @@
+titulo: Condicionais e dependências
+lead: Campos que dependem de outros (confirmação de senha, intervalo de datas, "obrigatório se") e campos que aparecem e somem com x-show, x-if ou disabled.
+---
+<h2 id="dependencias" data-titulo="Dependências entre campos">Dependências entre campos</h2>
+<p>Toda regra que cita outro campo (<code>same</code>, <code>different</code>, <code>required_if</code>, <code>required_unless</code>, <code>required_with</code>, <code>required_without</code>, <code>greater_than</code>… e datas com nome de campo) cria uma <strong>dependência</strong>: quando o campo citado muda, o dependente é revalidado automaticamente — se ele já foi validado, tocado ou se o envio já foi tentado.</p>
+@@@html Confirmação de senha
+<input name="senha" type="password" data-form-v="required|min:8">
+<input name="senha_confirmacao" type="password" data-form-v="required|same:senha"
+       data-form-msg.same="As senhas não conferem.">
+@@@
+<p>Se a pessoa preenche a confirmação e depois altera a senha, o erro "As senhas não conferem." aparece (ou some) na confirmação sem que ela precise tocar nela.</p>
+@@@html Intervalo de datas
+<input name="inicio" type="date" data-form-v="required|after_or_equal:today">
+<input name="fim" type="date" data-form-v="required|after_or_equal:inicio"
+       data-form-msg.after_or_equal="O fim não pode ser antes do início.">
+@@@
+@@@html Faixa de valores
+<input name="minimo" data-form-mask="currency" data-form-v="required">
+<input name="maximo" data-form-mask="currency" data-form-v="required|greater_than:minimo">
+@@@
+<div class="nota"><p>Referência a um campo inexistente é erro de configuração ("O campo "fim" referencia "inicioo", que não existe neste formulário."). Ciclos (A depende de B e B de A) são permitidos: a revalidação é de um nível e não entra em laço.</p></div>
+
+<h2 id="obrigatorio-se" data-titulo="Obrigatório só em certas condições">Obrigatório só em certas condições</h2>
+@@@html Pessoa física ou jurídica
+<label><input type="radio" name="tipo" value="pf" data-form-v="required"> Física</label>
+<label><input type="radio" name="tipo" value="pj"> Jurídica</label>
+
+<input name="cpf"  data-form-mask="cpf"  data-form-v="required_if:tipo,pf|cpf">
+<input name="cnpj" data-form-mask="cnpj" data-form-v="required_if:tipo,pj|cnpj">
+@@@
+@@@html "Outro" com campo de texto
+<select name="origem" data-form-v="required">
+    <option value="">Selecione</option>
+    <option value="busca">Busca</option>
+    <option value="indicacao">Indicação</option>
+    <option value="outro">Outro</option>
+</select>
+<input name="origem_outro" data-form-v="required_if:origem,outro|max:80">
+@@@
+@@@html Pelo menos um contato
+<input name="email" type="email" data-form-v="required_without:telefone|email"
+       data-form-msg.required_without="Informe e-mail ou telefone.">
+<input name="telefone" data-form-mask="telefone_br" data-form-v="required_without:email|telefone"
+       data-form-msg.required_without="Informe e-mail ou telefone.">
+@@@
+
+<h2 id="mostrar-esconder" data-titulo="Mostrar e esconder campos">Mostrar e esconder campos</h2>
+<p>Campos escondidos <strong>não</strong> são dispensados automaticamente — você escolhe a política. Três formas:</p>
+<div class="tabela"><table><thead><tr><th>Forma</th><th>Valida quando escondido?</th><th>Envia quando escondido?</th><th>Quando usar</th></tr></thead><tbody>
+<tr><td><code>x-show</code> + <code>data-form-hidden="skip"</code></td><td>Não</td><td>Sim (valor atual)</td><td>Bloco que só aparece em certas condições, mas o servidor ignora os valores.</td></tr>
+<tr><td><code>:disabled</code></td><td>Não</td><td>Não</td><td>O servidor não deve receber o campo.</td></tr>
+<tr><td><code>x-if</code></td><td>Não (o campo deixa de existir)</td><td>Não</td><td>O campo não faz sentido; ao voltar, começa limpo.</td></tr>
+</tbody></table></div>
+@@@html x-show + data-form-hidden="skip"
+<form x-data="{ entrega: 'retirada' }" x-form action="/pedido" method="post" novalidate>
+    <label><input type="radio" name="entrega" value="retirada" x-model="entrega"> Retirar</label>
+    <label><input type="radio" name="entrega" value="casa" x-model="entrega"> Entregar</label>
+
+    <div x-show="entrega === 'casa'" data-form-hidden="skip">
+        <input name="cep" data-form-mask="cep" data-form-v="required|cep">
+        <input name="numero" data-form-v="required|digits">
+    </div>
+    <button type="submit">Enviar</button>
+</form>
+@@@
+@@@html :disabled
+<input name="complemento" :disabled="entrega !== 'casa'" data-form-v="max:60">
+@@@
+@@@html x-if
+<label><input type="checkbox" x-model="temCupom"> Tenho cupom</label>
+<template x-if="temCupom">
+    <input name="cupom" data-form-v="required|alphanumeric|length:8">
+</template>
+@@@
+<p><code>data-form-hidden</code> pode ficar no campo, num elemento acima dele ou no form (vale para todos). Com o padrão <code>validate</code>, campos escondidos continuam sendo validados — e o erro pode aparecer num campo que a pessoa não vê.</p>
+<div class="nota aviso"><p>Com <code>x-show</code> sem <code>skip</code>, um campo obrigatório escondido bloqueia o envio. Se o erro está num lugar invisível, o foco não consegue chegar nele. Escolha uma das três formas acima.</p></div>
+
+<h2 id="abas" data-titulo="Abas, accordions e modais">Abas, accordions e modais</h2>
+<p>Campos dentro de uma aba fechada continuam visíveis para o AlpineForm (não estão desabilitados). No envio inválido, o hook <code>reveal</code> permite abrir a aba antes do foco:</p>
+@@@html
+<form x-data="{ aba: 'dados' }" x-form="{ hooks: { reveal: el => { aba = el.closest('[data-aba]').dataset.aba } } }"
+      action="/salvar" method="post" novalidate>
+    <button type="button" @click="aba = 'dados'">Dados</button>
+    <button type="button" @click="aba = 'endereco'">Endereço</button>
+
+    <div data-aba="dados" x-show="aba === 'dados'">
+        <input name="nome" data-form-v="required">
+    </div>
+    <div data-aba="endereco" x-show="aba === 'endereco'">
+        <input name="cep" data-form-mask="cep" data-form-v="required|cep">
+    </div>
+    <button type="submit">Salvar</button>
+</form>
+@@@
+<p>Alternativa sem hook: escute o evento <code>form:reveal</code> (disparado no campo, sobe até o form): <code>@form:reveal="aba = $event.target.closest('[data-aba]').dataset.aba"</code>.</p>

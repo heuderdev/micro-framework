@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eventos e hooks · AlpineForm</title>
+<meta name="description" content="Reagir a cada momento do formulário com eventos DOM (@form:success no Alpine) ou com hooks de configuração que podem alterar ou impedir o envio.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Integração › Eventos e hooks</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" class="ativo" aria-current="page" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Eventos e hooks</h1>
+<p class="lead">Reagir a cada momento do formulário com eventos DOM (@form:success no Alpine) ou com hooks de configuração que podem alterar ou impedir o envio.</p>
+<div id="nesta-pagina"></div>
+<h2 id="uso" data-titulo="Como escutar">Como escutar</h2>
+<p>Os eventos são disparados no <code>&lt;form&gt;</code> e sobem (bubbling). Os dados ficam em <code>event.detail</code>.</p>
+<div class="codigo"><div class="titulo-codigo">Com Alpine</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/cadastro&quot; method=&quot;post&quot;
+      @form:success=&quot;$dispatch('notificar', { texto: $event.detail.result.message })&quot;
+      @form:error=&quot;console.warn($event.detail.error.kind, $event.detail.error.message)&quot; novalidate&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Com JavaScript</div><pre><code data-lang="js">document.getElementById('cadastro').addEventListener('form:success', event =&gt; {
+    console.log('Salvo:', event.detail.result.data)
+})
+
+// todos os formulários da página
+document.addEventListener('form:error', event =&gt; {
+    meuMonitoramento.registrar(event.target.id, event.detail.error)
+})</code></pre></div>
+
+<h2 id="lista" data-titulo="Todos os eventos">Todos os eventos</h2>
+<div class="tabela"><table><thead><tr><th>Evento</th><th>Quando</th><th>Cancelável</th><th><code>detail</code></th></tr></thead><tbody>
+<tr><td><code>form:ready</code></td><td>Formulário inicializado</td><td>não</td><td><code>{ form, fields }</code></td></tr>
+<tr><td><code>form:change</code></td><td>Valor de um campo mudou</td><td>não</td><td><code>{ field, name, value, trigger }</code> (sem <code>value</code> em senha)</td></tr>
+<tr><td><code>form:validating</code></td><td>Campo começou a validar</td><td>não</td><td><code>{ field, trigger }</code></td></tr>
+<tr><td><code>form:validated</code></td><td>Campo terminou de validar</td><td>não</td><td><code>{ field, valid, errors, trigger }</code></td></tr>
+<tr><td><code>form:invalid</code></td><td><code>validate()</code>/envio encontrou erros</td><td>não</td><td><code>{ errors, trigger }</code></td></tr>
+<tr><td><code>form:before-submit</code></td><td>Início do envio, antes de validar</td><td><strong>sim</strong></td><td><code>{ submitter }</code></td></tr>
+<tr><td><code>form:submit</code></td><td>Requisição pronta, antes de sair</td><td><strong>sim</strong></td><td><code>{ request: { url, method, headers }, submitter }</code></td></tr>
+<tr><td><code>form:progress</code></td><td>A cada atualização de progresso</td><td>não</td><td>progresso + <code>phase</code></td></tr>
+<tr><td><code>form:uploaded</code></td><td>Todos os bytes enviados</td><td>não</td><td>progresso</td></tr>
+<tr><td><code>form:processing</code></td><td>Servidor respondeu 202 e a cada atualização do job</td><td>não</td><td><code>{ job }</code></td></tr>
+<tr><td><code>form:success</code></td><td>Envio concluído</td><td>não</td><td><code>{ result }</code></td></tr>
+<tr><td><code>form:error</code></td><td>Envio falhou</td><td>não</td><td><code>{ error, result }</code></td></tr>
+<tr><td><code>form:cancel</code></td><td>Envio cancelado / acompanhamento encerrado</td><td>não</td><td><code>{ reason, job }</code></td></tr>
+<tr><td><code>form:reset</code></td><td>Antes do reset (botão ou <code>reset()</code>)</td><td><strong>sim</strong></td><td><code>{ source: 'api' | 'native' }</code></td></tr>
+<tr><td><code>form:field-added</code> · <code>form:field-removed</code></td><td>Campo entrou / saiu</td><td>não</td><td><code>{ field, name }</code></td></tr>
+<tr><td><code>form:reveal</code></td><td>Antes de focar um campo com erro (disparado <strong>no campo</strong>)</td><td>sim</td><td><code>{ field, name, element }</code></td></tr>
+<tr><td><code>form:config-error</code></td><td>Erros de configuração encontrados</td><td>não</td><td><code>{ errors }</code></td></tr>
+<tr><td><code>form:destroy</code></td><td>Formulário destruído</td><td>não</td><td><code>{}</code></td></tr>
+</tbody></table></div>
+
+<h2 id="exemplos" data-titulo="Exemplos">Exemplos</h2>
+<div class="codigo"><div class="titulo-codigo">Confirmar antes de enviar</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/excluir&quot; method=&quot;post&quot;
+      @form:before-submit=&quot;confirm('Tem certeza?') || $event.preventDefault()&quot; novalidate&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Avisar ao sair com alterações não salvas</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/perfil&quot; method=&quot;post&quot;
+      x-init=&quot;window.addEventListener('beforeunload', e =&gt; { if ($form.dirty &amp;&amp; !$form.success) e.preventDefault() })&quot; novalidate&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Fechar o modal no sucesso</div><pre><code data-lang="html">&lt;div x-data=&quot;{ aberto: true }&quot; x-show=&quot;aberto&quot;&gt;
+    &lt;form x-data x-form action=&quot;/api/contato&quot; method=&quot;post&quot; @form:success=&quot;aberto = false&quot; novalidate&gt;
+        ...
+    &lt;/form&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Auto-salvar rascunho a cada mudança (com espera)</div><pre><code data-lang="html">&lt;form x-data=&quot;{ timer: null }&quot; x-form action=&quot;/api/rascunho&quot; method=&quot;post&quot;
+      @form:change=&quot;clearTimeout(timer); timer = setTimeout(() =&gt; $form.submit(), 1500)&quot; novalidate&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Analytics</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/lead&quot; method=&quot;post&quot;
+      @form:invalid=&quot;gtag('event', 'form_invalido', { campos: Object.keys($event.detail.errors).join(',') })&quot;
+      @form:success=&quot;gtag('event', 'lead_enviado')&quot; novalidate&gt;</code></pre></div>
+
+<h2 id="hooks" data-titulo="Hooks de configuração">Hooks de configuração</h2>
+<p>Funções em <code>hooks</code> (no <code>AlpineForm.configure</code> ou no objeto de <code>x-form</code>). Podem ser <code>async</code>: o envio espera.</p>
+<div class="tabela"><table><thead><tr><th>Hook</th><th>Recebe</th><th>Uso</th></tr></thead><tbody>
+<tr><td><code>beforeSubmit(state, { submitter })</code></td><td>estado do form</td><td>Devolver <code>false</code> cancela o envio.</td></tr>
+<tr><td><code>beforeRequest(request, state)</code></td><td><code>{ url, method, headers, body, … }</code></td><td>Alterar cabeçalhos/URL antes de enviar.</td></tr>
+<tr><td><code>afterResponse(result, state)</code></td><td>resposta já interpretada</td><td>Log, métricas, ajustes.</td></tr>
+<tr><td><code>reveal(campo, estadoDoCampo)</code></td><td>elemento a focar</td><td>Abrir aba/accordion/modal antes do foco.</td></tr>
+</tbody></table></div>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.configure({
+    hooks: {
+        async beforeSubmit(state) {
+            // getValue devolve o canônico (&quot;12000.00&quot; mesmo com máscara de moeda)
+            if (state.has('valor') &amp;&amp; Number(state.getValue('valor')) &gt; 10000) {
+                return confirm('Valor acima de R$ 10.000. Continuar?')
+            }
+        },
+        beforeRequest(request) {
+            request.headers['X-Tela'] = location.pathname
+        },
+        afterResponse(result) {
+            if (result.kind === 'auth') location.href = '/login'
+        },
+    },
+})</code></pre></div>
+<h3 id="reveal">Abrir accordion antes do foco</h3>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form=&quot;{ hooks: { reveal: el =&gt; el.closest('details')?.setAttribute('open', '') } }&quot;
+      action=&quot;/api/cadastro&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;details&gt;
+        &lt;summary&gt;Dados adicionais&lt;/summary&gt;
+        &lt;input name=&quot;rg&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;/details&gt;
+    &lt;button type=&quot;submit&quot;&gt;Salvar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="api.html"><small>← Anterior</small>API $form</a><a class="proxima" href="extensoes.html"><small>Próxima →</small>Extensões</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

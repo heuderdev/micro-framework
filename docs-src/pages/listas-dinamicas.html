@@ -1,0 +1,84 @@
+titulo: Listas e DOM dinâmico
+lead: Linhas que o usuário adiciona e remove, campos criados pelo Alpine, regras que mudam, vários formulários na mesma página e estado exibido fora do form.
+---
+<h2 id="automatico" data-titulo="Tudo é detectado sozinho">Tudo é detectado sozinho</h2>
+<p>O AlpineForm observa o formulário. Quando um campo entra (<code>x-for</code>, <code>x-if</code>, HTML injetado), sai, ou tem <code>name</code>, <code>data-form-v</code>, <code>data-form-mask</code>, <code>disabled</code>, <code>type</code> alterados, ele se atualiza: campos novos passam a ser validados e enviados; campos removidos têm erros, estado e listeners limpos.</p>
+
+<h2 id="linhas" data-titulo="Linhas repetidas (x-for)">Linhas repetidas (x-for)</h2>
+@@@html
+<form x-data="{ itens: [{ id: 1 }], seq: 1 }" x-form action="/api/pedido" method="post" novalidate>
+    <template x-for="(item, index) in itens" :key="item.id">
+        <div class="linha">
+            <input :name="`itens[${index}][produto]`" data-form-label="Produto" data-form-v="required|min:2">
+            <input :name="`itens[${index}][quantidade]`" data-form-label="Quantidade" inputmode="numeric"
+                   data-form-v="required|integer|min_value:1">
+            <button type="button" @click="itens.splice(index, 1)" :disabled="itens.length === 1">Remover</button>
+        </div>
+    </template>
+
+    <button type="button" @click="itens.push({ id: ++seq })">Adicionar item</button>
+    <button type="submit">Enviar</button>
+</form>
+@@@
+<ul>
+    <li>Use <code>:key</code> com um id estável (não o índice): assim o Alpine reaproveita o elemento e o campo mantém valor, estado e erros.</li>
+    <li>Os nomes são reindexados pelo próprio <code>x-for</code> (<code>itens[0]</code>, <code>itens[1]</code>…); o campo acompanha o novo nome.</li>
+    <li><code>data-form-label</code> evita mensagens como "O campo itens[0][produto] é obrigatório.".</li>
+    <li>Um erro do servidor <code>itens.1.quantidade</code> aparece na segunda linha; se uma linha acima for removida, a mensagem continua na linha certa.</li>
+</ul>
+@@@html Mínimo e máximo de linhas com um campo de controle
+<input type="hidden" name="total_itens" :value="itens.length" data-form-v="integer|min_value:1|max_value:20"
+       data-form-msg.min_value="Adicione pelo menos um item." data-form-msg.max_value="No máximo 20 itens.">
+@@@
+
+<h2 id="regras-dinamicas" data-titulo="Regras que mudam">Regras que mudam</h2>
+@@@html
+<form x-data="{ tipo: 'pf' }" x-form action="/cliente" method="post" novalidate>
+    <select name="tipo" x-model="tipo"><option value="pf">Física</option><option value="pj">Jurídica</option></select>
+
+    <input name="documento"
+           :data-form-mask="tipo === 'pf' ? 'cpf' : 'cnpj'"
+           :data-form-v="tipo === 'pf' ? 'required|cpf' : 'required|cnpj'"
+           :data-form-label="tipo === 'pf' ? 'CPF' : 'CNPJ'">
+</form>
+@@@
+<p>Ao trocar o tipo, a máscara e as regras são reaplicadas; se o campo já tinha sido validado, é revalidado na hora.</p>
+
+<h2 id="html-injetado" data-titulo="HTML injetado e controles externos">HTML injetado e controles externos</h2>
+<p>Campos inseridos com <code>innerHTML</code>/<code>insertAdjacentHTML</code> dentro do form são detectados. Se você mudar algo que o AlpineForm não observa, ou adicionar um controle <strong>fora</strong> do form com <code>form="id"</code>, chame <code>$form.refresh()</code>:</p>
+@@@js
+document.getElementById('lateral').insertAdjacentHTML('beforeend', '<input name="obs" form="pedido" data-form-v="max:200">')
+AlpineForm.get('pedido').refresh()
+@@@
+
+<h2 id="varios-forms" data-titulo="Vários formulários na página">Vários formulários na página</h2>
+@@@html
+<form id="login" x-data x-form action="/login" method="post" novalidate>
+    <input name="email" data-form-v="required|email">
+</form>
+<form id="newsletter" x-data x-form action="/newsletter" method="post" novalidate>
+    <input name="email" data-form-v="required|email">
+</form>
+@@@
+<p>Cada um tem estado próprio: <code>$form</code> dentro de cada form se refere a ele. Pelo código: <code>AlpineForm.get('login')</code>, <code>AlpineForm.get('newsletter')</code>.</p>
+<div class="nota aviso"><p>Formulários aninhados (<code>&lt;form&gt;</code> dentro de <code>&lt;form&gt;</code>) não existem em HTML válido e geram erro. Use controles com <code>form="id"</code> ou separe os formulários.</p></div>
+
+<h2 id="data-form-for" data-titulo="Estado fora do form (data-form-for)">Estado fora do form (data-form-for)</h2>
+<p>Barra de progresso no rodapé, botão de envio na barra fixa, lista de arquivos num painel lateral: marque o contêiner com <code>data-form-for="idDoForm"</code>. Dentro dele, <code>$form</code> e os atributos <code>data-form-status</code>, <code>data-form-progress-*</code>, <code>data-form-cancel</code>, <code>data-form-file-list</code> e <code>data-form-dropzone</code> funcionam como se estivessem no form.</p>
+@@@html
+<form id="perfil" x-data x-form action="/perfil" method="post" novalidate>
+    <input name="nome" data-form-v="required">
+    <input type="file" name="foto" data-form-v="image">
+</form>
+
+<footer x-data data-form-for="perfil">
+    <span data-form-status></span>
+    <div data-form-file-list="foto"></div>
+    <button type="submit" form="perfil" :disabled="$form.submitting">Salvar</button>
+    <button type="button" data-form-cancel>Cancelar</button>
+</footer>
+@@@
+<p>O <code>x-data</code> no contêiner externo é necessário para o Alpine processar <code>$form</code> e <code>:disabled</code> ali. O botão usa o atributo HTML <code>form="perfil"</code> para enviar o formulário.</p>
+
+<h2 id="remover-form" data-titulo="Remover o formulário">Remover o formulário</h2>
+<p>Quando o Alpine remove o form (por <code>x-if</code>, troca de página em SPA, etc.), tudo é liberado: listeners, observador, consultas em andamento, previews de imagem, elementos de erro criados e atributos ARIA adicionados. Se você remover o form por fora do Alpine, chame antes <code>$form.destroy()</code>.</p>

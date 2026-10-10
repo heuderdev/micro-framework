@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Envio · AlpineForm</title>
+<meta name="description" content="Para onde e como os dados vão: método, formato (multipart, urlencoded, JSON), nomes com colchetes, botão clicado, cabeçalhos, CSRF, envio duplicado, idempotência, redirecionamento e envio pelo código.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Envio › Envio</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" class="ativo" aria-current="page" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Envio</h1>
+<p class="lead">Para onde e como os dados vão: método, formato (multipart, urlencoded, JSON), nomes com colchetes, botão clicado, cabeçalhos, CSRF, envio duplicado, idempotência, redirecionamento e envio pelo código.</p>
+<div id="nesta-pagina"></div>
+<h2 id="destino" data-titulo="Destino e método">Destino e método</h2>
+<p>Vale o que o HTML diz: <code>action</code> e <code>method</code> do form, ou <code>formaction</code>/<code>formmethod</code> do botão clicado. Para sobrescrever sem mexer no <code>action</code> (útil quando o form também precisa funcionar sem JavaScript):</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/cadastro&quot; method=&quot;post&quot;
+      data-form-endpoint=&quot;/api/cadastro&quot; data-form-method=&quot;put&quot; novalidate&gt;</code></pre></div>
+<p>Métodos aceitos: <code>get</code>, <code>post</code>, <code>put</code>, <code>patch</code>, <code>delete</code>. Em <code>get</code>, os dados vão na URL.</p>
+<div class="codigo"><div class="titulo-codigo">Ação dinâmica com Alpine</div><pre><code data-lang="html">&lt;form x-data=&quot;{ id: 7 }&quot; x-form :action=&quot;`/api/clientes/${id}`&quot; method=&quot;post&quot; novalidate&gt;</code></pre></div>
+
+<h2 id="formato" data-titulo="Formato do corpo">Formato do corpo</h2>
+<div class="tabela"><table><thead><tr><th><code>data-form-encoding</code></th><th>Corpo</th><th>Quando usar</th></tr></thead><tbody>
+<tr><td><code>multipart</code> (padrão)</td><td><code>FormData</code></td><td>Sempre funciona, inclusive com arquivos. No PHP: <code>$_POST</code> e <code>$_FILES</code>.</td></tr>
+<tr><td><code>urlencoded</code></td><td><code>a=1&amp;b=2</code></td><td>Formulários sem arquivo, backends antigos.</td></tr>
+<tr><td><code>json</code></td><td><code>{"a":"1"}</code></td><td>APIs JSON. Arquivos não vão (ver abaixo).</td></tr>
+</tbody></table></div>
+<p>O <code>enctype</code> do form também é respeitado (<code>multipart/form-data</code>, <code>application/x-www-form-urlencoded</code>), a menos que <code>data-form-encoding</code> esteja presente.</p>
+<div class="codigo"><div class="titulo-codigo">Lendo JSON no PHP</div><pre><code data-lang="php">$dados = json_decode(file_get_contents('php://input'), true) ?? [];</code></pre></div>
+
+<h2 id="json" data-titulo="JSON e nomes com colchetes">JSON e nomes com colchetes</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/pedido&quot; method=&quot;post&quot; data-form-encoding=&quot;json&quot; novalidate&gt;
+    &lt;input name=&quot;cliente[nome]&quot; value=&quot;Ana&quot;&gt;
+    &lt;input name=&quot;cliente[email]&quot; value=&quot;ana@ex.com&quot;&gt;
+    &lt;input name=&quot;itens[0][produto]&quot; value=&quot;Caneta&quot;&gt;
+    &lt;input name=&quot;itens[0][qtd]&quot; value=&quot;2&quot;&gt;
+    &lt;input type=&quot;checkbox&quot; name=&quot;tags[]&quot; value=&quot;urgente&quot; checked&gt;
+    &lt;input type=&quot;checkbox&quot; name=&quot;tags[]&quot; value=&quot;presente&quot; checked&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Corpo enviado</div><pre><code data-lang="js">{
+  &quot;cliente&quot;: { &quot;nome&quot;: &quot;Ana&quot;, &quot;email&quot;: &quot;ana@ex.com&quot; },
+  &quot;itens&quot;: [ { &quot;produto&quot;: &quot;Caneta&quot;, &quot;qtd&quot;: &quot;2&quot; } ],
+  &quot;tags&quot;: [&quot;urgente&quot;, &quot;presente&quot;]
+}</code></pre></div>
+<div class="tabela"><table><thead><tr><th><code>data-form-nesting</code></th><th><code>usuario.email</code></th><th><code>a[b]</code></th></tr></thead><tbody>
+<tr><td><code>brackets</code> (padrão)</td><td>chave literal <code>"usuario.email"</code></td><td><code>{"a":{"b":…}}</code></td></tr>
+<tr><td><code>dots</code></td><td><code>{"usuario":{"email":…}}</code></td><td><code>{"a":{"b":…}}</code></td></tr>
+<tr><td><code>flat</code></td><td>chave literal</td><td>chave literal <code>"a[b]"</code>; nomes repetidos viram lista</td></tr>
+</tbody></table></div>
+<p>Valores vão como texto (o JSON não converte <code>"2"</code> em número). Nomes como <code>__proto__</code> ou <code>constructor</code> são recusados por segurança. Arquivo com JSON é erro; para enviar só os dados do arquivo (nome, tamanho, tipo) use <code>data-form-json-files="metadata"</code>, e para enviar o conteúdo, multipart ou <a href="chunks.html">upload em partes</a>.</p>
+
+<h2 id="serializacao" data-titulo="O que é enviado">O que é enviado</h2>
+<p>A montagem segue as regras do HTML, com três diferenças úteis:</p>
+<ul>
+    <li><strong>Igual ao HTML:</strong> ordem da página; nomes repetidos viram entradas repetidas; desabilitados, sem <code>name</code> e checkbox/radio desmarcados ficam de fora; o botão clicado entra com <code>name</code>/<code>value</code>; controles com <code>form="id"</code> fora do form entram.</li>
+    <li><strong>Máscaras e normalizadores:</strong> vai a representação escolhida em <code>data-form-submit-value</code>.</li>
+    <li><strong>Arquivos:</strong> vai a lista interna (arquivos removidos na tela não são enviados).</li>
+    <li><strong>Checkbox com <code>data-form-unchecked-value</code></strong>: desmarcado, envia esse valor.</li>
+</ul>
+<div class="codigo"><div class="titulo-codigo">Ver o que seria enviado</div><pre><code data-lang="html">&lt;pre x-text=&quot;JSON.stringify($form.getValues({ format: 'entries' }), null, 2)&quot;&gt;&lt;/pre&gt;</code></pre></div>
+
+<h2 id="botoes" data-titulo="Vários botões de envio">Vários botões de envio</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;button type=&quot;submit&quot; name=&quot;acao&quot; value=&quot;rascunho&quot; formnovalidate&gt;Salvar rascunho&lt;/button&gt;
+&lt;button type=&quot;submit&quot; name=&quot;acao&quot; value=&quot;publicar&quot;&gt;Publicar&lt;/button&gt;</code></pre></div>
+<div class="codigo"><pre><code data-lang="php">if ($_POST['acao'] === 'publicar') { /* validação completa */ }</code></pre></div>
+
+<h2 id="cabecalhos" data-titulo="Cabeçalhos">Cabeçalhos</h2>
+<p>Enviados sempre: <code>Accept</code> (JSON preferido) e <code>X-Requested-With: XMLHttpRequest</code>. Com meta tag de CSRF e URL da mesma origem: <code>X-CSRF-TOKEN</code>. Para acrescentar:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/x&quot; method=&quot;post&quot; data-form-header.X-Tenant=&quot;acme&quot; data-form-header.Accept-Language=&quot;pt-BR&quot; novalidate&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Para todos os formulários</div><pre><code data-lang="js">AlpineForm.configure({ headers: { Authorization: 'Bearer ' + token } })</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Último ajuste antes de enviar</div><pre><code data-lang="js">AlpineForm.configure({
+    hooks: {
+        beforeRequest(request) {
+            request.headers['X-Hora-Local'] = new Date().toISOString()
+        },
+    },
+})</code></pre></div>
+
+<h2 id="credenciais" data-titulo="Cookies em outra origem">Cookies em outra origem</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;https://api.outrodominio.com/contato&quot; method=&quot;post&quot; data-form-credentials=&quot;include&quot; novalidate&gt;</code></pre></div>
+<p>Padrão <code>same-origin</code>. Com <code>include</code>, cookies vão para outra origem (o servidor precisa responder CORS com <code>Access-Control-Allow-Credentials</code>). O cabeçalho CSRF da meta tag <strong>nunca</strong> é enviado para outra origem.</p>
+
+<h2 id="duplo-clique" data-titulo="Clique duplo e envio duplicado">Clique duplo e envio duplicado</h2>
+<p>Enquanto um envio está em andamento, novos envios (clique duplo, Enter repetido, <code>$form.submit()</code>) recebem <strong>a mesma</strong> operação — só uma requisição sai. Desabilitar o botão é opcional, mas deixa claro para o usuário:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot; x-text=&quot;$form.submitting ? 'Enviando…' : 'Enviar'&quot;&gt;&lt;/button&gt;</code></pre></div>
+
+<h2 id="idempotencia" data-titulo="Idempotência (evitar pedido em dobro)">Idempotência (evitar pedido em dobro)</h2>
+<p>Se a conexão cai <strong>depois</strong> do envio, não dá para saber se o servidor gravou. A biblioteca nunca reenvia sozinha; mostra "A conexão caiu depois do envio. Não é possível confirmar se a operação foi concluída; verifique antes de enviar novamente.". Com <code>data-form-idempotency</code>, cada envio leva o cabeçalho <code>Idempotency-Key</code>, e se a pessoa tentar de novo <strong>com os mesmos dados</strong> depois de um resultado desconhecido (ou erro 5xx/429), a mesma chave é reaproveitada — o servidor pode devolver a resposta já gravada em vez de criar outro pedido.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/pedidos&quot; method=&quot;post&quot; data-form-idempotency novalidate&gt;</code></pre></div>
+<p>Implementação no servidor: <a href="backend.html#idempotencia">Backend › Idempotência</a>.</p>
+
+<h2 id="timeout" data-titulo="Tempo limite">Tempo limite</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/x&quot; method=&quot;post&quot; data-form-timeout=&quot;30s&quot; novalidate&gt;</code></pre></div>
+<p>Padrão: sem limite. Ver <a href="progresso.html#timeout">Progresso › tempo limite</a> para o que acontece quando estoura.</p>
+
+<h2 id="depois" data-titulo="Depois do sucesso">Depois do sucesso</h2>
+<div class="codigo"><div class="titulo-codigo">Limpar o formulário</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/contato&quot; method=&quot;post&quot; data-form-reset-on-success novalidate&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Ir para a URL que o servidor indicar</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/login&quot; method=&quot;post&quot; data-form-redirect=&quot;response&quot; novalidate&gt;
+&lt;!-- resposta: { &quot;success&quot;: true, &quot;redirect&quot;: &quot;/painel&quot; } --&gt;</code></pre></div>
+<p>O redirecionamento só acontece para <code>http(s)</code> da mesma origem, ou de origens listadas: <code>data-form-redirect-origins="https://pagamento.exemplo.com"</code>. Outras URLs são ignoradas (e registradas no console).</p>
+<div class="codigo"><div class="titulo-codigo">Fazer algo seu</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/clientes&quot; method=&quot;post&quot;
+      @form:success=&quot;window.location.href = '/clientes/' + $event.detail.result.data.id&quot; novalidate&gt;</code></pre></div>
+
+<h2 id="pelo-codigo" data-titulo="Enviar pelo código">Enviar pelo código</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;button type=&quot;button&quot; @click=&quot;$form.submit().then(r =&gt; r.ok &amp;&amp; alert('Salvo!'))&quot;&gt;Salvar&lt;/button&gt;</code></pre></div>
+<p><code>submit()</code> devolve <code>{ ok: true, result }</code> ou <code>{ ok: false, reason }</code>, com <code>reason</code> = <code>invalid</code>, <code>canceled</code>, <code>prevented</code> ou o tipo do erro. Nunca rejeita por erro de validação ou do servidor.</p>
+
+<h2 id="impedir" data-titulo="Impedir ou condicionar o envio">Impedir ou condicionar o envio</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/excluir&quot; method=&quot;post&quot;
+      @form:before-submit=&quot;if (!confirm('Excluir mesmo?')) $event.preventDefault()&quot; novalidate&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Com hook (aceita async)</div><pre><code data-lang="js">AlpineForm.configure({
+    hooks: {
+        async beforeSubmit(state, { submitter }) {
+            return await meuModal.confirmar('Enviar?')   // false cancela
+        },
+    },
+})</code></pre></div>
+
+<h2 id="nativo" data-titulo="Envio tradicional (sem AJAX)">Envio tradicional (sem AJAX)</h2>
+<p>Para só validar no navegador e deixar o envio normal (com recarregamento da página):</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/salvar&quot; method=&quot;post&quot; data-form-transport=&quot;native&quot; novalidate&gt;</code></pre></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="listas-dinamicas.html"><small>← Anterior</small>Listas e DOM dinâmico</a><a class="proxima" href="respostas-e-erros.html"><small>Próxima →</small>Respostas e erros</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

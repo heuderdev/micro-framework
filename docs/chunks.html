@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upload em partes · AlpineForm</title>
+<meta name="description" content="Arquivos grandes enviados em partes, com várias partes ao mesmo tempo, nova tentativa automática, pausa, retomada (inclusive após recarregar a página) e verificação de integridade. Requer alpine-form-chunks e um backend que implemente o protocolo.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Arquivos › Upload em partes</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" class="ativo" aria-current="page" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Upload em partes</h1>
+<p class="lead">Arquivos grandes enviados em partes, com várias partes ao mesmo tempo, nova tentativa automática, pausa, retomada (inclusive após recarregar a página) e verificação de integridade. Requer alpine-form-chunks e um backend que implemente o protocolo.</p>
+<div id="nesta-pagina"></div>
+<h2 id="quando" data-titulo="Quando usar">Quando usar</h2>
+<ul>
+    <li>Arquivos maiores que o limite do servidor (<code>post_max_size</code>, proxy).</li>
+    <li>Conexões instáveis: uma falha repete só a parte, não o arquivo inteiro.</li>
+    <li>Precisa de pausar/retomar ou de progresso por arquivo.</li>
+</ul>
+<p>O arquivo é enviado <strong>antes</strong> do formulário, para um endpoint próprio. Ao terminar, o servidor devolve um <strong>token</strong>; o formulário é então enviado com o token no lugar do arquivo.</p>
+
+<h2 id="uso" data-titulo="Uso">Uso</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;script src=&quot;/js/alpine-form/alpine-form.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-chunks.min.js&quot;&gt;&lt;/script&gt;
+&lt;script defer src=&quot;/js/alpine.min.js&quot;&gt;&lt;/script&gt;
+
+&lt;form x-data x-form action=&quot;/api/documentos&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;input name=&quot;titulo&quot; data-form-v=&quot;required&quot;&gt;
+
+    &lt;input name=&quot;arquivo&quot; type=&quot;file&quot;
+           data-form-chunked
+           data-form-chunk-endpoint=&quot;/api/uploads&quot;
+           data-form-chunk-size=&quot;5MiB&quot;
+           data-form-chunk-concurrency=&quot;3&quot;
+           data-form-chunk-retries=&quot;5&quot;
+           data-form-chunk-persist
+           data-form-v=&quot;required|file_max:2GB&quot;&gt;
+    &lt;div data-form-file-list=&quot;arquivo&quot;&gt;&lt;/div&gt;
+
+    &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Enviar&lt;/button&gt;
+    &lt;button type=&quot;button&quot; data-form-pause&gt;Pausar&lt;/button&gt;
+    &lt;button type=&quot;button&quot; data-form-resume&gt;Retomar&lt;/button&gt;
+    &lt;button type=&quot;button&quot; data-form-cancel&gt;Cancelar&lt;/button&gt;
+
+    &lt;div data-form-progress&gt;
+        &lt;progress data-form-progress-bar max=&quot;100&quot; aria-label=&quot;Enviado&quot;&gt;&lt;/progress&gt;
+        &lt;span data-form-progress-percent&gt;&lt;/span&gt; · &lt;span data-form-progress-speed&gt;&lt;/span&gt;
+        &lt;p data-form-status&gt;&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-chunked</code></td><td>—</td><td>Ativa o envio em partes no campo.</td></tr>
+<tr><td><code>data-form-chunk-endpoint</code></td><td>obrigatório</td><td>URL base do protocolo.</td></tr>
+<tr><td><code>data-form-chunk-size</code></td><td><code>5MiB</code></td><td>Tamanho de cada parte (64 KiB a 100 MiB).</td></tr>
+<tr><td><code>data-form-chunk-concurrency</code></td><td>3</td><td>Partes enviadas ao mesmo tempo (1 a 6).</td></tr>
+<tr><td><code>data-form-chunk-retries</code></td><td>5</td><td>Novas tentativas por parte (0 a 10).</td></tr>
+<tr><td><code>data-form-chunk-persist</code></td><td>falso</td><td>Guarda a sessão para retomar após recarregar a página.</td></tr>
+<tr><td><code>data-form-chunk-checksum</code></td><td>verdadeiro</td><td>SHA-256 de cada parte (requer HTTPS ou localhost).</td></tr>
+</tbody></table></div>
+
+<h2 id="fluxo" data-titulo="O que acontece">O que acontece</h2>
+<div class="fluxo">
+    <div class="etapa"><strong>POST /api/uploads</strong><span>cria a sessão → uploadId</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>PUT /api/uploads/{id}/parts/{n}</strong><span>partes em paralelo, com nova tentativa em falha</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>POST /api/uploads/{id}/complete</strong><span>servidor monta o arquivo → token</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>POST /api/documentos</strong><span>formulário com arquivo=&lt;token&gt;; o servidor vincula o arquivo ao registro</span></div>
+</div>
+<p>O progresso conta só partes confirmadas + bytes em voo: uma parte repetida não é contada duas vezes. Fases: <code>uploading</code> (partes) → <code>uploading</code>/<code>awaiting</code> (formulário) → <code>success</code>.</p>
+
+<h2 id="pausa" data-titulo="Pausar e retomar">Pausar e retomar</h2>
+<ul>
+    <li><strong>Pausar</strong> interrompe as partes em voo (os bytes delas deixam de contar) e não inicia novas. Fase <code>paused</code>.</li>
+    <li><strong>Retomar</strong> pergunta ao servidor quais partes ele já tem e envia só as que faltam.</li>
+    <li>Pelo código: <code>$form.pauseUpload()</code>, <code>$form.resumeUpload()</code> (com nome do campo para um só).</li>
+    <li>Os botões <code>data-form-pause</code>/<code>data-form-resume</code> se habilitam sozinhos conforme o estado.</li>
+</ul>
+
+<h2 id="recarregar" data-titulo="Retomar depois de recarregar">Retomar depois de recarregar</h2>
+<p>Com <code>data-form-chunk-persist</code>, só os dados da sessão (id, nome, tamanho, data) ficam no <code>localStorage</code>. O navegador <strong>não</strong> guarda o arquivo: a pessoa precisa selecionar o <strong>mesmo arquivo</strong> de novo e enviar; ele é reconhecido (nome, tamanho, data e amostras do conteúdo) e só as partes que faltam são enviadas.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;template x-if=&quot;$form.uploads.arquivo?.resumable?.length&quot;&gt;
+    &lt;p class=&quot;aviso&quot;&gt;Há um envio incompleto. Selecione o mesmo arquivo e clique em Enviar para continuar de onde parou.&lt;/p&gt;
+&lt;/template&gt;</code></pre></div>
+
+<h2 id="estado" data-titulo="Estado">Estado</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;template x-for=&quot;u in ($form.uploads.arquivo?.files || [])&quot;&gt;
+    &lt;p&gt;
+        &lt;span x-text=&quot;u.name&quot;&gt;&lt;/span&gt;:
+        &lt;span x-text=&quot;u.status&quot;&gt;&lt;/span&gt;
+        (&lt;span x-text=&quot;u.receivedParts + '/' + u.totalParts&quot;&gt;&lt;/span&gt; partes)
+        &lt;span x-show=&quot;u.resumed&quot;&gt;retomado&lt;/span&gt;
+    &lt;/p&gt;
+&lt;/template&gt;</code></pre></div>
+<p><code>$form.uploads.&lt;campo&gt;</code>: <code>{ status, files: [...], resumable }</code>, com <code>status</code> em <code>idle</code>, <code>uploading</code>, <code>paused</code>, <code>completed</code>, <code>failed</code>. Cada arquivo: <code>{ name, size, uploadId, status, totalParts, receivedParts, loaded, resumed, error }</code> (também em <code>$form.getUploadSession('arquivo')</code>).</p>
+
+<h2 id="erros" data-titulo="Falhas">Falhas</h2>
+<div class="tabela"><table><thead><tr><th>Situação</th><th>Reação</th></tr></thead><tbody>
+<tr><td>Rede, 408, 429, 5xx numa parte</td><td>Repete a parte com espera crescente (respeita <code>Retry-After</code>).</td></tr>
+<tr><td>409 (parte já existe com conteúdo diferente)</td><td>Falha sem repetir.</td></tr>
+<tr><td>404/410 (sessão expirou)</td><td>Cria nova sessão uma vez e recomeça.</td></tr>
+<tr><td>Erro ao finalizar</td><td>Status <code>failed</code>; enviar de novo tenta outra vez.</td></tr>
+<tr><td>Cancelar</td><td>Interrompe e pede ao servidor para apagar a sessão (DELETE).</td></tr>
+</tbody></table></div>
+<p>Mensagem de falha: "Falha ao enviar o arquivo :file." seguida do motivo.</p>
+
+<h2 id="protocolo" data-titulo="Protocolo do servidor">Protocolo do servidor</h2>
+<div class="tabela"><table><thead><tr><th>Requisição</th><th>Resposta</th></tr></thead><tbody>
+<tr><td><code>POST {endpoint}</code> JSON <code>{name, size, type, lastModified, chunkSize, fingerprint}</code></td><td><code>201 {uploadId, chunkSize, totalParts, expiresAt, receivedParts: []}</code></td></tr>
+<tr><td><code>GET {endpoint}/{id}</code></td><td><code>{uploadId, size, chunkSize, totalParts, receivedParts, status, expiresAt}</code></td></tr>
+<tr><td><code>PUT {endpoint}/{id}/parts/{n}</code> corpo = bytes; cabeçalhos <code>X-Chunk-Offset</code>, <code>X-Chunk-Size</code>, <code>X-Chunk-Sha256</code></td><td><code>200 {received}</code> · 409 · 404/410</td></tr>
+<tr><td><code>POST {endpoint}/{id}/complete</code> JSON <code>{manifest}</code></td><td><code>{status: "completed", token, size}</code></td></tr>
+<tr><td><code>DELETE {endpoint}/{id}</code></td><td><code>204</code></td></tr>
+</tbody></table></div>
+<p>Uma implementação completa em PHP está em <code>server/src/ChunkStore.php</code> (gravação atômica das partes, verificação de hash, montagem sob trava, tokens por dono, limpeza por <code>server/bin/cleanup.php</code>). Veja <a href="backend.html#chunks">Backend › Upload em partes</a>.</p>
+<div class="nota aviso"><p>"Upload concluído" ainda não é "registro salvo": o endpoint do formulário precisa validar o token (pertence ao usuário? ainda não foi usado?) e vincular o arquivo.</p></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="inspetores.html"><small>← Anterior</small>Inspetores de arquivo</a><a class="proxima" href="processamento.html"><small>Próxima →</small>Processamento (jobs)</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

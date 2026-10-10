@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inspetores de arquivo · AlpineForm</title>
+<meta name="description" content="Conferir o conteúdo de planilhas CSV, arquivos JSON, PDF, XLSX e a duração de áudios e vídeos antes de enviar. Requer alpine-form-inspectors.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Arquivos › Inspetores de arquivo</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" class="ativo" aria-current="page" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Inspetores de arquivo</h1>
+<p class="lead">Conferir o conteúdo de planilhas CSV, arquivos JSON, PDF, XLSX e a duração de áudios e vídeos antes de enviar. Requer alpine-form-inspectors.</p>
+<div id="nesta-pagina"></div>
+<p>Carregue <code>alpine-form-inspectors.min.js</code> depois do núcleo. Sem o módulo, essas regras são "regra desconhecida". Todas são <strong>assíncronas</strong> (leem o arquivo) e o resultado é memorizado por arquivo.</p>
+<div class="nota aviso"><p>A inspeção no navegador evita enviar o arquivo errado, mas não substitui a validação no servidor — especialmente no CSV, conferido só numa amostra.</p></div>
+
+<h2 id="csv" data-titulo="CSV">CSV</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;planilha&quot; type=&quot;file&quot; accept=&quot;.csv,text/csv&quot;
+       data-form-v=&quot;required|ext:csv|file_max:20MB|csv|csv_headers:nome,email,valor&quot;
+       data-form-csv-delimiter=&quot;auto&quot;
+       data-form-csv-sample=&quot;64KB&quot;&gt;
+&lt;div data-form-file-list=&quot;planilha&quot;&gt;&lt;/div&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Regra</th><th>Confere</th><th>Mensagem</th></tr></thead><tbody>
+<tr><td><code>csv</code></td><td>A amostra é um CSV válido (aspas, colunas consistentes) e está na codificação esperada.</td><td>O arquivo :file não parece um CSV válido (verificado em amostra).</td></tr>
+<tr><td><code>csv_headers:col1,col2</code></td><td>O cabeçalho contém essas colunas (sem diferenciar maiúsculas; ordem livre).</td><td>O arquivo :file deve conter as colunas: :allowed (verificado no cabeçalho).</td></tr>
+<tr><td><code>csv_columns:n</code></td><td>O cabeçalho tem exatamente n colunas.</td><td>O arquivo :file deve ter :count colunas (verificado no cabeçalho).</td></tr>
+</tbody></table></div>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Valores</th></tr></thead><tbody>
+<tr><td><code>data-form-csv-delimiter</code></td><td><code>auto</code></td><td><code>auto</code>, <code>,</code>, <code>;</code>, <code>tab</code>, <code>pipe</code></td></tr>
+<tr><td><code>data-form-csv-sample</code></td><td><code>64KB</code></td><td>tamanho lido do início do arquivo</td></tr>
+<tr><td><code>data-form-csv-encoding</code></td><td><code>utf-8</code></td><td>rótulos do <code>TextDecoder</code>, ex.: <code>windows-1252</code></td></tr>
+</tbody></table></div>
+<p>Só o início do arquivo é lido (a amostra); se o arquivo é maior, a última linha (possivelmente cortada) é descartada da análise. Linhas além da amostra só são conferidas no servidor.</p>
+
+<h2 id="json" data-titulo="JSON">JSON</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;config&quot; type=&quot;file&quot; accept=&quot;.json,application/json&quot;
+       data-form-v=&quot;required|json|json_root:object|json_keys:versao,itens&quot;
+       data-form-json-max=&quot;2MB&quot;&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Regra</th><th>Confere</th></tr></thead><tbody>
+<tr><td><code>json</code></td><td>JSON válido (lê o arquivo inteiro, até <code>data-form-json-max</code>, padrão 5 MB; acima disso: "O arquivo :file é grande demais para ser verificado no navegador.").</td></tr>
+<tr><td><code>json_root:object</code> · <code>json_root:array</code></td><td>Tipo da raiz.</td></tr>
+<tr><td><code>json_keys:a,b</code></td><td>A raiz (objeto) contém essas chaves.</td></tr>
+</tbody></table></div>
+
+<h2 id="assinaturas" data-titulo="PDF e XLSX">PDF e XLSX</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;contrato&quot; type=&quot;file&quot; accept=&quot;.pdf&quot; data-form-v=&quot;required|ext:pdf|pdf_signature&quot;&gt;
+&lt;input name=&quot;planilha&quot; type=&quot;file&quot; accept=&quot;.xlsx&quot; data-form-v=&quot;required|ext:xlsx|xlsx_signature&quot;&gt;</code></pre></div>
+<p>Lê os primeiros bytes: <code>pdf_signature</code> exige o cabeçalho <code>%PDF-</code>; <code>xlsx_signature</code> exige a estrutura ZIP de uma planilha Excel. Pega o caso clássico do arquivo renomeado (um <code>.txt</code> chamado <code>contrato.pdf</code>).</p>
+
+<h2 id="midia" data-titulo="Áudio e vídeo">Áudio e vídeo</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;video&quot; type=&quot;file&quot; accept=&quot;video/*&quot;
+       data-form-v=&quot;required|file_max:200MB|media_duration_min:5|media_duration_max:120&quot;
+       data-form-msg.media_duration_max=&quot;O vídeo pode ter no máximo 2 minutos.&quot;&gt;</code></pre></div>
+<p>A duração (em segundos) é lida pelos metadados que o navegador consegue decodificar. Formatos que o navegador não lê geram "Não foi possível ler os metadados de :file neste navegador.".</p>
+
+<h2 id="combinando" data-titulo="Combinando com processamento">Combinando com processamento</h2>
+<p>O padrão para importações: inspecionar a amostra no navegador, enviar e deixar o servidor processar o arquivo inteiro em segundo plano. Veja <a href="processamento.html">Processamento (jobs)</a> e a receita <a href="receitas.html#importacao">Importação de CSV</a>.</p>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="arquivos.html"><small>← Anterior</small>Arquivos</a><a class="proxima" href="chunks.html"><small>Próxima →</small>Upload em partes</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

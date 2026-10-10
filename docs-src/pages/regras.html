@@ -1,0 +1,254 @@
+titulo: Regras
+lead: Todas as regras de data-form-v, com parâmetros, comportamento e exemplo. Mensagens padrão entre aspas.
+---
+<p>Regras de <strong>presença</strong> rodam sempre. As demais <strong>não rodam com o campo vazio</strong>: um campo opcional vazio é válido. Vazio é: nada digitado (ou só espaços), nenhuma opção marcada, nenhum arquivo. <code>0</code>, <code>"0"</code> e <code>false</code> <strong>não</strong> são vazios.</p>
+
+<h2 id="presenca" data-titulo="Presença">Presença</h2>
+<div class="metodo"><h3 id="required"><code>required</code></h3>
+<p>Obrigatório. Em grupos e selects múltiplos, exige ao menos um item; em checkbox individual, marcado; em arquivo, ao menos um (contando os existentes na edição).</p>
+<p class="retorno"><strong>Mensagens:</strong> "O campo :field é obrigatório." · radio/select: "Selecione uma opção em :field." · múltipla: "Selecione ao menos uma opção em :field." · checkbox: "Marque :field para continuar." · arquivo: "Selecione um arquivo em :field."</p>
+@@@html
+<input name="nome" data-form-v="required">
+@@@
+</div>
+<div class="metodo"><h3 id="optional"><code>optional</code> · <code>nullable</code></h3>
+<p>Marcadores sem efeito na validação: documentam que o campo pode ficar vazio. Combinar com <code>required</code> é erro de configuração.</p>
+</div>
+<div class="metodo"><h3 id="accepted"><code>accepted</code></h3>
+<p>Checkbox marcado (termos de uso). Em outros campos, aceita <code>1</code>, <code>on</code>, <code>yes</code>, <code>sim</code>, <code>true</code>.</p>
+<p class="retorno"><strong>Mensagem:</strong> "Você precisa aceitar :field."</p>
+@@@html
+<label><input type="checkbox" name="termos" value="1" data-form-v="accepted" data-form-label="os termos de uso"> Aceito os termos</label>
+@@@
+</div>
+<div class="metodo"><h3 id="required_if"><code>required_if:campo,valor1,valor2…</code></h3>
+<p>Obrigatório quando o outro campo tem um dos valores. Para "quando o outro estiver vazio", use o valor vazio: <code>required_if:tipo,</code>. Revalida automaticamente quando o outro campo muda.</p>
+@@@html
+<select name="tipo"><option value="pf">Física</option><option value="pj">Jurídica</option></select>
+<input name="cnpj" data-form-v="required_if:tipo,pj|cnpj">
+@@@
+</div>
+<div class="metodo"><h3 id="required_unless"><code>required_unless:campo,valor1,valor2…</code></h3>
+<p>Obrigatório, <strong>exceto</strong> quando o outro campo tem um dos valores.</p>
+@@@html
+<input name="cpf" data-form-v="required_unless:estrangeiro,1|cpf">
+<label><input type="checkbox" name="estrangeiro" value="1"> Sou estrangeiro</label>
+@@@
+</div>
+<div class="metodo"><h3 id="required_with"><code>required_with:campo1,campo2…</code></h3>
+<p>Obrigatório quando qualquer um dos outros está preenchido. "O campo :field é obrigatório quando :other for informado."</p>
+@@@html
+<input name="telefone" data-form-mask="telefone_br" data-form-v="telefone">
+<input name="ramal" data-form-v="digits">
+<input name="contato_nome" data-form-v="required_with:telefone,ramal">
+@@@
+</div>
+<div class="metodo"><h3 id="required_without"><code>required_without:campo1,campo2…</code></h3>
+<p>Obrigatório quando algum dos outros está vazio. Clássico "informe e-mail <em>ou</em> telefone":</p>
+@@@html
+<input name="email" type="email" data-form-v="required_without:telefone|email">
+<input name="telefone" data-form-mask="telefone_br" data-form-v="required_without:email|telefone">
+@@@
+</div>
+
+<h2 id="texto" data-titulo="Texto">Texto</h2>
+<div class="metodo"><h3 id="min"><code>min:n</code> · <code>max:n</code> · <code>between:a,b</code></h3>
+<p>Mudam de sentido conforme o campo: <strong>texto</strong> → quantidade de caracteres; <strong>número</strong> (<code>type="number"</code>, máscara numérica ou regra <code>numeric</code>/<code>integer</code>/<code>decimal</code> no campo) → valor; <strong>lista</strong> (checkboxes, select múltiplo) → quantidade de itens. Em arquivo é erro (use <code>files_max</code>/<code>file_max</code>).</p>
+<p class="retorno"><strong>Mensagens:</strong> "Digite pelo menos :min caracteres." · "O valor mínimo de :field é :min." · "Selecione pelo menos :min opções."</p>
+@@@html
+<input name="nome" data-form-v="required|min:3|max:120">
+<input name="idade" type="number" data-form-v="required|min:18|max:120">
+<input type="checkbox" name="cores[]" value="azul" data-form-v="min:2|max:3"> ...
+<input name="parcelas" data-form-v="integer|between:1,12">
+@@@
+</div>
+<div class="metodo"><h3 id="length"><code>length:n</code> · <code>min_length:n</code> · <code>max_length:n</code></h3>
+<p><code>length</code>: exatamente n caracteres (ou itens, em listas). <code>min_length</code>/<code>max_length</code>: sempre caracteres, mesmo em campo numérico. Caracteres contados por <em>code point</em> (acentos e a maioria dos emojis contam 1).</p>
+@@@html
+<input name="uf" data-form-v="required|length:2">
+<input name="codigo" type="number" data-form-v="min_length:4|max_length:6">
+@@@
+</div>
+<div class="metodo"><h3 id="email"><code>email</code> · <code>email:loose</code></h3>
+<p>E-mail com domínio contendo ponto (<code>usuario@empresa.com</code>). <code>loose</code> também aceita domínio sem ponto (<code>admin@localhost</code>). Até 254 caracteres.</p>
+@@@html
+<input name="email" type="email" data-form-v="required|email">
+@@@
+</div>
+<div class="metodo"><h3 id="url"><code>url</code> · <code>url:esquema1,esquema2</code></h3>
+<p>Endereço absoluto. Padrão: <code>http</code> e <code>https</code>. Liste outros esquemas se quiser aceitá-los.</p>
+@@@html
+<input name="site" data-form-v="url">
+<input name="repositorio" data-form-v="url:https,ssh">
+@@@
+</div>
+<div class="metodo"><h3 id="pattern"><code>pattern</code> + <code>data-form-pattern</code></h3>
+<p>Expressão regular no atributo <code>data-form-pattern</code> (até 500 caracteres). Flags permitidas em <code>data-form-pattern-flags</code>: <code>i</code>, <code>m</code>, <code>s</code>, <code>u</code>. Use <code>^…$</code> para exigir o texto inteiro. Entradas acima de 2000 caracteres falham.</p>
+<p class="retorno"><strong>Mensagem:</strong> "O formato de :field é inválido."</p>
+@@@html
+<input name="placa" data-form-v="required|pattern" data-form-pattern="^[A-Z]{3}-?[0-9][A-Z0-9][0-9]{2}$"
+       data-form-pattern-flags="i" data-form-msg.pattern="Placa inválida.">
+@@@
+</div>
+<div class="metodo"><h3 id="alpha"><code>alpha</code> · <code>alphanumeric</code> · <code>:spaces</code></h3>
+<p>Só letras (inclusive acentuadas) / letras e números. Com <code>:spaces</code>, também espaços, hífen e apóstrofo (nomes como "Maria D'Ávila").</p>
+@@@html
+<input name="nome" data-form-v="required|alpha:spaces">
+<input name="usuario" data-form-v="required|alphanumeric">
+@@@
+</div>
+<div class="metodo"><h3 id="digits"><code>digits</code> · <code>digits:n</code></h3>
+<p>Só dígitos 0–9 (sem sinal, ponto ou espaço). Com n, exatamente n dígitos: ":field deve conter exatamente :length dígitos."</p>
+@@@html
+<input name="numero" data-form-v="required|digits">
+<input name="pin" data-form-v="required|digits:4">
+@@@
+</div>
+<div class="metodo"><h3 id="in"><code>in:a,b,c</code> · <code>not_in:a,b,c</code></h3>
+<p>Valor deve estar (ou não estar) na lista. Em listas (checkboxes), cada item é conferido.</p>
+@@@html
+<input name="tamanho" data-form-v="required|in:P,M,G,GG">
+<input name="usuario" data-form-v="required|not_in:admin,root,sistema">
+@@@
+</div>
+<div class="metodo"><h3 id="starts_with"><code>starts_with:…</code> · <code>ends_with:…</code> · <code>contains:…</code></h3>
+<p>Começa com algum / termina com algum / contém <strong>todos</strong> os valores.</p>
+@@@html
+<input name="email_corp" data-form-v="email|ends_with:@empresa.com.br,@empresa.com">
+<input name="codigo" data-form-v="starts_with:PED-,ORC-">
+@@@
+</div>
+
+<h2 id="numeros" data-titulo="Números">Números</h2>
+<div class="nota"><p>Regras numéricas comparam o texto como decimal exato (sem erro de arredondamento) e aceitam <strong>ponto</strong> como separador decimal: <code>1234.56</code>. Para o usuário digitar <code>1.234,56</code>, use uma <a href="mascaras.html#numericas">máscara numérica</a> (que valida o valor canônico) ou <code>data-form-normalize="decimal"</code>.</p></div>
+<div class="metodo"><h3 id="numeric"><code>numeric</code> · <code>integer</code></h3>
+<p>Número (com sinal e decimais opcionais) / inteiro.</p>
+@@@html
+<input name="peso" data-form-v="required|numeric">
+<input name="quantidade" data-form-v="required|integer|min:1">
+@@@
+</div>
+<div class="metodo"><h3 id="decimal"><code>decimal:max</code> · <code>decimal:min,max</code></h3>
+<p>Quantidade de casas decimais: até <code>max</code>, ou entre <code>min</code> e <code>max</code>.</p>
+@@@html
+<input name="preco" data-form-v="required|decimal:2">
+<input name="taxa" data-form-v="decimal:2,4">
+@@@
+</div>
+<div class="metodo"><h3 id="min_value"><code>min_value:x</code> · <code>max_value:x</code> · <code>positive</code> · <code>negative</code> · <code>multiple_of:x</code></h3>
+<p>Comparação de valor, independentemente do tipo do campo (diferente de <code>min</code>/<code>max</code>, que em texto contam caracteres).</p>
+@@@html
+<input name="valor" data-form-mask="currency" data-form-v="required|min_value:0.01|max_value:10000">
+<input name="desconto" data-form-v="numeric|positive">
+<input name="caixas" data-form-v="integer|multiple_of:6" data-form-msg.multiple_of="Vendemos em caixas de 6.">
+@@@
+</div>
+
+<h2 id="comparacao" data-titulo="Comparação com outro campo">Comparação com outro campo</h2>
+<div class="metodo"><h3 id="same"><code>same:campo</code> · <code>different:campo</code></h3>
+<p>Igual / diferente do outro campo. Revalida quando o outro muda.</p>
+@@@html
+<input name="senha" type="password" data-form-v="required|min:8">
+<input name="senha_confirmacao" type="password" data-form-v="required|same:senha"
+       data-form-msg.same="As senhas não conferem.">
+<input name="nova_senha" type="password" data-form-v="required|different:senha_atual">
+@@@
+</div>
+<div class="metodo"><h3 id="greater_than"><code>greater_than</code> · <code>greater_or_equal</code> · <code>less_than</code> · <code>less_or_equal</code></h3>
+<p>Compara números (ou datas, se o campo for de data) com outro campo. Se o outro estiver vazio, passa.</p>
+@@@html
+<input name="preco_min" data-form-v="numeric">
+<input name="preco_max" data-form-v="numeric|greater_or_equal:preco_min">
+@@@
+</div>
+
+<h2 id="datas" data-titulo="Datas">Datas</h2>
+<p>Campos <code>type="date"</code>, <code>datetime-local</code>, <code>time</code>, <code>month</code> e <code>week</code> são reconhecidos. Em input de texto, a data é lida em ISO (<code>2026-12-31</code>); para <code>31/12/2026</code> use <code>data-form-date-format="br"</code> ou a máscara <code>date</code>. Datas inexistentes (31/02) são recusadas.</p>
+<div class="metodo"><h3 id="date"><code>date</code> · <code>date:datetime|time|month|week</code></h3>
+@@@html
+<input name="nascimento" type="date" data-form-v="required|date">
+<input name="vencimento" data-form-date-format="br" data-form-v="required|date">
+<input name="data" data-form-mask="date" data-form-v="required|date">
+@@@
+</div>
+<div class="metodo"><h3 id="before"><code>before:x</code> · <code>after:x</code> · <code>before_or_equal:x</code> · <code>after_or_equal:x</code></h3>
+<p><code>x</code> pode ser uma data ISO (<code>2026-01-31</code>), <code>today</code>, <code>now</code> ou o <strong>nome de outro campo</strong>. A mensagem usa "hoje", a data em formato brasileiro ou o rótulo do outro campo.</p>
+@@@html
+<input name="nascimento" type="date" data-form-v="required|before:today">
+<input name="entrega" type="date" data-form-v="required|after_or_equal:today">
+<input name="checkin" type="date" data-form-v="required|after_or_equal:today">
+<input name="checkout" type="date" data-form-v="required|after:checkin">
+@@@
+</div>
+<div class="metodo"><h3 id="date_between"><code>date_between:inicio,fim</code></h3>
+@@@html
+<input name="data_evento" type="date" data-form-v="required|date_between:2026-01-01,2026-12-31">
+<input name="data_pagamento" type="date" data-form-v="date_between:emissao,vencimento">
+@@@
+</div>
+
+<h2 id="brasil" data-titulo="Documentos e contatos (Brasil)">Documentos e contatos (Brasil)</h2>
+<div class="metodo"><h3 id="cpf"><code>cpf</code> · <code>cnpj</code> · <code>cnpj:numeric</code> · <code>cpf_cnpj</code></h3>
+<p>Conferem os dígitos verificadores; aceitam com ou sem pontuação. <code>cnpj</code> aceita o CNPJ alfanumérico (letras nas 12 primeiras posições); <code>cnpj:numeric</code> só o numérico. <code>cpf_cnpj</code>: 11 caracteres = CPF, senão CNPJ.</p>
+@@@html
+<input name="cpf" data-form-mask="cpf" data-form-v="required|cpf">
+<input name="documento" data-form-mask="cpf_cnpj" data-form-v="required|cpf_cnpj">
+@@@
+</div>
+<div class="metodo"><h3 id="cep"><code>cep</code> · <code>telefone</code> · <code>telefone:celular</code> · <code>telefone:fixo</code></h3>
+<p>Conferem o <strong>formato</strong> (8 dígitos; DDD + 8 ou 9 dígitos), não se o CEP ou o número existem.</p>
+@@@html
+<input name="cep" data-form-mask="cep" data-form-v="required|cep">
+<input name="whatsapp" data-form-mask="celular" data-form-v="required|telefone:celular">
+@@@
+</div>
+<div class="metodo"><h3 id="card"><code>card</code> · <code>card:visa,mastercard,…</code> · <code>luhn</code></h3>
+<p><code>card</code>: dígito de Luhn + comprimento da bandeira (visa, mastercard, amex, elo, hipercard, diners, discover, jcb). Não confere se o cartão existe. <code>luhn</code>: só o dígito.</p>
+@@@html
+<input name="cartao" data-form-mask="card" data-form-v="required|card:visa,mastercard,elo">
+@@@
+</div>
+
+<h2 id="arquivos" data-titulo="Arquivos">Arquivos</h2>
+<p>Só em <code>input type="file"</code>. Tamanhos: <code>500KB</code>, <code>10MB</code> (decimal: 10.000.000 bytes) ou <code>10MiB</code> (binário: 10.485.760). Erros por arquivo aparecem também no item da lista.</p>
+<div class="metodo"><h3 id="files_max"><code>files_min:n</code> · <code>files_max:n</code> · <code>files_total_max:tam</code></h3>
+<p>Quantidade de arquivos (conta os existentes mantidos na edição) / soma dos tamanhos dos novos.</p>
+@@@html
+<input type="file" name="fotos[]" multiple data-form-v="required|files_min:2|files_max:10|files_total_max:30MB">
+@@@
+</div>
+<div class="metodo"><h3 id="file_max"><code>file_min:tam</code> · <code>file_max:tam</code> · <code>non_empty_file</code></h3>
+@@@html
+<input type="file" name="contrato" data-form-v="required|file_max:5MB|non_empty_file">
+@@@
+</div>
+<div class="metodo"><h3 id="ext"><code>ext:pdf,jpg</code> · <code>mime:application/pdf,image/*</code></h3>
+<p>Extensão do nome / tipo informado pelo navegador (aceita curinga <code>image/*</code>). Ambos vêm do <strong>nome</strong> do arquivo: o servidor precisa conferir o conteúdo.</p>
+@@@html
+<input type="file" name="documento" data-form-v="required|ext:pdf,jpg,jpeg,png|mime:application/pdf,image/*">
+@@@
+</div>
+<div class="metodo"><h3 id="image"><code>image</code> · <code>width_min</code> · <code>width_max</code> · <code>height_min</code> · <code>height_max</code> · <code>dimensions:LxA</code> · <code>aspect_ratio:r[,tolerância]</code></h3>
+<p><span class="tag">assíncronas</span> Decodificam a imagem no navegador (PNG, JPEG, GIF, WebP, AVIF, BMP). Regras de dimensão ignoram arquivos que não são imagem — use <code>image</code> para exigir imagem.</p>
+@@@html
+<input type="file" name="avatar" accept="image/*"
+       data-form-v="required|image|file_max:5MB|width_min:200|height_min:200|aspect_ratio:1/1,0.02">
+<input type="file" name="banner" data-form-v="image|dimensions:1200x400">
+@@@
+</div>
+<div class="metodo"><h3 id="inspetores"><code>csv</code>, <code>csv_headers</code>, <code>csv_columns</code>, <code>json</code>, <code>json_root</code>, <code>json_keys</code>, <code>pdf_signature</code>, <code>xlsx_signature</code>, <code>media_duration_min</code>, <code>media_duration_max</code></h3>
+<p>Exigem o módulo <code>alpine-form-inspectors</code>. Ver <a href="inspetores.html">Inspetores de arquivo</a>.</p>
+</div>
+
+<h2 id="propria" data-titulo="Criar sua regra">Criar sua regra</h2>
+<p>Regra desconhecida é erro, mas você pode registrar as suas antes de o Alpine iniciar:</p>
+@@@js
+AlpineForm.validator('placa', {
+    validate: value => /^[A-Z]{3}-?\d[A-Z0-9]\d{2}$/.test(String(value).toUpperCase()),
+})
+AlpineForm.messages.placa = 'Placa inválida.'
+@@@
+@@@html
+<input name="placa" data-form-v="required|placa">
+@@@
+<p>Regras com parâmetros, assíncronas e com outro campo: <a href="extensoes.html">Extensões</a>.</p>

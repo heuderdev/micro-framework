@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Referência rápida · AlpineForm</title>
+<meta name="description" content="Todos os atributos, regras, métodos, eventos, opções e chaves de mensagem numa página só. Clique para ver a explicação completa.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Consulta › Referência rápida</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" class="ativo" aria-current="page" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Referência rápida</h1>
+<p class="lead">Todos os atributos, regras, métodos, eventos, opções e chaves de mensagem numa página só. Clique para ver a explicação completa.</p>
+<div id="nesta-pagina"></div>
+<h2 id="atributos-form" data-titulo="Atributos do form">Atributos do &lt;form&gt;</h2>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Valores (padrão)</th><th>Ver</th></tr></thead><tbody>
+<tr><td><code>x-form</code></td><td>objeto de opções opcional</td><td><a href="conceitos.html#configuracao">Conceitos</a></td></tr>
+<tr><td><code>data-form-validation</code></td><td><strong>live</strong> · input · blur · change · submit</td><td><a href="validacao.html#modos">Validação</a></td></tr>
+<tr><td><code>data-form-debounce</code></td><td>duração (<strong>200ms</strong>)</td><td><a href="validacao.html#debounce">Validação</a></td></tr>
+<tr><td><code>data-form-errors</code></td><td><strong>first</strong> · all</td><td><a href="validacao.html#quantos-erros">Validação</a></td></tr>
+<tr><td><code>data-form-show-valid</code></td><td>booleano</td><td><a href="validacao.html#valido">Validação</a></td></tr>
+<tr><td><code>data-form-hidden</code></td><td><strong>validate</strong> · skip</td><td><a href="condicionais.html#mostrar-esconder">Condicionais</a></td></tr>
+<tr><td><code>data-form-server-errors</code></td><td><strong>clear-on-change</strong> · keep</td><td><a href="respostas-e-erros.html#associacao">Respostas</a></td></tr>
+<tr><td><code>data-form-date-format</code></td><td><strong>iso</strong> · br</td><td><a href="tipos-de-campo.html#datas">Tipos de campo</a></td></tr>
+<tr><td><code>data-form-ui</code></td><td><strong>default</strong> · bootstrap · nome registrado</td><td><a href="interface.html">Interface</a></td></tr>
+<tr><td><code>data-form-summary</code> · <code>data-form-summary-target</code></td><td><strong>general</strong> · all · none · seletor</td><td><a href="validacao.html#resumo">Validação</a></td></tr>
+<tr><td><code>data-form-focus</code> · <code>data-form-scroll</code></td><td><strong>first</strong> · none · <strong>smooth</strong> · instant · none</td><td><a href="validacao.html#foco">Validação</a></td></tr>
+<tr><td><code>data-form-endpoint</code> · <code>data-form-method</code></td><td>URL · get/post/put/patch/delete</td><td><a href="envio.html#destino">Envio</a></td></tr>
+<tr><td><code>data-form-encoding</code></td><td><strong>multipart</strong> · urlencoded · json</td><td><a href="envio.html#formato">Envio</a></td></tr>
+<tr><td><code>data-form-nesting</code> · <code>data-form-json-files</code></td><td><strong>brackets</strong> · dots · flat · <strong>error</strong> · metadata</td><td><a href="envio.html#json">Envio</a></td></tr>
+<tr><td><code>data-form-transport</code></td><td><strong>xhr</strong> · fetch · native · nome registrado</td><td><a href="envio.html#nativo">Envio</a></td></tr>
+<tr><td><code>data-form-timeout</code></td><td>duração (sem limite)</td><td><a href="progresso.html#timeout">Progresso</a></td></tr>
+<tr><td><code>data-form-credentials</code></td><td><strong>same-origin</strong> · include · omit</td><td><a href="envio.html#credenciais">Envio</a></td></tr>
+<tr><td><code>data-form-header.Nome</code></td><td>texto</td><td><a href="envio.html#cabecalhos">Envio</a></td></tr>
+<tr><td><code>data-form-response-adapter</code></td><td><strong>default</strong> · laravel · joomla · nome</td><td><a href="respostas-e-erros.html">Respostas</a></td></tr>
+<tr><td><code>data-form-reset-on-success</code></td><td>booleano</td><td><a href="envio.html#depois">Envio</a></td></tr>
+<tr><td><code>data-form-redirect</code> · <code>data-form-redirect-origins</code></td><td><strong>none</strong> · response · lista de origens</td><td><a href="envio.html#depois">Envio</a></td></tr>
+<tr><td><code>data-form-idempotency</code></td><td>booleano</td><td><a href="envio.html#idempotencia">Envio</a></td></tr>
+<tr><td><code>data-form-job-interval</code> · <code>-max-interval</code> · <code>-timeout</code> · <code>-persist</code> · <code>data-form-job-url</code> · <code>data-form-job-cancel-url</code></td><td>1,5s · 10s · 10min · booleano · modelos com {id}</td><td><a href="processamento.html">Processamento</a></td></tr>
+<tr><td><code>data-form-debug</code></td><td>booleano (logs no console)</td><td></td></tr>
+</tbody></table></div>
+
+<h2 id="atributos-campo" data-titulo="Atributos de campo">Atributos de campo</h2>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Para quê</th><th>Ver</th></tr></thead><tbody>
+<tr><td><code>data-form-v</code></td><td>regras</td><td><a href="regras.html">Regras</a></td></tr>
+<tr><td><code>data-form-msg</code> · <code>data-form-msg.regra</code></td><td>mensagens</td><td><a href="validacao.html#mensagens">Validação</a></td></tr>
+<tr><td><code>data-form-label</code></td><td>nome em <code>:field</code></td><td><a href="validacao.html#rotulo">Validação</a></td></tr>
+<tr><td><code>data-form-error-target</code></td><td>onde mostrar o erro</td><td><a href="validacao.html#onde-erro">Validação</a></td></tr>
+<tr><td><code>data-form-pattern</code> · <code>data-form-pattern-flags</code></td><td>regex da regra <code>pattern</code></td><td><a href="regras.html#pattern">Regras</a></td></tr>
+<tr><td><code>data-form-normalize</code></td><td>trim · lowercase · uppercase · digits · collapse_spaces · decimal</td><td><a href="extensoes.html#normalizador">Extensões</a></td></tr>
+<tr><td><code>data-form-submit-value</code> · <code>data-form-mask-validation-value</code></td><td>raw · formatted · canonical</td><td><a href="mascaras.html#representacoes">Máscaras</a></td></tr>
+<tr><td><code>data-form-sensitive</code></td><td>nunca expor o valor</td><td><a href="tipos-de-campo.html#senha">Tipos de campo</a></td></tr>
+<tr><td><code>data-form-ignore</code></td><td>fora da validação</td><td><a href="tipos-de-campo.html#desabilitado">Tipos de campo</a></td></tr>
+<tr><td><code>data-form-unchecked-value</code></td><td>valor de checkbox desmarcado</td><td><a href="tipos-de-campo.html#checkbox">Tipos de campo</a></td></tr>
+<tr><td><code>data-form-date-kind</code></td><td>date · datetime · time · month · week</td><td><a href="tipos-de-campo.html#datas">Tipos de campo</a></td></tr>
+<tr><td><code>data-form-component</code> · <code>data-form-name</code> · <code>data-form-disabled</code></td><td>componente próprio</td><td><a href="tipos-de-campo.html#componente">Tipos de campo</a></td></tr>
+<tr><td><code>data-form-remote</code> · <code>-remote-method</code> · <code>-remote-param</code> · <code>-remote-fields</code> · <code>-remote-debounce</code> · <code>-remote-timeout</code> · <code>-remote-cache</code> · <code>-remote-cache-ttl</code> · <code>-remote-inconclusive</code> · <code>-remote-adapter</code> · <code>-remote-allow-query</code></td><td>validação remota</td><td><a href="validacao-remota.html#opcoes">Validação remota</a></td></tr>
+<tr><td><code>data-form-files-append</code> · <code>data-form-files-duplicates</code> · <code>data-form-preview</code> · <code>data-form-existing-remove-name</code></td><td>arquivos</td><td><a href="arquivos.html">Arquivos</a></td></tr>
+<tr><td><code>data-form-mask</code> · <code>-mask-pattern</code> · <code>-mask-case</code> · <code>-mask-placeholder</code> · <code>-mask-scale</code> · <code>-mask-negative</code> · <code>-mask-pad</code> · <code>-mask-grouping</code> · <code>-mask-max-digits</code> · <code>-mask-locale</code> · <code>-mask-currency</code> · <code>-mask-card-brands</code></td><td>máscaras</td><td><a href="mascaras.html">Máscaras</a></td></tr>
+<tr><td><code>data-form-chunked</code> · <code>-chunk-endpoint</code> · <code>-chunk-size</code> · <code>-chunk-concurrency</code> · <code>-chunk-retries</code> · <code>-chunk-persist</code> · <code>-chunk-checksum</code></td><td>upload em partes</td><td><a href="chunks.html">Chunks</a></td></tr>
+<tr><td><code>data-form-csv-delimiter</code> · <code>-csv-sample</code> · <code>-csv-encoding</code> · <code>data-form-json-max</code></td><td>inspetores</td><td><a href="inspetores.html">Inspetores</a></td></tr>
+<tr><td><code>data-form-validation</code> · <code>data-form-debounce</code> · <code>data-form-errors</code> · <code>data-form-show-valid</code> · <code>data-form-hidden</code> · <code>data-form-server-errors</code> · <code>data-form-date-format</code></td><td>também valem no campo ou num elemento acima dele</td><td><a href="conceitos.html#configuracao">Conceitos</a></td></tr>
+</tbody></table></div>
+
+<h2 id="auxiliares" data-titulo="Elementos auxiliares">Elementos auxiliares</h2>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Função</th></tr></thead><tbody>
+<tr><td><code>data-form-status</code></td><td>texto da fase</td></tr>
+<tr><td><code>data-form-progress</code> · <code>data-form-progress-bar</code> · <code>-percent</code> · <code>-loaded</code> · <code>-total</code> · <code>-speed</code> · <code>-eta</code> · <code>-elapsed</code></td><td><a href="progresso.html">progresso</a></td></tr>
+<tr><td><code>data-form-cancel</code> · <code>data-form-pause</code> · <code>data-form-resume</code></td><td>botões de controle</td></tr>
+<tr><td><code>data-form-file-list="campo"</code> · <code>data-form-dropzone="campo"</code></td><td>lista de arquivos · arrastar e soltar</td></tr>
+<tr><td><code>data-form-existing</code> · <code>data-form-existing-id</code> · <code>data-form-existing-name</code> · <code>data-form-existing-remove</code></td><td><a href="arquivos.html#edicao">arquivos já salvos</a></td></tr>
+<tr><td><code>data-form-errors-summary</code></td><td>lugar do resumo</td></tr>
+<tr><td><code>data-form-for="idDoForm"</code></td><td><a href="listas-dinamicas.html#data-form-for">estado fora do form</a></td></tr>
+</tbody></table></div>
+
+<h2 id="regras" data-titulo="Regras">Regras</h2>
+<div class="tabela"><table><thead><tr><th>Grupo</th><th>Regras</th></tr></thead><tbody>
+<tr><td><a href="regras.html#presenca">Presença</a></td><td><code>required</code> <code>optional</code> <code>nullable</code> <code>accepted</code> <code>required_if</code> <code>required_unless</code> <code>required_with</code> <code>required_without</code></td></tr>
+<tr><td><a href="regras.html#texto">Texto</a></td><td><code>min</code> <code>max</code> <code>between</code> <code>length</code> <code>min_length</code> <code>max_length</code> <code>email</code> <code>url</code> <code>pattern</code> <code>alpha</code> <code>alphanumeric</code> <code>digits</code> <code>in</code> <code>not_in</code> <code>starts_with</code> <code>ends_with</code> <code>contains</code></td></tr>
+<tr><td><a href="regras.html#numeros">Números</a></td><td><code>numeric</code> <code>integer</code> <code>decimal</code> <code>positive</code> <code>negative</code> <code>min_value</code> <code>max_value</code> <code>multiple_of</code></td></tr>
+<tr><td><a href="regras.html#comparacao">Comparação</a></td><td><code>same</code> <code>different</code> <code>greater_than</code> <code>greater_or_equal</code> <code>less_than</code> <code>less_or_equal</code></td></tr>
+<tr><td><a href="regras.html#datas">Datas</a></td><td><code>date</code> <code>before</code> <code>after</code> <code>before_or_equal</code> <code>after_or_equal</code> <code>date_between</code></td></tr>
+<tr><td><a href="regras.html#brasil">Brasil</a></td><td><code>cpf</code> <code>cnpj</code> <code>cpf_cnpj</code> <code>cep</code> <code>telefone</code> <code>card</code> <code>luhn</code></td></tr>
+<tr><td><a href="regras.html#arquivos">Arquivos</a></td><td><code>files_min</code> <code>files_max</code> <code>files_total_max</code> <code>file_min</code> <code>file_max</code> <code>ext</code> <code>mime</code> <code>non_empty_file</code> <code>image</code> <code>width_min</code> <code>width_max</code> <code>height_min</code> <code>height_max</code> <code>dimensions</code> <code>aspect_ratio</code></td></tr>
+<tr><td><a href="inspetores.html">Inspetores</a></td><td><code>csv</code> <code>csv_headers</code> <code>csv_columns</code> <code>json</code> <code>json_root</code> <code>json_keys</code> <code>pdf_signature</code> <code>xlsx_signature</code> <code>media_duration_min</code> <code>media_duration_max</code></td></tr>
+</tbody></table></div>
+
+<h2 id="metodos" data-titulo="Métodos de $form">Métodos de $form</h2>
+<div class="tabela"><table><thead><tr><th>Método</th><th>Retorno</th></tr></thead><tbody>
+<tr><td><a href="api.html#validate"><code>validate()</code></a> · <a href="api.html#validateField"><code>validateField(nome)</code></a></td><td>Promise</td></tr>
+<tr><td><a href="api.html#submit"><code>submit({ submitter })</code></a></td><td>Promise <code>{ ok, … }</code></td></tr>
+<tr><td><a href="api.html#cancel"><code>cancel()</code></a> · <a href="api.html#reset"><code>reset()</code></a> · <code>resetValidation()</code></td><td>bool / —</td></tr>
+<tr><td><a href="api.html#setValue"><code>setValue(nome, valor, { as, touch, validate, silent })</code></a></td><td>valor exibido</td></tr>
+<tr><td><a href="api.html#getValue"><code>getValue(nome, { as })</code></a> · <code>getValues({ as, format, submitter })</code></td><td>valor / objeto</td></tr>
+<tr><td><a href="api.html#setErrors"><code>setErrors(erros, { general, replace })</code></a> · <code>clearErrors(nome?)</code></td><td>—</td></tr>
+<tr><td><a href="api.html#addFiles"><code>addFiles</code> · <code>removeFile</code> · <code>removeExisting</code></a></td><td>lista / bool</td></tr>
+<tr><td><a href="api.html#pauseUpload"><code>pauseUpload</code> · <code>resumeUpload</code> · <code>getUploadSession</code></a></td><td>Promise / lista</td></tr>
+<tr><td><a href="api.html#cancelJob"><code>cancelJob()</code></a></td><td>Promise</td></tr>
+<tr><td><a href="api.html#consultas"><code>field</code> · <code>has</code> · <code>hasError</code> · <code>firstError</code></a></td><td>consulta</td></tr>
+<tr><td><a href="api.html#outros"><code>refresh</code> · <code>clearRemoteCache</code> · <code>diagnostics</code> · <code>destroy</code></a></td><td>—</td></tr>
+</tbody></table></div>
+
+<h2 id="eventos" data-titulo="Eventos">Eventos</h2>
+<p><code>form:ready</code> · <code>form:change</code> · <code>form:validating</code> · <code>form:validated</code> · <code>form:invalid</code> · <code>form:before-submit</code>* · <code>form:submit</code>* · <code>form:progress</code> · <code>form:uploaded</code> · <code>form:processing</code> · <code>form:success</code> · <code>form:error</code> · <code>form:cancel</code> · <code>form:reset</code>* · <code>form:field-added</code> · <code>form:field-removed</code> · <code>form:reveal</code>* · <code>form:config-error</code> · <code>form:destroy</code> — (*) canceláveis. Detalhes em <a href="eventos.html#lista">Eventos</a>.</p>
+
+<h2 id="configure" data-titulo="AlpineForm.configure">AlpineForm.configure</h2>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.configure({
+    // qualquer opção dos atributos do form, em camelCase:
+    validation: 'live', debounce: 200, errors: 'first', showValid: false, hidden: 'validate',
+    serverErrors: 'clear-on-change', dateFormat: 'iso', ui: 'default', summary: 'general',
+    focus: 'first', scroll: 'smooth', transport: 'xhr', encoding: 'multipart', jsonFiles: 'error',
+    nesting: 'brackets', timeout: 0, credentials: 'same-origin', responseAdapter: 'default',
+    resetOnSuccess: false, redirect: 'none', redirectOrigins: [], idempotency: false,
+    jobInterval: 1500, jobMaxInterval: 10000, jobTimeout: 600000, jobPersist: false, debug: false,
+
+    // só por configuração:
+    headers: {},
+    csrf: { meta: 'csrf-token', header: 'X-CSRF-TOKEN' },     // ou null
+    messages: {},
+    locale: 'pt-BR',
+    remote: { debounce: 400, timeout: 8000, cache: 20, cacheTtl: 60000, method: 'post', inconclusive: 'allow', retries: 1 },
+    files: { duplicates: 'ignore', preview: true, append: false, previewMaxBytes: 20 * 1024 * 1024 },
+    patternMaxLength: 500,
+    patternMaxInput: 2000,
+    hooks: {},              // beforeSubmit, beforeRequest, afterResponse, reveal
+    clock: null,            // () =&gt; new Date(...) para testes
+})</code></pre></div>
+<p>O mesmo objeto (parcial) pode ir em <code>x-form="{ … }"</code>. Chave desconhecida é erro.</p>
+
+<h2 id="mensagens" data-titulo="Chaves de mensagem">Chaves de mensagem</h2>
+<p>Além de uma chave por regra (<code>required</code>, <code>email</code>…) e variantes (<code>required.choice</code>, <code>required.multiple</code>, <code>required.checkbox</code>, <code>required.file</code>, <code>min.numeric</code>, <code>min.array</code>, <code>max.numeric</code>, <code>max.array</code>, <code>between.numeric</code>, <code>between.array</code>, <code>length.array</code>, <code>digits.length</code>, <code>decimal.range</code>, <code>date.datetime</code>, <code>date.time</code>, <code>date.month</code>, <code>date.week</code>, <code>telefone.celular</code>, <code>telefone.fixo</code>, <code>image.decode</code>):</p>
+<div class="tabela"><table><thead><tr><th>Chave</th><th>Texto padrão</th></tr></thead><tbody>
+<tr><td><code>__fallback</code></td><td>Confira o valor de :field.</td></tr>
+<tr><td><code>__config</code></td><td>Este campo tem uma configuração inválida e não pode ser validado.</td></tr>
+<tr><td><code>remote</code> · <code>pending</code></td><td>Este valor não está disponível. · Verificando...</td></tr>
+<tr><td><code>remote.inconclusive</code> · <code>remote.error</code></td><td>Não foi possível verificar agora. O valor será conferido no envio. · Não foi possível verificar este valor agora.</td></tr>
+<tr><td><code>submit.network</code></td><td>Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.</td></tr>
+<tr><td><code>submit.timeout</code></td><td>O servidor demorou demais para responder.</td></tr>
+<tr><td><code>submit.unknown</code></td><td>A conexão caiu depois do envio. Não é possível confirmar se a operação foi concluída; verifique antes de enviar novamente.</td></tr>
+<tr><td><code>submit.auth</code></td><td>Sua sessão expirou ou você não tem permissão. Entre novamente e tente outra vez.</td></tr>
+<tr><td><code>submit.forbidden</code></td><td>Você não tem permissão para realizar esta operação.</td></tr>
+<tr><td><code>submit.csrf</code></td><td>O token de segurança expirou. Recarregue a página e tente novamente.</td></tr>
+<tr><td><code>submit.too_large</code></td><td>Os dados enviados excedem o limite aceito pelo servidor.</td></tr>
+<tr><td><code>submit.rate_limited</code></td><td>Muitas tentativas. Aguarde um pouco e tente novamente.</td></tr>
+<tr><td><code>submit.server</code></td><td>O servidor encontrou um erro. Tente novamente mais tarde.</td></tr>
+<tr><td><code>submit.http</code></td><td>O servidor respondeu com um erro (HTTP :status).</td></tr>
+<tr><td><code>submit.validation</code> · <code>submit.logical</code></td><td>Confira os campos destacados. · Não foi possível concluir a operação.</td></tr>
+<tr><td><code>submit.html</code> · <code>submit.parse</code></td><td>O servidor respondeu com uma página HTML em vez de dados… · A resposta do servidor não pôde ser interpretada.</td></tr>
+<tr><td><code>submit.changed</code> · <code>submit.config</code> · <code>submit.serialization</code> · <code>submit.cors</code></td><td>Os dados foram alterados durante a validação… · O formulário possui erros de configuração… · Não foi possível preparar os dados… · A requisição foi bloqueada pelo navegador…</td></tr>
+<tr><td><code>job.failed</code> · <code>job.timeout</code> · <code>job.canceled</code></td><td>O processamento no servidor falhou. · …demorando mais que o esperado… · O processamento foi cancelado.</td></tr>
+<tr><td><code>status.*</code></td><td><code>validating</code>, <code>uploading</code>, <code>uploading_percent</code>, <code>awaiting</code>, <code>processing</code>, <code>processing_percent</code>, <code>success</code>, <code>error</code>, <code>canceled</code>, <code>paused</code>, <code>observation_stopped</code> (<a href="progresso.html#textos">textos</a>)</td></tr>
+<tr><td><code>summary.title</code></td><td>Corrija os itens abaixo:</td></tr>
+<tr><td><code>upload.failed</code> · <code>upload.expired</code></td><td>Falha ao enviar o arquivo :file. · A sessão de upload expirou. O envio será reiniciado.</td></tr>
+</tbody></table></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="receitas.html"><small>← Anterior</small>Receitas</a><a class="proxima" href="erros-e-solucoes.html"><small>Próxima →</small>Erros e soluções</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

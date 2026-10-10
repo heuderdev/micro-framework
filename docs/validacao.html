@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validação · AlpineForm</title>
+<meta name="description" content="Quando validar, como escrever regras, personalizar mensagens, escolher onde o erro aparece e controlar resumo, foco e rolagem.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Formulários › Validação</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" class="ativo" aria-current="page" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Validação</h1>
+<p class="lead">Quando validar, como escrever regras, personalizar mensagens, escolher onde o erro aparece e controlar resumo, foco e rolagem.</p>
+<div id="nesta-pagina"></div>
+<h2 id="sintaxe" data-titulo="Sintaxe de data-form-v">Sintaxe de data-form-v</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;apelido&quot; data-form-v=&quot;required|min:3|max:20|alphanumeric&quot;&gt;</code></pre></div>
+<ul>
+    <li><code>|</code> separa regras; <code>:</code> separa o nome dos parâmetros; <code>,</code> separa parâmetros.</li>
+    <li>Espaços em volta são ignorados: <code>required | min: 3</code> funciona.</li>
+    <li>Para usar <code>|</code>, <code>:</code>, <code>,</code> ou <code>\</code> dentro de um parâmetro, escape com <code>\</code>: <code>in:a\,b,c</code> aceita "a,b" e "c".</li>
+    <li>Regras rodam na ordem escrita. As de presença (<code>required</code>, <code>required_if</code>…) rodam primeiro; se o campo está vazio e não é obrigatório, as demais não rodam.</li>
+</ul>
+<p>Todas as regras: <a href="regras.html">Regras</a>.</p>
+
+<h2 id="modos" data-titulo="Quando validar (modos)">Quando validar (modos)</h2>
+<div class="tabela"><table><thead><tr><th><code>data-form-validation</code></th><th>Comportamento</th></tr></thead><tbody>
+<tr><td><code>live</code> (padrão)</td><td>Valida ao sair do campo; depois disso, revalida durante a digitação (com debounce). Selects, radios e checkboxes validam ao mudar.</td></tr>
+<tr><td><code>input</code></td><td>Valida desde a primeira tecla (com debounce).</td></tr>
+<tr><td><code>blur</code></td><td>Só ao sair do campo. Um campo já validado volta a ser revalidado ao digitar.</td></tr>
+<tr><td><code>change</code></td><td>No evento <code>change</code> (ao sair de um campo de texto alterado, ou ao mudar uma escolha).</td></tr>
+<tr><td><code>submit</code></td><td>Só no envio. Depois da primeira tentativa, os campos já validados são revalidados ao digitar.</td></tr>
+</tbody></table></div>
+<div class="codigo"><div class="titulo-codigo">Modos por formulário, grupo e campo</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/salvar&quot; method=&quot;post&quot; data-form-validation=&quot;blur&quot; novalidate&gt;
+    &lt;input name=&quot;nome&quot; data-form-v=&quot;required&quot;&gt;                                 &lt;!-- blur (do form) --&gt;
+    &lt;div data-form-validation=&quot;submit&quot;&gt;
+        &lt;textarea name=&quot;obs&quot; data-form-v=&quot;max:500&quot;&gt;&lt;/textarea&gt;                 &lt;!-- submit (do grupo) --&gt;
+    &lt;/div&gt;
+    &lt;input name=&quot;senha&quot; type=&quot;password&quot; data-form-v=&quot;required|min:8&quot;
+           data-form-validation=&quot;input&quot;&gt;                                       &lt;!-- input (do campo) --&gt;
+&lt;/form&gt;</code></pre></div>
+
+<h2 id="debounce" data-titulo="Debounce">Debounce</h2>
+<p>Espera entre a última tecla e a validação. Padrão 200 ms. Aceita <code>300</code>, <code>300ms</code>, <code>1s</code>. Também herdável por grupo e campo.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form data-form-debounce=&quot;400&quot; ...&gt;
+&lt;input name=&quot;cnpj&quot; data-form-v=&quot;required|cnpj&quot; data-form-debounce=&quot;0&quot;&gt;</code></pre></div>
+
+<h2 id="mensagens" data-titulo="Mensagens">Mensagens</h2>
+<p>Ordem de preferência para escolher a mensagem de um erro:</p>
+<ol class="passos">
+    <li><code>data-form-msg.&lt;regra&gt;</code> no campo;</li>
+    <li><code>data-form-msg</code> no campo (uma mensagem para qualquer regra);</li>
+    <li>mensagens configuradas em <code>AlpineForm.configure({ messages })</code> ou <code>x-form="{ messages }"</code>;</li>
+    <li>mensagem padrão da biblioteca (<code>AlpineForm.messages</code>).</li>
+</ol>
+<div class="codigo"><div class="titulo-codigo">Por regra e genérica</div><pre><code data-lang="html">&lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;
+       data-form-msg.required=&quot;Precisamos do seu e-mail.&quot;
+       data-form-msg.email=&quot;Esse e-mail não parece válido.&quot;&gt;
+
+&lt;input name=&quot;codigo&quot; data-form-v=&quot;required|digits:6&quot;
+       data-form-msg=&quot;Digite os 6 números do código.&quot;&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Para todos os formulários</div><pre><code data-lang="js">AlpineForm.configure({
+    messages: {
+        required: 'Preencha :field.',
+        email: 'E-mail inválido.',
+        'min.numeric': ':field deve ser no mínimo :min.',   // variante: números
+    },
+})
+
+// ou alterando o padrão diretamente
+AlpineForm.messages.cpf = 'CPF inválido. Confira os números.'</code></pre></div>
+<h3 id="placeholders">Placeholders</h3>
+<div class="tabela"><table><thead><tr><th>Placeholder</th><th>Valor</th></tr></thead><tbody>
+<tr><td><code>:field</code></td><td>Nome do campo (ver rótulo abaixo).</td></tr>
+<tr><td><code>:value</code></td><td>Valor digitado (vazio em senhas e campos sensíveis; cortado em 60 caracteres).</td></tr>
+<tr><td><code>:min</code>, <code>:max</code>, <code>:length</code>, <code>:step</code>…</td><td>Parâmetros da regra, pelo nome.</td></tr>
+<tr><td><code>:other</code></td><td>Rótulo do outro campo (<code>same</code>, <code>required_with</code>, datas comparadas).</td></tr>
+<tr><td><code>:allowed</code></td><td>Lista permitida (<code>in</code>, <code>ext</code>, <code>mime</code>…).</td></tr>
+<tr><td><code>:file</code></td><td>Nome do arquivo (regras de arquivo).</td></tr>
+</tbody></table></div>
+<h3 id="rotulo">Rótulo (:field)</h3>
+<p>Vem de <code>data-form-label</code>; se não houver, do <code>&lt;label for&gt;</code> ou <code>&lt;label&gt;</code> que envolve o campo; por último, do <code>name</code>.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;label for=&quot;nasc&quot;&gt;Data de nascimento&lt;/label&gt;
+&lt;input id=&quot;nasc&quot; name=&quot;nasc&quot; type=&quot;date&quot; data-form-v=&quot;required&quot;&gt;
+&lt;!-- &quot;O campo Data de nascimento é obrigatório.&quot; --&gt;
+
+&lt;input name=&quot;cpf_resp&quot; data-form-v=&quot;required|cpf&quot; data-form-label=&quot;CPF do responsável&quot;&gt;
+&lt;!-- &quot;O campo CPF do responsável é obrigatório.&quot; --&gt;</code></pre></div>
+<div class="nota"><p>Mensagens são sempre inseridas como <strong>texto</strong>: HTML em mensagens (inclusive as do servidor) aparece literalmente, nunca é interpretado.</p></div>
+
+<h2 id="quantos-erros" data-titulo="Um erro ou todos">Um erro ou todos</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form data-form-errors=&quot;all&quot; ...&gt;          &lt;!-- mostra todos os erros de cada campo --&gt;
+&lt;input name=&quot;senha&quot; type=&quot;password&quot; data-form-v=&quot;min:8|pattern&quot; data-form-pattern=&quot;[0-9]&quot;
+       data-form-errors=&quot;first&quot;&gt;                          &lt;!-- só o primeiro neste campo --&gt;</code></pre></div>
+<p>Padrão: <code>first</code>. Regras assíncronas e a validação remota só rodam se as síncronas passaram.</p>
+
+<h2 id="valido" data-titulo="Marcar campos válidos">Marcar campos válidos</h2>
+<p>Com <code>data-form-show-valid</code>, campos validados e corretos recebem a classe <code>af-valid</code> (<code>is-valid</code> no Bootstrap). Campos ainda não validados nunca aparecem como aprovados.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form data-form-show-valid ...&gt;</code></pre></div>
+
+<h2 id="onde-erro" data-titulo="Onde o erro aparece">Onde o erro aparece</h2>
+<p>Por padrão, um elemento <code>&lt;div class="af-error"&gt;</code> é criado logo depois do campo (ou do <code>&lt;label&gt;</code> que envolve o campo). Em grupos de radios/checkboxes dentro de um <code>&lt;fieldset&gt;</code>, ele vai para o final do fieldset. Para escolher outro lugar:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;div class=&quot;linha&quot;&gt;
+    &lt;input name=&quot;ddd&quot; data-form-v=&quot;required|digits:2&quot; data-form-error-target=&quot;#erro-telefone&quot;&gt;
+    &lt;input name=&quot;numero&quot; data-form-v=&quot;required|digits&quot; data-form-error-target=&quot;#erro-telefone&quot;&gt;
+&lt;/div&gt;
+&lt;div id=&quot;erro-telefone&quot;&gt;&lt;/div&gt;</code></pre></div>
+<p>Ou exiba você mesmo com Alpine, sem depender do elemento gerado:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;email&quot; data-form-v=&quot;required|email&quot;&gt;
+&lt;small class=&quot;erro&quot; x-show=&quot;$form.hasError('email')&quot; x-text=&quot;$form.firstError('email')&quot;&gt;&lt;/small&gt;</code></pre></div>
+
+<h2 id="resumo" data-titulo="Resumo de erros">Resumo de erros</h2>
+<div class="tabela"><table><thead><tr><th><code>data-form-summary</code></th><th>O que lista</th></tr></thead><tbody>
+<tr><td><code>general</code> (padrão)</td><td>Só erros sem campo visível: erros gerais do servidor, de rede, campos hidden.</td></tr>
+<tr><td><code>all</code></td><td>Todos os erros, cada um com botão que leva ao campo.</td></tr>
+<tr><td><code>none</code></td><td>Nenhum resumo (mostre <code>$form.generalErrors</code> você mesmo).</td></tr>
+</tbody></table></div>
+<div class="codigo"><div class="titulo-codigo">Posição do resumo</div><pre><code data-lang="html">&lt;form x-data x-form data-form-summary=&quot;all&quot; ...&gt;
+    &lt;div data-form-errors-summary&gt;&lt;/div&gt;   &lt;!-- o resumo é colocado aqui --&gt;
+    ...
+&lt;/form&gt;
+
+&lt;!-- ou fora do form --&gt;
+&lt;form id=&quot;pedido&quot; x-data x-form data-form-summary-target=&quot;#erros-pedido&quot; ...&gt;&lt;/form&gt;
+&lt;div id=&quot;erros-pedido&quot;&gt;&lt;/div&gt;</code></pre></div>
+<p>Sem contêiner, o resumo é criado no início do form. Ele recebe <code>role="alert"</code> e título "Corrija os itens abaixo:".</p>
+
+<h2 id="foco" data-titulo="Foco e rolagem">Foco e rolagem</h2>
+<p>No envio inválido, o primeiro campo com erro (na ordem da página) recebe foco e é rolado até o centro da tela, com rolagem suave (instantânea se o sistema pede menos movimento).</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form data-form-focus=&quot;none&quot; ...&gt;     &lt;!-- não foca --&gt;
+&lt;form x-data x-form data-form-scroll=&quot;instant&quot; ...&gt; &lt;!-- smooth (padrão) | instant | none --&gt;</code></pre></div>
+<p>Campo dentro de aba, accordion ou modal fechado? Use o hook <code>reveal</code> para abrir antes do foco (<a href="eventos.html#reveal">exemplo</a>).</p>
+
+<h2 id="pela-api" data-titulo="Validar pelo código">Validar pelo código</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;button type=&quot;button&quot; @click=&quot;$form.validate().then(r =&gt; console.log(r.valid, r.errors))&quot;&gt;Conferir&lt;/button&gt;
+&lt;button type=&quot;button&quot; @click=&quot;$form.validateField('email')&quot;&gt;Conferir e-mail&lt;/button&gt;
+&lt;button type=&quot;button&quot; @click=&quot;$form.resetValidation()&quot;&gt;Limpar erros&lt;/button&gt;</code></pre></div>
+<p><code>validate()</code> devolve <code>{ valid, errors, invalidFields }</code>, mostra os erros nos campos, mas não envia nem move o foco.</p>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="conceitos.html"><small>← Anterior</small>Conceitos</a><a class="proxima" href="regras.html"><small>Próxima →</small>Regras</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

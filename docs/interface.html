@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interface e Bootstrap · AlpineForm</title>
+<meta name="description" content="O que o AlpineForm escreve na página (classes, elementos de erro, ARIA), o CSS opcional, o adaptador Bootstrap 5 e como trocar as classes pelas do seu CSS.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Integração › Interface e Bootstrap</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" class="ativo" aria-current="page" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Interface e Bootstrap</h1>
+<p class="lead">O que o AlpineForm escreve na página (classes, elementos de erro, ARIA), o CSS opcional, o adaptador Bootstrap 5 e como trocar as classes pelas do seu CSS.</p>
+<div id="nesta-pagina"></div>
+<h2 id="o-que-muda" data-titulo="O que é escrito na página">O que é escrito na página</h2>
+<div class="tabela"><table><thead><tr><th>Onde</th><th>O quê</th></tr></thead><tbody>
+<tr><td>Campo com erro</td><td>classe <code>af-invalid</code>, <code>aria-invalid="true"</code>, <code>aria-describedby</code> apontando para a mensagem</td></tr>
+<tr><td>Campo válido</td><td>classe <code>af-valid</code> (só com <code>data-form-show-valid</code>)</td></tr>
+<tr><td>Validação remota em andamento</td><td>classe <code>af-pending</code>; mensagem "Verificando..." em <code>af-error--pending</code></td></tr>
+<tr><td>Mensagem</td><td><code>&lt;div class="af-error"&gt;</code> com <code>&lt;span class="af-error__item"&gt;</code> por mensagem</td></tr>
+<tr><td>Resumo</td><td><code>af-summary</code>, <code>af-summary__title</code>, <code>af-summary__list</code>, <code>role="alert"</code></td></tr>
+<tr><td>Lista de arquivos</td><td><code>af-files</code>, <code>af-file</code>, <code>af-file--invalid</code>, <code>af-file__thumb</code>, <code>af-file__name</code>, <code>af-file__size</code>, <code>af-file__errors</code>, <code>af-file__remove</code></td></tr>
+<tr><td>Arquivo existente removido</td><td><code>af-existing--removed</code></td></tr>
+<tr><td>Dropzone com arquivo sobre ela</td><td><code>af-dropzone--over</code></td></tr>
+<tr><td><code>&lt;form&gt;</code></td><td><code>data-form-state="&lt;fase&gt;"</code>; <code>aria-busy="true"</code> durante o envio</td></tr>
+</tbody></table></div>
+<p>Tudo que a biblioteca cria leva <code>data-form-generated</code> e é removido (com os atributos ARIA originais restaurados) quando o formulário é destruído.</p>
+
+<h2 id="css" data-titulo="CSS opcional">CSS opcional</h2>
+<p><code>css/alpine-form.css</code> estiliza as classes acima, a barra indeterminada e esconde <code>[data-form-progress]</code> parado. Adapta-se ao modo escuro e é personalizável por variáveis:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;style&gt;
+    :root {
+        --af-danger: #c0392b;
+        --af-success: #1e8449;
+        --af-accent: #0d6efd;
+        --af-radius: 4px;
+    }
+&lt;/style&gt;</code></pre></div>
+<p>Exemplos de CSS próprio usando o estado:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;style&gt;
+    form[data-form-state=&quot;uploading&quot;] .so-no-envio { display: block; }
+    form[aria-busy=&quot;true&quot;] fieldset { opacity: .6; }
+    .af-invalid { box-shadow: 0 0 0 2px #fca5a5; }
+&lt;/style&gt;</code></pre></div>
+
+<h2 id="bootstrap" data-titulo="Bootstrap 5">Bootstrap 5</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;link rel=&quot;stylesheet&quot; href=&quot;/css/bootstrap.min.css&quot;&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-bootstrap.min.js&quot;&gt;&lt;/script&gt;
+&lt;script defer src=&quot;/js/alpine.min.js&quot;&gt;&lt;/script&gt;
+
+&lt;form class=&quot;card card-body&quot; x-data x-form action=&quot;/api/cadastro&quot; method=&quot;post&quot; data-form-ui=&quot;bootstrap&quot; data-form-show-valid novalidate&gt;
+    &lt;div class=&quot;mb-3&quot;&gt;
+        &lt;label class=&quot;form-label&quot; for=&quot;nome&quot;&gt;Nome&lt;/label&gt;
+        &lt;input class=&quot;form-control&quot; id=&quot;nome&quot; name=&quot;nome&quot; data-form-v=&quot;required|min:3&quot;&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;mb-3&quot;&gt;
+        &lt;label class=&quot;form-label&quot; for=&quot;email&quot;&gt;E-mail&lt;/label&gt;
+        &lt;div class=&quot;input-group&quot;&gt;
+            &lt;span class=&quot;input-group-text&quot;&gt;@&lt;/span&gt;
+            &lt;input class=&quot;form-control&quot; id=&quot;email&quot; name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;form-floating mb-3&quot;&gt;
+        &lt;input class=&quot;form-control&quot; id=&quot;cpf&quot; name=&quot;cpf&quot; placeholder=&quot;CPF&quot; data-form-v=&quot;required|cpf&quot;&gt;
+        &lt;label for=&quot;cpf&quot;&gt;CPF&lt;/label&gt;
+    &lt;/div&gt;
+    &lt;fieldset class=&quot;mb-3&quot;&gt;
+        &lt;legend class=&quot;col-form-label&quot;&gt;Contato preferido&lt;/legend&gt;
+        &lt;div class=&quot;form-check form-check-inline&quot;&gt;
+            &lt;input class=&quot;form-check-input&quot; type=&quot;radio&quot; name=&quot;contato&quot; id=&quot;c1&quot; value=&quot;email&quot; data-form-v=&quot;required&quot;&gt;
+            &lt;label class=&quot;form-check-label&quot; for=&quot;c1&quot;&gt;E-mail&lt;/label&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;form-check form-check-inline&quot;&gt;
+            &lt;input class=&quot;form-check-input&quot; type=&quot;radio&quot; name=&quot;contato&quot; id=&quot;c2&quot; value=&quot;telefone&quot;&gt;
+            &lt;label class=&quot;form-check-label&quot; for=&quot;c2&quot;&gt;Telefone&lt;/label&gt;
+        &lt;/div&gt;
+    &lt;/fieldset&gt;
+    &lt;div class=&quot;form-check mb-3&quot;&gt;
+        &lt;input class=&quot;form-check-input&quot; type=&quot;checkbox&quot; id=&quot;termos&quot; name=&quot;termos&quot; value=&quot;1&quot; data-form-v=&quot;accepted&quot;&gt;
+        &lt;label class=&quot;form-check-label&quot; for=&quot;termos&quot;&gt;Aceito os termos&lt;/label&gt;
+    &lt;/div&gt;
+    &lt;button class=&quot;btn btn-primary&quot; type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Enviar&lt;/button&gt;
+    &lt;div class=&quot;mt-3&quot; data-form-progress&gt;
+        &lt;div class=&quot;progress&quot;&gt;&lt;div class=&quot;progress-bar&quot; data-form-progress-bar&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;p class=&quot;small mt-1 mb-0&quot; data-form-status&gt;&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/form&gt;</code></pre></div>
+<ul>
+    <li>Classes: <code>is-invalid</code>, <code>is-valid</code>, <code>invalid-feedback</code>, resumo como <code>alert alert-danger</code>, lista de arquivos como <code>list-group</code>, botão remover <code>btn btn-sm btn-outline-danger</code>.</li>
+    <li>Posição da mensagem: depois do <code>.input-group</code>, dentro do <code>.form-floating</code>, depois do último <code>.form-check</code> (ou no fim do <code>fieldset</code> em grupos).</li>
+    <li>Para todos os formulários: <code>AlpineForm.configure({ ui: 'bootstrap' })</code>. O CSS do Bootstrap não é carregado pela biblioteca.</li>
+</ul>
+
+<h2 id="classes" data-titulo="Usar as classes do seu CSS">Usar as classes do seu CSS</h2>
+<p>Registre um adaptador que estende o padrão trocando só as classes (Tailwind, Bulma, CSS próprio):</p>
+<div class="codigo"><pre><code data-lang="js">const Base = AlpineForm.internals.DefaultUiAdapter
+AlpineForm.uiAdapter('tailwind', ctx =&gt; new Base(ctx, {
+    classes: {
+        invalid: 'border-red-500 ring-1 ring-red-500',
+        valid: 'border-green-600',
+        error: 'mt-1 text-sm text-red-600',
+        summary: 'rounded border border-red-300 bg-red-50 p-3 text-red-800',
+        fileList: 'mt-2 space-y-1',
+        fileItem: 'flex items-center gap-2',
+        fileRemove: 'ml-auto text-sm text-red-600 underline',
+    },
+}))
+AlpineForm.configure({ ui: 'tailwind' })</code></pre></div>
+<p>Chaves disponíveis: <code>invalid</code>, <code>valid</code>, <code>pending</code>, <code>error</code>, <code>errorItem</code>, <code>errorPending</code>, <code>summary</code>, <code>summaryTitle</code>, <code>summaryList</code>, <code>fileList</code>, <code>fileItem</code>, <code>fileItemInvalid</code>, <code>fileThumb</code>, <code>fileName</code>, <code>fileSize</code>, <code>fileErrors</code>, <code>fileRemove</code>, <code>existingRemoved</code>, <code>dropzoneOver</code>. Use várias classes separadas por espaço.</p>
+<div class="nota"><p><code>AlpineForm.internals</code> é usado pelos módulos oficiais e não tem garantia de estabilidade entre versões. Para controle total do HTML, implemente um adaptador completo (<a href="extensoes.html#ui">Extensões › Adaptador de UI</a>).</p></div>
+
+<h2 id="sem-elemento" data-titulo="Sem nenhum elemento gerado">Sem nenhum elemento gerado</h2>
+<p>Prefere desenhar tudo com Alpine? Use <code>data-form-summary="none"</code> e mostre os erros pelo estado:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;div&gt;
+    &lt;input name=&quot;email&quot; :class=&quot;{ 'erro': $form.hasError('email') }&quot; data-form-v=&quot;required|email&quot;
+           data-form-error-target=&quot;#email-erro&quot;&gt;
+    &lt;p id=&quot;email-erro&quot; class=&quot;texto-erro&quot;&gt;&lt;/p&gt;
+&lt;/div&gt;</code></pre></div>
+
+<h2 id="acessibilidade" data-titulo="Acessibilidade">Acessibilidade</h2>
+<ul>
+    <li>Mensagens de campo são ligadas por <code>aria-describedby</code> e lidas ao focar o campo (não são anunciadas a cada tecla).</li>
+    <li>O resumo usa <code>role="alert"</code>; <code>[data-form-status]</code> recebe <code>role="status"</code> e <code>aria-live="polite"</code>.</li>
+    <li>No envio inválido, o foco vai para o primeiro campo com erro; a rolagem respeita "reduzir movimento".</li>
+    <li>Botões de remover arquivo têm <code>aria-label="Remover &lt;nome&gt;"</code> e o foco é preservado ao redesenhar a lista.</li>
+    <li>Do seu lado: <code>&lt;label&gt;</code> em todo campo, <code>&lt;fieldset&gt;</code>/<code>&lt;legend&gt;</code> em grupos, <code>aria-label</code> nas barras de progresso e contraste adequado.</li>
+</ul>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="processamento.html"><small>← Anterior</small>Processamento (jobs)</a><a class="proxima" href="api.html"><small>Próxima →</small>API $form</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

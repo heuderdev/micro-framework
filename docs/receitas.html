@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receitas · AlpineForm</title>
+<meta name="description" content="Formulários completos para copiar e adaptar: cadastro PF/PJ com endereço, busca de CEP, login, troca de senha, pedido com itens, formulário em etapas, avatar, importação de planilha e formulário em modal.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Consulta › Receitas</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" class="ativo" aria-current="page" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Receitas</h1>
+<p class="lead">Formulários completos para copiar e adaptar: cadastro PF/PJ com endereço, busca de CEP, login, troca de senha, pedido com itens, formulário em etapas, avatar, importação de planilha e formulário em modal.</p>
+<div id="nesta-pagina"></div>
+<p>Todas as receitas assumem os scripts carregados como em <a href="instalacao.html">Instalação</a> (núcleo + máscaras, e os módulos citados). Os endpoints são exemplos: troque pelos seus.</p>
+
+<h2 id="cadastro" data-titulo="Cadastro PF/PJ com endereço">Cadastro PF/PJ com endereço</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;{ tipo: 'pf' }&quot; x-form action=&quot;/api/clientes&quot; method=&quot;post&quot;
+      data-form-idempotency data-form-reset-on-success novalidate&gt;
+    &lt;fieldset&gt;
+        &lt;legend&gt;Tipo&lt;/legend&gt;
+        &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;tipo&quot; value=&quot;pf&quot; x-model=&quot;tipo&quot; data-form-v=&quot;required&quot;&gt; Pessoa física&lt;/label&gt;
+        &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;tipo&quot; value=&quot;pj&quot; x-model=&quot;tipo&quot;&gt; Pessoa jurídica&lt;/label&gt;
+    &lt;/fieldset&gt;
+
+    &lt;label for=&quot;nome&quot; x-text=&quot;tipo === 'pf' ? 'Nome completo' : 'Razão social'&quot;&gt;&lt;/label&gt;
+    &lt;input id=&quot;nome&quot; name=&quot;nome&quot; data-form-v=&quot;required|min:3|max:150&quot;&gt;
+
+    &lt;div x-show=&quot;tipo === 'pf'&quot; data-form-hidden=&quot;skip&quot;&gt;
+        &lt;label for=&quot;cpf&quot;&gt;CPF&lt;/label&gt;
+        &lt;input id=&quot;cpf&quot; name=&quot;cpf&quot; data-form-mask=&quot;cpf&quot; data-form-v=&quot;required_if:tipo,pf|cpf&quot; data-form-submit-value=&quot;raw&quot;&gt;
+    &lt;/div&gt;
+    &lt;div x-show=&quot;tipo === 'pj'&quot; data-form-hidden=&quot;skip&quot;&gt;
+        &lt;label for=&quot;cnpj&quot;&gt;CNPJ&lt;/label&gt;
+        &lt;input id=&quot;cnpj&quot; name=&quot;cnpj&quot; data-form-mask=&quot;cnpj&quot; data-form-v=&quot;required_if:tipo,pj|cnpj&quot; data-form-submit-value=&quot;raw&quot;&gt;
+    &lt;/div&gt;
+
+    &lt;label for=&quot;email&quot;&gt;E-mail&lt;/label&gt;
+    &lt;input id=&quot;email&quot; name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;
+           data-form-normalize=&quot;trim|lowercase&quot;
+           data-form-remote=&quot;/api/clientes/email-disponivel&quot; data-form-msg.remote=&quot;E-mail já cadastrado.&quot;&gt;
+
+    &lt;label for=&quot;telefone&quot;&gt;Telefone&lt;/label&gt;
+    &lt;input id=&quot;telefone&quot; name=&quot;telefone&quot; type=&quot;tel&quot; data-form-mask=&quot;telefone_br&quot; data-form-v=&quot;required|telefone&quot;
+           data-form-submit-value=&quot;raw&quot;&gt;
+
+    &lt;label for=&quot;cep&quot;&gt;CEP&lt;/label&gt;
+    &lt;input id=&quot;cep&quot; name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|cep&quot; data-form-submit-value=&quot;raw&quot;&gt;
+    &lt;label for=&quot;rua&quot;&gt;Rua&lt;/label&gt;
+    &lt;input id=&quot;rua&quot; name=&quot;rua&quot; data-form-v=&quot;required|max:150&quot;&gt;
+    &lt;label for=&quot;numero&quot;&gt;Número&lt;/label&gt;
+    &lt;input id=&quot;numero&quot; name=&quot;numero&quot; data-form-v=&quot;required|max:10&quot;&gt;
+    &lt;label for=&quot;cidade&quot;&gt;Cidade&lt;/label&gt;
+    &lt;input id=&quot;cidade&quot; name=&quot;cidade&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;label for=&quot;uf&quot;&gt;UF&lt;/label&gt;
+    &lt;select id=&quot;uf&quot; name=&quot;uf&quot; data-form-v=&quot;required&quot;&gt;&lt;option value=&quot;&quot;&gt;--&lt;/option&gt;&lt;option&gt;SP&lt;/option&gt;&lt;option&gt;MG&lt;/option&gt;&lt;option&gt;RJ&lt;/option&gt;&lt;/select&gt;
+
+    &lt;label&gt;&lt;input type=&quot;checkbox&quot; name=&quot;termos&quot; value=&quot;1&quot; data-form-v=&quot;accepted&quot; data-form-label=&quot;os termos de uso&quot;&gt; Aceito os termos de uso&lt;/label&gt;
+
+    &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Cadastrar&lt;/button&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/form&gt;</code></pre></div>
+
+<h2 id="cep" data-titulo="Preencher endereço pelo CEP">Preencher endereço pelo CEP</h2>
+<p>Acrescente ao cadastro acima: quando o CEP for válido, consulta o ViaCEP e preenche os campos (sem bloquear se o serviço falhar).</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;enderecoForm()&quot; x-form action=&quot;/api/clientes&quot; method=&quot;post&quot;
+      @form:validated=&quot;$event.detail.field === 'cep' &amp;&amp; $event.detail.valid &amp;&amp; buscarCep()&quot; novalidate&gt;
+    &lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|cep&quot;&gt;
+    &lt;input name=&quot;rua&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;input name=&quot;bairro&quot;&gt;
+    &lt;input name=&quot;cidade&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;input name=&quot;uf&quot; data-form-v=&quot;required|length:2&quot;&gt;
+    &lt;small x-show=&quot;buscando&quot;&gt;Buscando endereço…&lt;/small&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+function enderecoForm() {
+    return {
+        buscando: false,
+        ultimo: null,
+        async buscarCep() {
+            const cep = this.$form.getValue('cep', { as: 'raw' })
+            if (cep === this.ultimo) return
+            this.ultimo = cep
+            this.buscando = true
+            try {
+                const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                const d = await r.json()
+                if (d.erro) return this.$form.setErrors({ cep: 'CEP não encontrado.' }, { replace: false })
+                this.$form.setValue('rua', d.logradouro)
+                this.$form.setValue('bairro', d.bairro)
+                this.$form.setValue('cidade', d.localidade)
+                this.$form.setValue('uf', d.uf)
+            } catch (e) {
+                // serviço fora: a pessoa preenche manualmente
+            } finally {
+                this.buscando = false
+            }
+        },
+    }
+}
+&lt;/script&gt;</code></pre></div>
+
+<h2 id="login" data-titulo="Login">Login</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/login&quot; method=&quot;post&quot; data-form-redirect=&quot;response&quot; data-form-validation=&quot;submit&quot; novalidate&gt;
+    &lt;label for=&quot;login-email&quot;&gt;E-mail&lt;/label&gt;
+    &lt;input id=&quot;login-email&quot; name=&quot;email&quot; type=&quot;email&quot; autocomplete=&quot;username&quot; data-form-v=&quot;required|email&quot;&gt;
+    &lt;label for=&quot;login-senha&quot;&gt;Senha&lt;/label&gt;
+    &lt;input id=&quot;login-senha&quot; name=&quot;senha&quot; type=&quot;password&quot; autocomplete=&quot;current-password&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;label&gt;&lt;input type=&quot;checkbox&quot; name=&quot;lembrar&quot; value=&quot;1&quot;&gt; Manter conectado&lt;/label&gt;
+    &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Entrar&lt;/button&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="codigo"><pre><code data-lang="php">// falha: 422 com erro geral (não diga qual dos dois está errado)
+responder(['success' =&gt; false, 'errors' =&gt; ['' =&gt; ['E-mail ou senha incorretos.']]], 422);
+// sucesso: { &quot;success&quot;: true, &quot;redirect&quot;: &quot;/painel&quot; }</code></pre></div>
+
+<h2 id="senha" data-titulo="Trocar senha">Trocar senha</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/conta/senha&quot; method=&quot;post&quot; data-form-reset-on-success novalidate&gt;
+    &lt;label for=&quot;atual&quot;&gt;Senha atual&lt;/label&gt;
+    &lt;input id=&quot;atual&quot; name=&quot;senha_atual&quot; type=&quot;password&quot; autocomplete=&quot;current-password&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;label for=&quot;nova&quot;&gt;Nova senha&lt;/label&gt;
+    &lt;input id=&quot;nova&quot; name=&quot;senha_nova&quot; type=&quot;password&quot; autocomplete=&quot;new-password&quot;
+           data-form-v=&quot;required|min:8|different:senha_atual|pattern&quot; data-form-pattern=&quot;^(?=.*[A-Za-z])(?=.*\d)&quot;
+           data-form-msg.pattern=&quot;Use letras e números.&quot; data-form-msg.different=&quot;A nova senha deve ser diferente da atual.&quot;
+           data-form-errors=&quot;all&quot;&gt;
+    &lt;label for=&quot;confirma&quot;&gt;Confirme a nova senha&lt;/label&gt;
+    &lt;input id=&quot;confirma&quot; name=&quot;senha_nova_confirmacao&quot; type=&quot;password&quot; autocomplete=&quot;new-password&quot;
+           data-form-v=&quot;required|same:senha_nova&quot; data-form-msg.same=&quot;As senhas não conferem.&quot;&gt;
+    &lt;button type=&quot;submit&quot;&gt;Alterar senha&lt;/button&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/form&gt;</code></pre></div>
+
+<h2 id="pedido" data-titulo="Pedido com itens e total">Pedido com itens e total</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;pedido()&quot; x-form action=&quot;/api/pedidos&quot; method=&quot;post&quot; data-form-encoding=&quot;json&quot; data-form-idempotency novalidate&gt;
+    &lt;template x-for=&quot;(item, i) in itens&quot; :key=&quot;item.id&quot;&gt;
+        &lt;div class=&quot;linha&quot;&gt;
+            &lt;input :name=&quot;`itens[${i}][produto]`&quot; x-model=&quot;item.produto&quot; data-form-label=&quot;Produto&quot; data-form-v=&quot;required|min:2&quot;&gt;
+            &lt;input :name=&quot;`itens[${i}][quantidade]`&quot; x-model.number=&quot;item.qtd&quot; type=&quot;number&quot; min=&quot;1&quot;
+                   data-form-label=&quot;Quantidade&quot; data-form-v=&quot;required|integer|min:1|max:999&quot;&gt;
+            &lt;input :name=&quot;`itens[${i}][preco]`&quot; data-form-mask=&quot;currency&quot; data-form-label=&quot;Preço&quot;
+                   data-form-v=&quot;required|min_value:0.01&quot;
+                   @input=&quot;item.preco = Number($form.getValue(`itens[${i}][preco]`) || 0)&quot;&gt;
+            &lt;span x-text=&quot;(item.qtd * item.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })&quot;&gt;&lt;/span&gt;
+            &lt;button type=&quot;button&quot; @click=&quot;itens.splice(i, 1)&quot; :disabled=&quot;itens.length === 1&quot;&gt;Remover&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/template&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;itens.push({ id: ++seq, produto: '', qtd: 1, preco: 0 })&quot;&gt;Adicionar item&lt;/button&gt;
+
+    &lt;p&gt;Total: &lt;strong x-text=&quot;total().toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })&quot;&gt;&lt;/strong&gt;&lt;/p&gt;
+    &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Fechar pedido&lt;/button&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/form&gt;
+&lt;script&gt;
+function pedido() {
+    return {
+        seq: 1,
+        itens: [{ id: 1, produto: '', qtd: 1, preco: 0 }],
+        total() { return this.itens.reduce((s, i) =&gt; s + i.qtd * i.preco, 0) },
+    }
+}
+&lt;/script&gt;</code></pre></div>
+<p>O total exibido é só conforto: o servidor recalcula com os preços do banco. O corpo enviado é <code>{"itens":[{"produto":"…","quantidade":"2","preco":"19.90"}]}</code> (preço canônico, sem "R$").</p>
+
+<h2 id="etapas" data-titulo="Formulário em etapas (wizard)">Formulário em etapas (wizard)</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;wizard()&quot; x-form=&quot;{ hooks: { reveal: el =&gt; irPara(el) } }&quot;
+      action=&quot;/api/inscricao&quot; method=&quot;post&quot; novalidate&gt;
+
+    &lt;section data-etapa=&quot;1&quot; x-show=&quot;etapa === 1&quot;&gt;
+        &lt;input name=&quot;nome&quot; data-form-v=&quot;required|min:3&quot;&gt;
+        &lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;&gt;
+        &lt;button type=&quot;button&quot; @click=&quot;avancar(['nome', 'email'])&quot;&gt;Próximo&lt;/button&gt;
+    &lt;/section&gt;
+
+    &lt;section data-etapa=&quot;2&quot; x-show=&quot;etapa === 2&quot;&gt;
+        &lt;input name=&quot;cpf&quot; data-form-mask=&quot;cpf&quot; data-form-v=&quot;required|cpf&quot;&gt;
+        &lt;input name=&quot;nascimento&quot; type=&quot;date&quot; data-form-v=&quot;required|before:today&quot;&gt;
+        &lt;button type=&quot;button&quot; @click=&quot;etapa = 1&quot;&gt;Voltar&lt;/button&gt;
+        &lt;button type=&quot;button&quot; @click=&quot;avancar(['cpf', 'nascimento'])&quot;&gt;Próximo&lt;/button&gt;
+    &lt;/section&gt;
+
+    &lt;section data-etapa=&quot;3&quot; x-show=&quot;etapa === 3&quot;&gt;
+        &lt;label&gt;&lt;input type=&quot;checkbox&quot; name=&quot;termos&quot; value=&quot;1&quot; data-form-v=&quot;accepted&quot;&gt; Aceito&lt;/label&gt;
+        &lt;button type=&quot;button&quot; @click=&quot;etapa = 2&quot;&gt;Voltar&lt;/button&gt;
+        &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Concluir&lt;/button&gt;
+    &lt;/section&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+function wizard() {
+    return {
+        etapa: 1,
+        async avancar(campos) {
+            const resultados = await Promise.all(campos.map(nome =&gt; this.$form.validateField(nome)))
+            if (resultados.every(r =&gt; r.valid)) this.etapa++
+        },
+        irPara(campo) {
+            this.etapa = Number(campo.closest('[data-etapa]').dataset.etapa)
+        },
+    }
+}
+&lt;/script&gt;</code></pre></div>
+<p>Cada "Próximo" valida só os campos da etapa. No envio final, todos são validados; se o erro (inclusive do servidor) estiver numa etapa escondida, o hook <code>reveal</code> volta para ela antes do foco.</p>
+
+<h2 id="avatar" data-titulo="Foto de perfil">Foto de perfil</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/perfil/foto&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot; novalidate&gt;
+    &lt;input id=&quot;foto&quot; name=&quot;foto&quot; type=&quot;file&quot; accept=&quot;image/png,image/jpeg,image/webp&quot;
+           data-form-v=&quot;required|image|file_max:5MB|width_min:200|height_min:200|aspect_ratio:1/1,0.05&quot;
+           data-form-msg.aspect_ratio=&quot;Use uma foto quadrada.&quot;&gt;
+    &lt;div data-form-file-list=&quot;foto&quot;&gt;&lt;/div&gt;
+    &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Salvar foto&lt;/button&gt;
+    &lt;div data-form-progress&gt;
+        &lt;progress data-form-progress-bar max=&quot;100&quot; aria-label=&quot;Enviando foto&quot;&gt;&lt;/progress&gt;
+        &lt;span data-form-status&gt;&lt;/span&gt;
+    &lt;/div&gt;
+&lt;/form&gt;</code></pre></div>
+
+<h2 id="importacao" data-titulo="Importação de planilha CSV">Importação de planilha CSV</h2>
+<p>Requer <code>alpine-form-inspectors</code> (e <code>alpine-form-chunks</code> para arquivos muito grandes). O servidor responde 202 e processa em segundo plano.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/importacoes&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;
+      data-form-job-interval=&quot;1s&quot; data-form-job-persist novalidate&gt;
+    &lt;input name=&quot;planilha&quot; type=&quot;file&quot; accept=&quot;.csv&quot;
+           data-form-v=&quot;required|ext:csv|file_max:50MB|csv|csv_headers:nome,email,valor&quot;
+           data-form-csv-encoding=&quot;utf-8&quot;&gt;
+    &lt;div data-form-file-list=&quot;planilha&quot;&gt;&lt;/div&gt;
+
+    &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Importar&lt;/button&gt;
+    &lt;button type=&quot;button&quot; x-show=&quot;$form.processing&quot; @click=&quot;$form.cancelJob()&quot;&gt;Cancelar importação&lt;/button&gt;
+
+    &lt;div data-form-progress&gt;
+        &lt;progress data-form-progress-bar max=&quot;100&quot; aria-label=&quot;Progresso da importação&quot;&gt;&lt;/progress&gt;
+        &lt;p data-form-status&gt;&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;p x-show=&quot;$form.success&quot; x-text=&quot;$form.result &amp;&amp; ('Importadas ' + $form.result.data.linhas + ' linhas.')&quot;&gt;&lt;/p&gt;
+&lt;/form&gt;</code></pre></div>
+
+<h2 id="modal" data-titulo="Formulário em modal">Formulário em modal</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;div x-data=&quot;{ aberto: false }&quot;&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;aberto = true&quot;&gt;Novo contato&lt;/button&gt;
+
+    &lt;dialog x-ref=&quot;dialogo&quot; x-effect=&quot;aberto ? $refs.dialogo.showModal() : $refs.dialogo.close()&quot; @close=&quot;aberto = false&quot;&gt;
+        &lt;template x-if=&quot;aberto&quot;&gt;
+            &lt;form x-data x-form action=&quot;/api/contatos&quot; method=&quot;post&quot;
+                  @form:success=&quot;aberto = false; $dispatch('contato-criado', $event.detail.result.data)&quot; novalidate&gt;
+                &lt;input name=&quot;nome&quot; data-form-v=&quot;required&quot;&gt;
+                &lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;&gt;
+                &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Salvar&lt;/button&gt;
+                &lt;button type=&quot;button&quot; @click=&quot;aberto = false&quot;&gt;Fechar&lt;/button&gt;
+                &lt;p data-form-status&gt;&lt;/p&gt;
+            &lt;/form&gt;
+        &lt;/template&gt;
+    &lt;/dialog&gt;
+&lt;/div&gt;</code></pre></div>
+<p>Com <code>x-if</code>, o formulário é criado limpo a cada abertura e destruído (com todos os recursos liberados) ao fechar.</p>
+
+<h2 id="busca" data-titulo="Filtro de busca (GET)">Filtro de busca (GET)</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;{ resultados: [] }&quot; x-form action=&quot;/api/produtos&quot; method=&quot;get&quot; data-form-transport=&quot;fetch&quot;
+      @form:success=&quot;resultados = $event.detail.result.data&quot; novalidate&gt;
+    &lt;input name=&quot;q&quot; type=&quot;search&quot; data-form-v=&quot;min:2&quot; placeholder=&quot;Buscar…&quot;&gt;
+    &lt;select name=&quot;categoria&quot;&gt;&lt;option value=&quot;&quot;&gt;Todas&lt;/option&gt;&lt;option value=&quot;1&quot;&gt;Papelaria&lt;/option&gt;&lt;/select&gt;
+    &lt;button type=&quot;submit&quot;&gt;Buscar&lt;/button&gt;
+    &lt;ul&gt;&lt;template x-for=&quot;p in resultados&quot; :key=&quot;p.id&quot;&gt;&lt;li x-text=&quot;p.nome&quot;&gt;&lt;/li&gt;&lt;/template&gt;&lt;/ul&gt;
+&lt;/form&gt;</code></pre></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="backend.html"><small>← Anterior</small>Backend (PHP, Joomla, Laravel)</a><a class="proxima" href="referencia-rapida.html"><small>Próxima →</small>Referência rápida</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

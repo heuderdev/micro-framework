@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Máscaras · AlpineForm</title>
+<meta name="description" content="Formatação durante a digitação com cursor preservado, colagem, seleção e IME, separando o valor exibido do valor validado e do enviado. Requer alpine-form-masks.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Formulários › Máscaras</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" class="ativo" aria-current="page" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Máscaras</h1>
+<p class="lead">Formatação durante a digitação com cursor preservado, colagem, seleção e IME, separando o valor exibido do valor validado e do enviado. Requer alpine-form-masks.</p>
+<div id="nesta-pagina"></div>
+<div class="nota aviso"><strong class="rotulo">Máscara não é validação</strong><p><code>529.982.247-24</code> está bem formatado e é um CPF inválido. Use sempre a máscara <strong>junto</strong> com a regra: <code>data-form-mask="cpf" data-form-v="required|cpf"</code>.</p></div>
+
+<h2 id="disponiveis" data-titulo="Máscaras disponíveis">Máscaras disponíveis</h2>
+<div class="tabela"><table><thead><tr><th><code>data-form-mask</code></th><th>Exibe</th><th>Valida (padrão)</th><th>Envia (padrão)</th></tr></thead><tbody>
+<tr><td><code>cpf</code></td><td><code>529.982.247-25</code></td><td>raw <code>52998224725</code></td><td>formatted</td></tr>
+<tr><td><code>cnpj</code></td><td><code>11.222.333/0001-81</code> · <code>12.ABC.345/01DE-35</code></td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>cpf_cnpj</code></td><td>CPF até 11 dígitos; CNPJ com mais ou com letra</td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>cep</code></td><td><code>01310-100</code></td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>telefone_fixo</code></td><td><code>(11) 3456-7890</code></td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>celular</code></td><td><code>(11) 98765-4321</code></td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>telefone_br</code></td><td>fixo até 10 dígitos, celular com 11</td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>card</code></td><td><code>4111 1111 1111 1111</code> (agrupamento da bandeira)</td><td>raw</td><td>raw</td></tr>
+<tr><td><code>date</code></td><td><code>31/12/2026</code></td><td>canonical <code>2026-12-31</code></td><td>canonical</td></tr>
+<tr><td><code>time</code></td><td><code>14:30</code></td><td>canonical <code>14:30</code></td><td>canonical</td></tr>
+<tr><td><code>month_year</code></td><td><code>12/2026</code></td><td>canonical <code>2026-12</code></td><td>canonical</td></tr>
+<tr><td><code>integer</code></td><td><code>1.234</code></td><td>canonical <code>1234</code></td><td>canonical</td></tr>
+<tr><td><code>decimal</code></td><td><code>1.234,56</code></td><td>canonical <code>1234.56</code></td><td>canonical</td></tr>
+<tr><td><code>currency</code></td><td><code>R$ 1.234,56</code></td><td>canonical <code>1234.56</code></td><td>canonical</td></tr>
+<tr><td><code>percent</code></td><td><code>12,5%</code></td><td>canonical <code>12.5</code></td><td>canonical</td></tr>
+<tr><td><code>pattern</code></td><td>o padrão de <code>data-form-mask-pattern</code></td><td>formatted</td><td>formatted</td></tr>
+</tbody></table></div>
+<p>Máscaras só em <code>input type="text"</code>, <code>tel</code>, <code>search</code> ou <code>textarea</code>. O <code>inputmode</code> adequado (teclado numérico no celular) é adicionado se você não declarou um.</p>
+
+<h2 id="representacoes" data-titulo="Escolhendo o que validar e o que enviar">Escolhendo o que validar e o que enviar</h2>
+<div class="tabela"><table><thead><tr><th>Representação</th><th>O que é</th></tr></thead><tbody>
+<tr><td><code>raw</code></td><td>Só os caracteres significativos, sem pontuação. Na moeda, sinal + dígitos digitados (não é um número).</td></tr>
+<tr><td><code>formatted</code></td><td>Como aparece no campo.</td></tr>
+<tr><td><code>canonical</code></td><td>Forma para máquinas: documentos sem pontuação, datas ISO, números com ponto e casas fixas (texto, nunca <code>Number</code>).</td></tr>
+</tbody></table></div>
+<div class="codigo"><pre><code data-lang="html">&lt;!-- enviar CPF sem pontuação --&gt;
+&lt;input name=&quot;cpf&quot; data-form-mask=&quot;cpf&quot; data-form-v=&quot;required|cpf&quot; data-form-submit-value=&quot;raw&quot;&gt;
+
+&lt;!-- validar e enviar o CEP formatado --&gt;
+&lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|pattern&quot; data-form-pattern=&quot;^\d{5}-\d{3}$&quot;
+       data-form-mask-validation-value=&quot;formatted&quot;&gt;</code></pre></div>
+<p>Nunca há um input hidden duplicado: o valor enviado é calculado no momento do envio. Para ler pelo código: <code>$form.getValue('cpf', { as: 'raw' })</code>.</p>
+
+<h2 id="documentos" data-titulo="Documentos">CPF, CNPJ e CPF/CNPJ</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cpf&quot; data-form-mask=&quot;cpf&quot; data-form-v=&quot;required|cpf&quot; data-form-submit-value=&quot;raw&quot;&gt;
+&lt;input name=&quot;cnpj&quot; data-form-mask=&quot;cnpj&quot; data-form-v=&quot;required|cnpj&quot; data-form-submit-value=&quot;raw&quot;&gt;
+&lt;input name=&quot;documento&quot; data-form-mask=&quot;cpf_cnpj&quot; data-form-v=&quot;required|cpf_cnpj&quot; data-form-submit-value=&quot;raw&quot;&gt;</code></pre></div>
+<p><code>cnpj</code> aceita letras nas 12 primeiras posições (CNPJ alfanumérico), convertidas para maiúsculas. <code>cpf_cnpj</code> troca o formato sozinho: até 11 dígitos sem letra → CPF; mais que isso ou com letra → CNPJ.</p>
+
+<h2 id="contato" data-titulo="Telefone e CEP">Telefone e CEP</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;telefone&quot; type=&quot;tel&quot; data-form-mask=&quot;telefone_br&quot; data-form-v=&quot;required|telefone&quot; data-form-submit-value=&quot;raw&quot;&gt;
+&lt;input name=&quot;whatsapp&quot; type=&quot;tel&quot; data-form-mask=&quot;celular&quot; data-form-v=&quot;required|telefone:celular&quot;&gt;
+&lt;input name=&quot;fixo&quot; type=&quot;tel&quot; data-form-mask=&quot;telefone_fixo&quot; data-form-v=&quot;telefone:fixo&quot;&gt;
+&lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-mask-placeholder=&quot;_&quot; data-form-v=&quot;required|cep&quot;&gt;</code></pre></div>
+<p>Colar <code>(11) 98765-4321</code> ou <code>11987654321</code> dá o mesmo resultado. <code>data-form-mask-placeholder="_"</code> mostra <code>_____-___</code> como placeholder (se o input não tiver um).</p>
+
+<h2 id="numericas" data-titulo="Moeda, decimal, inteiro e percentual">Moeda, decimal, inteiro e percentual</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;valor&quot; data-form-mask=&quot;currency&quot; data-form-v=&quot;required|min_value:0.01&quot;&gt;
+&lt;input name=&quot;peso&quot; data-form-mask=&quot;decimal&quot; data-form-mask-scale=&quot;3&quot; data-form-v=&quot;required|positive&quot;&gt;
+&lt;input name=&quot;quantidade&quot; data-form-mask=&quot;integer&quot; data-form-v=&quot;required|min:1&quot;&gt;
+&lt;input name=&quot;desconto&quot; data-form-mask=&quot;percent&quot; data-form-mask-scale=&quot;1&quot; data-form-v=&quot;numeric|max:100&quot;&gt;
+&lt;input name=&quot;saldo&quot; data-form-mask=&quot;currency&quot; data-form-mask-negative data-form-v=&quot;numeric&quot;&gt;
+&lt;input name=&quot;preco_usd&quot; data-form-mask=&quot;currency&quot; data-form-mask-locale=&quot;en-US&quot; data-form-mask-currency=&quot;USD&quot;&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-mask-scale</code></td><td>moeda: casas da moeda (2); decimal: 2; inteiro: 0</td><td>Casas decimais (0 a 10). Casas a mais são <strong>descartadas</strong>, não arredondadas.</td></tr>
+<tr><td><code>data-form-mask-negative</code></td><td>falso</td><td>Permite <code>-</code>. Sem ele, o sinal é ignorado.</td></tr>
+<tr><td><code>data-form-mask-pad</code></td><td>moeda: verdadeiro; outros: falso</td><td>Completa as casas ao sair do campo (<code>R$ 12,3</code> → <code>R$ 12,30</code>).</td></tr>
+<tr><td><code>data-form-mask-grouping</code></td><td>verdadeiro</td><td>Separador de milhar.</td></tr>
+<tr><td><code>data-form-mask-max-digits</code></td><td>15</td><td>Máximo de dígitos na parte inteira (1 a 30).</td></tr>
+<tr><td><code>data-form-mask-locale</code></td><td><code>pt-BR</code></td><td>Separadores e símbolo (via <code>Intl</code>).</td></tr>
+<tr><td><code>data-form-mask-currency</code></td><td><code>BRL</code></td><td>Código da moeda.</td></tr>
+</tbody></table></div>
+<p><strong>Como a pessoa digita:</strong> livremente, com vírgula para os centavos — <code>1234,5</code> mostra <code>R$ 1.234,5</code> e, ao sair, <code>R$ 1.234,50</code>. Zeros à esquerda somem (<code>0071</code> → <code>R$ 71</code>). Ao <strong>colar</strong> <code>1234.56</code>, o ponto é entendido como decimal; <code>1.234</code> (três dígitos após o ponto) como milhar.</p>
+<div class="tabela"><table><caption>Valores reais coletados no navegador</caption><thead><tr><th>Digitado</th><th>Exibido</th><th>raw</th><th>canonical</th><th>Após sair</th></tr></thead><tbody>
+<tr><td>1234,5</td><td>R$ 1.234,5</td><td>12345</td><td>1234.50</td><td>R$ 1.234,50</td></tr>
+<tr><td>-12,3 (sem negative)</td><td>R$ 12,3</td><td>123</td><td>12.30</td><td>R$ 12,30</td></tr>
+<tr><td>0071</td><td>R$ 71</td><td>71</td><td>71.00</td><td>R$ 71,00</td></tr>
+<tr><td>12,5 (percent, escala 1)</td><td>12,5%</td><td>125</td><td>12.5</td><td>12,5%</td></tr>
+</tbody></table></div>
+<p>As regras numéricas recebem o canônico (<code>1234.50</code>), então <code>min_value:0.01</code> e <code>max:100</code> funcionam sem converter nada.</p>
+
+<h2 id="datas" data-titulo="Data, hora e mês">Data, hora e mês</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;nascimento&quot; data-form-mask=&quot;date&quot; data-form-v=&quot;required|date|before:today&quot;&gt;
+&lt;input name=&quot;horario&quot; data-form-mask=&quot;time&quot; data-form-v=&quot;required|date:time&quot;&gt;
+&lt;input name=&quot;competencia&quot; data-form-mask=&quot;month_year&quot; data-form-v=&quot;required|date:month&quot;&gt;</code></pre></div>
+<p>A pessoa vê <code>31/12/2026</code>; validação e envio usam <code>2026-12-31</code>. Uma data inexistente (<code>31/02/2026</code>) não ganha forma ISO e a regra <code>date</code> a recusa.</p>
+
+<h2 id="cartao" data-titulo="Cartão">Cartão</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cartao&quot; data-form-mask=&quot;card&quot; data-form-mask-card-brands=&quot;visa,mastercard,elo,amex&quot;
+       data-form-v=&quot;required|card:visa,mastercard,elo,amex&quot; autocomplete=&quot;cc-number&quot;&gt;</code></pre></div>
+<p>O agrupamento e o tamanho máximo seguem a bandeira detectada (Amex: 4-6-5). Validação e envio usam só os dígitos.</p>
+
+<h2 id="padrao" data-titulo="Padrão personalizado">Padrão personalizado</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;codigo&quot; data-form-mask=&quot;pattern&quot; data-form-mask-pattern=&quot;AAA-9999&quot; data-form-mask-case=&quot;upper&quot;
+       data-form-v=&quot;required|pattern&quot; data-form-pattern=&quot;^[A-Z]{3}-[0-9]{4}$&quot;&gt;
+
+&lt;input name=&quot;placa&quot; data-form-mask=&quot;pattern&quot; data-form-mask-pattern=&quot;AAA-9*99&quot; data-form-mask-case=&quot;upper&quot;&gt;
+&lt;input name=&quot;protocolo&quot; data-form-mask=&quot;pattern&quot; data-form-mask-pattern=&quot;\P\R\O-99999&quot;&gt;
+&lt;input name=&quot;pis&quot; data-form-mask=&quot;pattern&quot; data-form-mask-pattern=&quot;999.99999.99-9&quot; data-form-submit-value=&quot;raw&quot;&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Token</th><th>Aceita</th></tr></thead><tbody>
+<tr><td><code>9</code></td><td>dígito 0–9</td></tr>
+<tr><td><code>A</code></td><td>letra (inclusive acentuada)</td></tr>
+<tr><td><code>*</code></td><td>letra ou dígito</td></tr>
+<tr><td><code>\x</code></td><td>o caractere x fixo (ex.: <code>\A</code> mostra "A" literal)</td></tr>
+<tr><td>qualquer outro</td><td>literal (<code>-</code>, <code>.</code>, <code>/</code>, espaço, parênteses…)</td></tr>
+</tbody></table></div>
+<p><code>data-form-mask-case</code>: <code>upper</code> ou <code>lower</code>. No padrão personalizado, validação e envio usam o valor formatado por padrão.</p>
+
+<h2 id="api" data-titulo="Valores iniciais, API e reset">Valores iniciais, API e reset</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;!-- valor vindo do servidor: formatado ao carregar, sem marcar o formulário como alterado --&gt;
+&lt;input name=&quot;cep&quot; value=&quot;01310100&quot; data-form-mask=&quot;cep&quot;&gt;
+&lt;input name=&quot;valor&quot; data-form-mask=&quot;currency&quot;&gt;
+&lt;input name=&quot;cpf&quot; data-form-mask=&quot;cpf&quot;&gt;
+
+&lt;button type=&quot;button&quot; @click=&quot;$form.setValue('valor', '1234.5', { as: 'canonical' })&quot;&gt;Preencher R$ 1.234,50&lt;/button&gt;
+&lt;button type=&quot;button&quot; @click=&quot;$form.setValue('cpf', '52998224725')&quot;&gt;Preencher CPF&lt;/button&gt;
+&lt;span x-text=&quot;$form.ready ? $form.getValue('valor', { as: 'canonical' }) : ''&quot;&gt;&lt;/span&gt;</code></pre></div>
+<p><code>setValue</code> aceita <code>as: 'display'</code> (padrão), <code>'raw'</code>, <code>'formatted'</code> ou <code>'canonical'</code>; <code>getValue</code> aceita esses e mais <code>'validation'</code> e <code>'submit'</code>. O reset do formulário restaura o valor original e reaplica a formatação.</p>
+
+<h2 id="comportamento" data-titulo="Cursor, colagem e edição">Cursor, colagem e edição</h2>
+<ul>
+    <li>Digitar no meio mantém o cursor logo após o caractere digitado.</li>
+    <li><kbd>Backspace</kbd> logo depois de um separador apaga o dígito anterior (não fica "preso" no ponto).</li>
+    <li>Selecionar um trecho e digitar substitui o trecho.</li>
+    <li>Colar texto formatado ou só números produz o mesmo valor.</li>
+    <li>Teclados de composição (IME) só são formatados ao terminar a composição.</li>
+    <li>A máscara pode ser trocada dinamicamente (<code>:data-form-mask="tipo === 'pj' ? 'cnpj' : 'cpf'"</code>): o valor é reformatado a partir dos caracteres significativos.</li>
+</ul>
+<div class="nota"><p>Desfazer (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) usa o histórico do navegador e pode pular estados intermediários, porque o valor é reescrito pela máscara.</p></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="validacao-remota.html"><small>← Anterior</small>Validação remota</a><a class="proxima" href="listas-dinamicas.html"><small>Próxima →</small>Listas e DOM dinâmico</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

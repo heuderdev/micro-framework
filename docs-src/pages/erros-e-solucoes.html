@@ -1,0 +1,140 @@
+titulo: Erros e soluções
+lead: O que significa cada mensagem de erro, por que aparece e como resolver — e o que fazer quando algo simplesmente não acontece.
+---
+<p>Mensagens de configuração aparecem no console com o prefixo <code>[AlpineForm]</code> e em <code>$form.configErrors</code>; o campo afetado mostra "Este campo tem uma configuração inválida e não pode ser validado." e o envio fica bloqueado. Use <kbd>Ctrl</kbd>+<kbd>F</kbd> com um trecho da mensagem que você recebeu.</p>
+@@@js Ferramentas no console
+AlpineForm.diagnose()                    // formulários que não inicializaram
+AlpineForm.get('meuForm').configErrors   // erros de configuração
+AlpineForm.get('meuForm').diagnostics()  // regras, máscara e dependências de cada campo
+@@@
+
+<h2 id="nao-acontece" data-titulo="Nada acontece">Nada acontece</h2>
+<div class="metodo"><h3 id="nao-inicializado">O formulário não valida nem envia por AJAX</h3>
+<p><strong>Causas:</strong> falta <code>x-data</code> no form (ou num elemento acima); o form está dentro de <code>x-ignore</code>; o Alpine foi carregado antes do <code>alpine-form.min.js</code>; o Alpine nem foi carregado.</p>
+<p><strong>Solução:</strong> <code>&lt;form x-data x-form …&gt;</code>; carregue o Alpine por último com <code>defer</code>. O console mostra "&lt;form x-form&gt; não foi inicializado…" ou "O Alpine parece já ter sido iniciado; carregue alpine-form antes do Alpine.".</p>
+</div>
+<div class="metodo"><h3 id="nativo">Aparecem os balões de erro do navegador</h3>
+<p><strong>Solução:</strong> acrescente <code>novalidate</code> ao <code>&lt;form&gt;</code>.</p>
+</div>
+<div class="metodo"><h3 id="sem-erro">O erro não aparece</h3>
+<p><strong>Causas:</strong> o campo ainda não foi "tocado" (no modo <code>live</code>, o erro aparece ao sair do campo ou no envio); modo <code>submit</code>; o campo está desabilitado ou dispensado (<code>data-form-hidden="skip"</code>); o campo não tem <code>name</code>.</p>
+<p><strong>Solução:</strong> confira <code>$form.fields.&lt;campo&gt;</code> (<code>touched</code>, <code>validated</code>, <code>errors</code>). Veja <a href="validacao.html#modos">modos de validação</a>.</p>
+</div>
+<div class="metodo"><h3 id="campo-dinamico">Campo adicionado depois não é validado</h3>
+<p><strong>Causas:</strong> sem <code>name</code>; fora do form sem <code>form="id"</code>; controle externo adicionado após a inicialização.</p>
+<p><strong>Solução:</strong> dê <code>name</code> ao campo; para controles externos chame <code>$form.refresh()</code>. Confira com <code>$form.has('nome')</code>.</p>
+</div>
+<div class="metodo"><h3 id="erro-servidor-sumiu">O erro do servidor não aparece no campo</h3>
+<p><strong>Causa:</strong> a chave em <code>errors</code> não corresponde ao <code>name</code> do campo. Chaves sem campo vão para o resumo (<code>$form.generalErrors</code>).</p>
+<p><strong>Solução:</strong> use o mesmo nome do HTML (<code>itens[0][nome]</code>) ou a forma com ponto (<code>itens.0.nome</code>). No Joomla, use o adaptador <code>joomla</code> e coloque os erros em <code>data.errors</code>.</p>
+</div>
+<div class="metodo"><h3 id="arquivo-enviado">Arquivo removido continua sendo enviado</h3>
+<p><strong>Causa:</strong> o envio está sendo feito por código próprio (<code>new FormData(form)</code>), não pelo AlpineForm.</p>
+<p><strong>Solução:</strong> envie com o botão submit ou <code>$form.submit()</code>; a lista interna é a fonte de verdade.</p>
+</div>
+<div class="metodo"><h3 id="parado-100">A barra chega a 100% e fica parada</h3>
+<p><strong>Causa:</strong> comportamento esperado: o arquivo foi enviado e o servidor está processando (fase <code>awaiting</code>).</p>
+<p><strong>Solução:</strong> mostre <code>[data-form-status]</code> ("Envio concluído. Aguardando resposta do servidor…"). Para processamentos longos, responda 202 e use <a href="processamento.html">jobs</a>.</p>
+</div>
+<div class="metodo"><h3 id="mascara-valor">O servidor recebe o valor com máscara (ou sem)</h3>
+<p><strong>Solução:</strong> escolha com <code>data-form-submit-value="raw|formatted|canonical"</code>. Confira com <code>$form.getValue('campo', { as: 'submit' })</code>.</p>
+</div>
+
+<h2 id="config" data-titulo="Mensagens de configuração">Mensagens de configuração</h2>
+<div class="metodo"><h3 id="regra-desconhecida">Regra desconhecida "…". Você quis dizer "…"?</h3>
+<p><strong>Causa:</strong> nome de regra errado, regra de um módulo não carregado (<code>csv</code> sem inspetores) ou regra própria registrada depois do Alpine iniciar.</p>
+<p><strong>Solução:</strong> corrija o nome (veja <a href="regras.html">Regras</a>), carregue o módulo ou registre a regra antes do Alpine.</p>
+</div>
+<div class="metodo"><h3 id="atributo-desconhecido">Atributo desconhecido "data-form-…" no campo "…"</h3>
+<p><strong>Causa:</strong> erro de digitação ou módulo não carregado.</p>
+<p><strong>Solução:</strong> confira na <a href="referencia-rapida.html#atributos-campo">referência rápida</a>.</p>
+</div>
+<div class="metodo"><h3 id="modulo">data-form-mask requer o módulo de máscaras (alpine-form-masks)</h3>
+<p>Também: "data-form-chunked requer o módulo de chunks (alpine-form-chunks).". <strong>Solução:</strong> carregue o script do módulo depois do núcleo e antes do Alpine.</p>
+</div>
+<div class="metodo"><h3 id="parametros">A regra "…" exige N parâmetro(s) · Parâmetro inválido "…" na regra "…"</h3>
+<p><strong>Exemplos:</strong> <code>min</code> sem valor; <code>min:abc</code>; <code>file_max:5</code> (falta a unidade); <code>after:31/12/2026</code> (datas literais em ISO: <code>2026-12-31</code>).</p>
+<div class="codigo"><pre><code data-lang="html">&lt;!-- Errado --&gt;
+&lt;input name="a" data-form-v="min"&gt;
+&lt;input type="file" name="b" data-form-v="file_max:5"&gt;
+&lt;!-- Certo --&gt;
+&lt;input name="a" data-form-v="min:3"&gt;
+&lt;input type="file" name="b" data-form-v="file_max:5MB"&gt;</code></pre></div>
+</div>
+<div class="metodo"><h3 id="contraditoria">Combinação contraditória: "required" com "optional"/"nullable"</h3>
+<p><strong>Solução:</strong> remova um dos dois.</p>
+</div>
+<div class="metodo"><h3 id="repetida">Regra "…" repetida em data-form-v · Regra vazia na posição N</h3>
+<p><strong>Causa:</strong> a mesma regra duas vezes, ou <code>||</code> / <code>|</code> no fim. <strong>Solução:</strong> limpe a lista de regras.</p>
+</div>
+<div class="metodo"><h3 id="referencia">O campo "…" referencia "…", que não existe neste formulário</h3>
+<p><strong>Causa:</strong> <code>same:senha</code>, <code>required_if:tipo,pj</code> etc. com nome errado ou campo que saiu do DOM.</p>
+<p><strong>Solução:</strong> use o <code>name</code> exato do outro campo (ou a chave com ponto).</p>
+</div>
+<div class="metodo"><h3 id="pattern">A regra "pattern" exige o atributo data-form-pattern · data-form-pattern declarado sem a regra "pattern"</h3>
+<p><strong>Solução:</strong> use os dois juntos: <code>data-form-v="pattern" data-form-pattern="^…$"</code>. Outras: "Expressão regular inválida…", "data-form-pattern-flags=… inválido. Flags aceitas: i, m, s, u".</p>
+</div>
+<div class="metodo"><h3 id="mascara-tipo">Máscaras só se aplicam a input type="text", "tel" ou "search"</h3>
+<p><strong>Causa:</strong> máscara em <code>type="number"</code> (ou outro tipo). <strong>Solução:</strong> <code>type="text"</code>; a máscara define o <code>inputmode</code> numérico.</p>
+</div>
+<div class="metodo"><h3 id="pattern-mask">data-form-mask="pattern" exige data-form-mask-pattern · Padrão "…" não possui nenhum token (9, A ou *)</h3>
+<p><strong>Solução:</strong> informe um padrão com ao menos um token: <code>data-form-mask-pattern="AAA-9999"</code>.</p>
+</div>
+<div class="metodo"><h3 id="divergentes">Valores divergentes de … no grupo "…"</h3>
+<p><strong>Causa:</strong> radios/checkboxes do mesmo grupo com atributos diferentes (ex.: <code>data-form-v</code> distinto em cada um). <strong>Solução:</strong> declare no primeiro do grupo, ou repita exatamente igual.</p>
+</div>
+<div class="metodo"><h3 id="valor-invalido">Valor "…" inválido em data-form-…. Valores aceitos: …</h3>
+<p>Também: "Duração inválida…", "Valor booleano inválido…", "Tamanho inválido…", "Unidade de tamanho não reconhecida…". <strong>Solução:</strong> use um dos valores listados na mensagem. Durações: <code>250</code>, <code>250ms</code>, <code>2s</code>, <code>1min</code>. Tamanhos: <code>500KB</code>, <code>10MB</code>, <code>2MiB</code>.</p>
+</div>
+<div class="metodo"><h3 id="sensivel-get">Campo sensível com validação remota via GET exporia o valor na URL</h3>
+<p><strong>Solução:</strong> use POST (padrão) ou, conscientemente, <code>data-form-remote-allow-query</code>.</p>
+</div>
+<div class="metodo"><h3 id="seletor">data-form-error-target="…" não encontrou elemento · data-form-summary-target="…" não encontrou elemento</h3>
+<p><strong>Solução:</strong> confira o seletor e se o elemento existe quando o form inicializa.</p>
+</div>
+<div class="metodo"><h3 id="sem-name">Campo com data-form-v sem atributo name: não será validado nem enviado</h3>
+<p><strong>Solução:</strong> dê <code>name</code> ao campo (para componentes: <code>data-form-name</code>).</p>
+</div>
+<div class="metodo"><h3 id="aninhado">Formulário aninhado dentro de outro &lt;form&gt; detectado</h3>
+<p><strong>Solução:</strong> HTML não permite forms aninhados. Separe os formulários ou use <code>form="id"</code> nos controles.</p>
+</div>
+<div class="metodo"><h3 id="json-arquivo">O campo "…" contém arquivo e a codificação é JSON</h3>
+<p><strong>Solução:</strong> use multipart (padrão), <code>data-form-json-files="metadata"</code> (envia só nome/tamanho/tipo) ou <a href="chunks.html">upload em partes</a>.</p>
+</div>
+<div class="metodo"><h3 id="proto">O campo "…" usa o segmento proibido "__proto__"</h3>
+<p><strong>Causa:</strong> nome de campo com <code>__proto__</code>, <code>prototype</code> ou <code>constructor</code> em JSON (proteção contra <em>prototype pollution</em>). <strong>Solução:</strong> renomeie o campo.</p>
+</div>
+<div class="metodo"><h3 id="ja-registrado">… "…" já registrado. Use { replace: true } para substituir conscientemente</h3>
+<p><strong>Causa:</strong> o mesmo nome de validador, máscara, transporte… registrado duas vezes (script carregado em duplicidade?). <strong>Solução:</strong> registre uma vez ou passe <code>{ replace: true }</code>.</p>
+</div>
+<div class="metodo"><h3 id="ja-inicializado">Este formulário já foi inicializado pelo AlpineForm</h3>
+<p><strong>Causa:</strong> <code>x-form</code> processado duas vezes (Alpine iniciado duas vezes, ou <code>AlpineForm.attach</code> num form que já tem <code>x-form</code>). É só um aviso; o primeiro controlador continua valendo.</p>
+</div>
+<div class="metodo"><h3 id="chunks-modulo">pauseUpload() requer o módulo de chunks (alpine-form-chunks)</h3>
+<p>Também para <code>resumeUpload</code> e <code>getUploadSession</code>. "Nenhum upload em andamento para retomar…" significa que não há envio ativo: para retomar após recarregar, selecione o mesmo arquivo e envie.</p>
+</div>
+
+<h2 id="envio" data-titulo="Mensagens de envio">Mensagens de envio</h2>
+<div class="tabela"><table><thead><tr><th>Mensagem</th><th>Causa provável</th><th>O que fazer</th></tr></thead><tbody>
+<tr><td>O servidor respondeu com uma página HTML em vez de dados…</td><td>Sessão expirada (redirecionou para o login), erro do PHP com HTML, proxy.</td><td>Veja <code>$form.error.diagnostic</code>; faça o backend responder JSON para requisições com <code>X-Requested-With: XMLHttpRequest</code>.</td></tr>
+<tr><td>O token de segurança expirou… (419)</td><td>CSRF ausente ou vencido.</td><td>Confira a meta tag (Laravel) ou o campo <code>form.token</code> (Joomla); recarregue a página.</td></tr>
+<tr><td>Sua sessão expirou ou você não tem permissão… (401)</td><td>Não autenticado.</td><td>Redirecione para o login (ex.: hook <code>afterResponse</code>).</td></tr>
+<tr><td>Os dados enviados excedem o limite… (413)</td><td><code>post_max_size</code>, <code>upload_max_filesize</code>, <code>client_max_body_size</code>.</td><td>Aumente o limite ou use <a href="chunks.html">upload em partes</a>.</td></tr>
+<tr><td>A requisição foi bloqueada pelo navegador (possível bloqueio de CORS ou rede).</td><td>URL de outra origem sem CORS (o envio com progresso exige preflight <code>OPTIONS</code>).</td><td>Configure CORS no servidor ou use a mesma origem.</td></tr>
+<tr><td>A conexão caiu depois do envio…</td><td>Queda ou tempo esgotado depois do upload completo.</td><td>Verifique se a operação foi gravada antes de reenviar; considere <code>data-form-idempotency</code>.</td></tr>
+<tr><td>A resposta do servidor não pôde ser interpretada.</td><td>JSON quebrado (aviso do PHP antes do JSON, BOM, <code>var_dump</code>).</td><td>Confira a resposta na aba Network.</td></tr>
+<tr><td>Os dados foram alterados durante a validação…</td><td>Valores mudaram enquanto validações assíncronas rodavam (scripts alterando campos).</td><td>Envie novamente.</td></tr>
+<tr><td>Resposta 202 sem status_url e sem data-form-job-url configurado.</td><td>O servidor respondeu 202 sem URL de status.</td><td>Inclua <code>job.status_url</code> ou declare <code>data-form-job-url="/api/jobs/{id}"</code>.</td></tr>
+</tbody></table></div>
+
+<h2 id="limitacoes" data-titulo="Limitações conhecidas">Limitações conhecidas</h2>
+<ul>
+    <li>Progresso real só com o transporte padrão (XHR); por arquivo, só com upload em partes.</li>
+    <li>Após recarregar, o upload em partes exige selecionar o mesmo arquivo de novo (o navegador não guarda o arquivo).</li>
+    <li>Desfazer (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) em campos com máscara pode pular estados.</li>
+    <li>Dependências revalidam um nível: se C depende de B e B de A, mudar A revalida B, não C.</li>
+    <li>Mensagens por variante no campo (<code>data-form-msg.min.numeric</code>) não são lidas; use <code>AlpineForm.configure({ messages })</code>.</li>
+    <li>A validação remota usa sempre <code>credentials: 'same-origin'</code>.</li>
+    <li>CEP e telefone conferem formato, não existência; CSV é conferido em amostra.</li>
+</ul>
+<p>Lista completa e decisões em <code>docs/limitacoes.md</code> e no <code>doc.html</code> (documentação técnica interna).</p>

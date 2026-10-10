@@ -1,0 +1,92 @@
+titulo: Validação remota
+lead: Perguntar ao servidor se um valor é aceito (e-mail já cadastrado, usuário disponível, cupom válido) enquanto a pessoa preenche.
+---
+<h2 id="basico" data-titulo="Uso básico">Uso básico</h2>
+@@@html
+<input name="email" type="email" data-form-v="required|email"
+       data-form-remote="/api/validar-email"
+       data-form-msg.remote="Este e-mail já está cadastrado.">
+@@@
+@@@php validar-email.php
+<?php
+header('Content-Type: application/json; charset=utf-8');
+$email = strtolower(trim($_POST['email'] ?? ''));
+
+$existe = in_array($email, ['admin@exemplo.com', 'teste@exemplo.com'], true);   // consulte o banco
+
+echo json_encode(['valid' => !$existe, 'message' => $existe ? 'Este e-mail já está cadastrado.' : null]);
+@@@
+<ol class="passos">
+    <li>As regras locais rodam primeiro. Só se passarem o servidor é consultado.</li>
+    <li>Enquanto espera, o campo mostra "Verificando..." e <code>$form.fields.email.remote</code> vale <code>pending</code>.</li>
+    <li>Se a pessoa digita de novo, a consulta anterior é <strong>cancelada</strong>; uma resposta antiga nunca é aplicada a um valor novo.</li>
+    <li>Resposta <code>{"valid": false}</code> mostra a mensagem: <code>data-form-msg.remote</code> do campo, senão a <code>message</code> do servidor, senão "Este valor não está disponível.".</li>
+</ol>
+
+<h2 id="contrato" data-titulo="O que é enviado e o que se espera">O que é enviado e o que se espera</h2>
+<div class="tabela"><table><thead><tr><th>Envio (POST, <code>application/x-www-form-urlencoded</code>)</th><th>Resposta esperada (JSON)</th></tr></thead><tbody>
+<tr><td><code>email=ana@ex.com&amp;_field=email</code> + campos de <code>data-form-remote-fields</code></td><td><code>{"valid": true}</code> ou <code>{"valid": false, "message": "…"}</code> (aceita <code>mensagem</code>)</td></tr>
+</tbody></table></div>
+<p>O cabeçalho CSRF vai junto quando a URL é da mesma origem.</p>
+
+<h2 id="opcoes" data-titulo="Opções">Opções</h2>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-remote</code></td><td>—</td><td>URL consultada.</td></tr>
+<tr><td><code>data-form-remote-method</code></td><td><code>post</code></td><td><code>get</code> coloca os dados na URL.</td></tr>
+<tr><td><code>data-form-remote-param</code></td><td>o <code>name</code></td><td>Nome do parâmetro com o valor.</td></tr>
+<tr><td><code>data-form-remote-fields</code></td><td>—</td><td>Outros campos enviados junto, separados por vírgula. Mudar um deles revalida.</td></tr>
+<tr><td><code>data-form-remote-debounce</code></td><td>400 ms</td><td>Espera extra antes de consultar durante a digitação.</td></tr>
+<tr><td><code>data-form-remote-timeout</code></td><td>8 s</td><td>Tempo máximo da consulta.</td></tr>
+<tr><td><code>data-form-remote-cache</code> / <code>-cache-ttl</code></td><td>20 / 60 s</td><td>Respostas guardadas para não repetir a consulta (0 desliga).</td></tr>
+<tr><td><code>data-form-remote-inconclusive</code></td><td><code>allow</code></td><td>O que fazer se o servidor não responder: <code>allow</code> deixa enviar, <code>block</code> mostra erro.</td></tr>
+<tr><td><code>data-form-remote-adapter</code></td><td><code>default</code></td><td>Lê respostas em outro formato (<a href="#adaptador">abaixo</a>).</td></tr>
+<tr><td><code>data-form-remote-allow-query</code></td><td>—</td><td>Autoriza GET em campo sensível (senha).</td></tr>
+</tbody></table></div>
+
+<h2 id="edicao" data-titulo="Edição: ignorar o próprio registro">Edição: ignorar o próprio registro</h2>
+@@@html
+<input type="hidden" name="id" value="7">
+<input name="email" type="email" value="joao@exemplo.com" data-form-v="required|email"
+       data-form-remote="/api/validar-email" data-form-remote-fields="id">
+@@@
+@@@php
+$id = (int) ($_POST['id'] ?? 0);
+$existe = $db->fetchOne('SELECT 1 FROM clientes WHERE email = ? AND id <> ?', [$email, $id]);
+@@@
+
+<h2 id="get" data-titulo="Consulta por GET">Consulta por GET</h2>
+@@@html
+<input name="usuario" data-form-v="required|alphanumeric|min:4"
+       data-form-remote="/api/usuario-disponivel" data-form-remote-method="get"
+       data-form-remote-param="u">
+<!-- GET /api/usuario-disponivel?u=joao&_field=usuario -->
+@@@
+
+<h2 id="inconclusivo" data-titulo="Servidor fora do ar">Servidor fora do ar (inconclusivo)</h2>
+<p>Erro de rede, tempo esgotado, HTTP fora de 2xx ou resposta fora do contrato não dizem "válido" nem "inválido": o resultado é <strong>inconclusivo</strong>. A consulta é repetida uma vez em erros de rede e em 408/429/5xx.</p>
+@@@html
+<!-- allow (padrão): sem erro, aviso "Não foi possível verificar agora. O valor será conferido no envio." -->
+<input name="email" data-form-v="email" data-form-remote="/api/validar-email">
+
+<!-- block: erro "Não foi possível verificar este valor agora." até conseguir consultar -->
+<input name="cupom" data-form-v="required" data-form-remote="/api/cupom" data-form-remote-inconclusive="block">
+@@@
+
+<h2 id="adaptador" data-titulo="Resposta em outro formato">Resposta em outro formato</h2>
+@@@js
+// sua API responde { "disponivel": true } ou { "disponivel": false, "motivo": "…" }
+AlpineForm.remoteAdapter('disponibilidade', json => ({
+    valid: json.disponivel === true,
+    message: json.motivo,
+}))
+@@@
+@@@html
+<input name="usuario" data-form-v="required" data-form-remote="/api/usuario" data-form-remote-adapter="disponibilidade">
+@@@
+
+<h2 id="cache" data-titulo="Cache">Cache</h2>
+<p>Só respostas definitivas (<code>valid</code> verdadeiro ou falso) entram no cache. Quando o servidor devolve erro para o campo no envio, a entrada daquele valor é descartada. Para limpar manualmente:</p>
+@@@html
+<button type="button" @click="$form.clearRemoteCache('email')">Verificar de novo</button>
+@@@
+<div class="nota aviso"><p>A validação remota não substitui a validação no envio: entre a consulta e o envio, outra pessoa pode ter cadastrado o mesmo e-mail. O servidor sempre confere de novo (por exemplo, com índice único no banco).</p></div>

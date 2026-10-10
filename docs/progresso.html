@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Progresso e cancelamento · AlpineForm</title>
+<meta name="description" content="Barra de progresso com bytes reais, velocidade, tempo restante, texto de status, botão cancelar e tempo limite — sem nenhuma animação falsa.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Envio › Progresso e cancelamento</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" class="ativo" aria-current="page" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Progresso e cancelamento</h1>
+<p class="lead">Barra de progresso com bytes reais, velocidade, tempo restante, texto de status, botão cancelar e tempo limite — sem nenhuma animação falsa.</p>
+<div id="nesta-pagina"></div>
+<h2 id="basico" data-titulo="Barra de progresso">Barra de progresso</h2>
+<div class="codigo"><div class="titulo-codigo">Com elemento progress</div><pre><code data-lang="html">&lt;div data-form-progress&gt;
+    &lt;progress data-form-progress-bar max=&quot;100&quot; aria-label=&quot;Progresso do envio&quot;&gt;&lt;/progress&gt;
+    &lt;span data-form-progress-percent&gt;&lt;/span&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Com div (estilizável)</div><pre><code data-lang="html">&lt;div data-form-progress class=&quot;caixa-progresso&quot;&gt;
+    &lt;div class=&quot;trilho&quot;&gt;&lt;div class=&quot;preenchimento&quot; data-form-progress-bar aria-label=&quot;Enviado&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;p&gt;
+        &lt;span data-form-progress-percent&gt;&lt;/span&gt;
+        (&lt;span data-form-progress-loaded&gt;&lt;/span&gt; de &lt;span data-form-progress-total&gt;&lt;/span&gt;)
+        · &lt;span data-form-progress-speed&gt;&lt;/span&gt;
+        · restam &lt;span data-form-progress-eta&gt;&lt;/span&gt;
+        · &lt;span data-form-progress-elapsed&gt;&lt;/span&gt;
+    &lt;/p&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Recebe</th></tr></thead><tbody>
+<tr><td><code>data-form-progress</code></td><td>Contêiner: atributos <code>data-form-state</code> (a fase) e <code>aria-busy</code>. Com o CSS opcional, fica oculto em <code>idle</code>.</td></tr>
+<tr><td><code>data-form-progress-bar</code></td><td><code>&lt;progress&gt;</code>: <code>value</code>. Outro elemento: <code>style.width</code> em %, <code>role="progressbar"</code>, <code>aria-valuenow</code>/<code>aria-valuetext</code>. <code>data-indeterminate="true"</code> quando não há total.</td></tr>
+<tr><td><code>data-form-progress-percent</code></td><td><code>42%</code></td></tr>
+<tr><td><code>data-form-progress-loaded</code> / <code>-total</code></td><td><code>3,4 MB</code> / <code>8,1 MB</code></td></tr>
+<tr><td><code>data-form-progress-speed</code></td><td><code>1,2 MB/s</code> (média dos últimos 3 s)</td></tr>
+<tr><td><code>data-form-progress-eta</code></td><td>tempo restante estimado (aparece após 1 s)</td></tr>
+<tr><td><code>data-form-progress-elapsed</code></td><td>tempo decorrido</td></tr>
+<tr><td><code>data-form-status</code></td><td>texto da fase; recebe <code>role="status"</code> e <code>aria-live="polite"</code> para leitores de tela</td></tr>
+</tbody></table></div>
+<div class="codigo"><div class="titulo-codigo">Com Alpine, do seu jeito</div><pre><code data-lang="html">&lt;div x-show=&quot;$form.uploading || $form.awaitingResponse&quot;&gt;
+    &lt;div class=&quot;trilho&quot;&gt;&lt;div class=&quot;preenchimento&quot; :style=&quot;`width: ${$form.progress.percent ?? 0}%`&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;small x-text=&quot;$form.awaitingResponse ? 'Processando no servidor…' : ($form.progress.percent ?? 0) + '%'&quot;&gt;&lt;/small&gt;
+&lt;/div&gt;</code></pre></div>
+
+<h2 id="textos" data-titulo="Textos de status">Textos de status</h2>
+<div class="tabela"><table><thead><tr><th>Fase</th><th>Texto padrão</th><th>Chave</th></tr></thead><tbody>
+<tr><td>validating</td><td>Validando…</td><td><code>status.validating</code></td></tr>
+<tr><td>uploading</td><td>Enviando… 42%</td><td><code>status.uploading_percent</code> (sem total: <code>status.uploading</code>)</td></tr>
+<tr><td>awaiting</td><td>Envio concluído. Aguardando resposta do servidor…</td><td><code>status.awaiting</code></td></tr>
+<tr><td>processing</td><td>Processando no servidor… 60%</td><td><code>status.processing_percent</code> / <code>status.processing</code></td></tr>
+<tr><td>paused</td><td>Envio pausado.</td><td><code>status.paused</code></td></tr>
+<tr><td>success</td><td>a <code>message</code> do servidor, ou "Concluído."</td><td><code>status.success</code></td></tr>
+<tr><td>error</td><td>a mensagem do erro</td><td><code>status.error</code></td></tr>
+<tr><td>canceled</td><td>Envio cancelado.</td><td><code>status.canceled</code></td></tr>
+</tbody></table></div>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.configure({ messages: { 'status.awaiting': 'Recebido! Estamos salvando seus arquivos…' } })</code></pre></div>
+
+<h2 id="como-medido" data-titulo="Como é medido">Como é medido</h2>
+<ul>
+    <li>Os números vêm dos eventos reais do navegador durante o envio (<code>XMLHttpRequest</code>). Nada é simulado.</li>
+    <li>Em multipart, os bytes são do corpo HTTP inteiro (inclui os separadores do multipart), então o total é um pouco maior que a soma dos arquivos.</li>
+    <li>100% = tudo saiu do navegador. Daí em diante a fase é <code>awaiting</code> até a resposta chegar.</li>
+    <li>Velocidade e tempo restante são estimativas e oscilam com a rede.</li>
+    <li>Com <code>data-form-transport="fetch"</code> não existe progresso de upload: a barra fica indeterminada.</li>
+    <li>Em localhost o envio é quase instantâneo; para ver a barra andar, use o DevTools (Network → Throttling).</li>
+</ul>
+<p>Por arquivo, num único envio, não há como medir; para isso use o <a href="chunks.html">upload em partes</a>.</p>
+
+<h2 id="cancelar" data-titulo="Cancelar">Cancelar</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;button type=&quot;button&quot; data-form-cancel&gt;Cancelar&lt;/button&gt;
+&lt;!-- ou --&gt;
+&lt;button type=&quot;button&quot; x-show=&quot;$form.submitting&quot; @click=&quot;$form.cancel()&quot;&gt;Cancelar&lt;/button&gt;</code></pre></div>
+<p><code>[data-form-cancel]</code> fica desabilitado quando não há o que cancelar. Cancelar interrompe a requisição, leva à fase <code>canceled</code> ("Envio cancelado.") e dispara <code>form:cancel</code>; não é tratado como erro do formulário.</p>
+<div class="nota aviso"><p>Cancelar depois que o upload chegou a 100% interrompe a <strong>espera</strong>, mas o servidor pode já ter recebido e gravado. Em processamento posterior (202), cancelar só para de acompanhar — veja <a href="processamento.html#cancelar">Processamento</a>.</p></div>
+
+<h2 id="timeout" data-titulo="Tempo limite">Tempo limite</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/importar&quot; method=&quot;post&quot; data-form-timeout=&quot;2min&quot; novalidate&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Quando o tempo acaba</th><th><code>$form.error.kind</code></th><th>Mensagem</th></tr></thead><tbody>
+<tr><td>Ainda enviando</td><td><code>timeout</code></td><td>O servidor demorou demais para responder.</td></tr>
+<tr><td>Já enviou tudo, esperando resposta</td><td><code>unknown</code></td><td>A conexão caiu depois do envio. Não é possível confirmar se a operação foi concluída; verifique antes de enviar novamente.</td></tr>
+</tbody></table></div>
+<p>No segundo caso o servidor pode ter concluído; por isso nada é reenviado automaticamente. Use <a href="envio.html#idempotencia">idempotência</a> se reenvios duplicados forem um problema.</p>
+
+<h2 id="eventos" data-titulo="Eventos de progresso">Eventos de progresso</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;{ pct: 0 }&quot; x-form action=&quot;/api/upload&quot; method=&quot;post&quot;
+      @form:progress=&quot;pct = $event.detail.percent ?? 0&quot;
+      @form:uploaded=&quot;console.log('Upload concluído, aguardando resposta')&quot; novalidate&gt;</code></pre></div>
+<p><code>$event.detail</code> de <code>form:progress</code>: <code>{ loaded, total, percent, indeterminate, lengthComputable, speed, eta, elapsed, uploaded, phase }</code>.</p>
+
+<h2 id="css" data-titulo="CSS útil">CSS útil</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;style&gt;
+    .trilho { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .preenchimento { height: 100%; width: 0; background: #2563eb; transition: width .2s; }
+    form[data-form-state=&quot;awaiting&quot;] .preenchimento { background: #16a34a; }
+&lt;/style&gt;</code></pre></div>
+<p>O CSS opcional (<code>alpine-form.css</code>) já anima a barra indeterminada (respeitando "reduzir movimento") e esconde <code>[data-form-progress]</code> quando parado.</p>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="respostas-e-erros.html"><small>← Anterior</small>Respostas e erros</a><a class="proxima" href="arquivos.html"><small>Próxima →</small>Arquivos</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

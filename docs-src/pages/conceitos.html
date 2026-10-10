@@ -1,0 +1,87 @@
+titulo: Conceitos
+lead: As ideias que valem para todo o resto: campo e chave, configuração em camadas, quando os erros aparecem, fases do envio e as representações de um valor.
+---
+<h2 id="campo" data-titulo="Campo e chave">Campo e chave</h2>
+<p>Todo <code>input</code>, <code>select</code> e <code>textarea</code> com <code>name</code> dentro do form vira um <strong>campo</strong>. Radios e checkboxes com o mesmo nome formam <strong>um único campo</strong> (o valor de um grupo de checkboxes é uma lista).</p>
+<p>Cada campo tem uma <strong>chave</strong> com pontos, usada em <code>$form.errors</code> e <code>$form.fields</code>:</p>
+<div class="tabela"><table><thead><tr><th><code>name</code> no HTML</th><th>Chave</th></tr></thead><tbody>
+<tr><td><code>email</code></td><td><code>email</code></td></tr>
+<tr><td><code>itens[0][nome]</code></td><td><code>itens.0.nome</code></td></tr>
+<tr><td><code>jform[title]</code></td><td><code>jform.title</code></td></tr>
+<tr><td><code>documentos[]</code></td><td><code>documentos</code></td></tr>
+</tbody></table></div>
+<p>Nos métodos (<code>$form.getValue('itens[0][nome]')</code>) você pode usar qualquer uma das duas formas.</p>
+
+<h2 id="configuracao" data-titulo="Configuração em camadas">Configuração em camadas</h2>
+<p>Do mais fraco para o mais forte:</p>
+<ol class="passos">
+    <li>Padrão da biblioteca.</li>
+    <li><code>AlpineForm.configure({ … })</code> — vale para todos os formulários da página.</li>
+    <li><code>x-form="{ … }"</code> — objeto no próprio form.</li>
+    <li>Atributos <code>data-form-*</code> no <code>&lt;form&gt;</code>.</li>
+    <li>Para opções de campo (modo de validação, debounce, erros, ocultos…): atributo num elemento <strong>acima do campo</strong> dentro do form (um <code>&lt;fieldset&gt;</code>, uma <code>&lt;div&gt;</code>) e, por fim, no próprio campo.</li>
+</ol>
+@@@html Exemplo de camadas
+<script>AlpineForm.configure({ debounce: 300 })</script>
+
+<form x-data x-form="{ errors: 'all' }" action="/salvar" method="post" data-form-validation="live" novalidate>
+    <fieldset data-form-validation="submit">              <!-- este grupo só valida no envio -->
+        <input name="observacao" data-form-v="max:500">
+    </fieldset>
+    <input name="cep" data-form-v="required|cep" data-form-debounce="0">   <!-- ao revalidar durante a digitação, sem espera -->
+</form>
+@@@
+
+<h2 id="estrito" data-titulo="Nada é ignorado em silêncio">Nada é ignorado em silêncio</h2>
+<p>Um atributo <code>data-form-*</code> desconhecido, uma regra escrita errado (<code>requried</code>), um parâmetro inválido (<code>min:abc</code>) ou um módulo não carregado viram <strong>erro de configuração</strong>:</p>
+<ul>
+    <li>o campo mostra "Este campo tem uma configuração inválida e não pode ser validado.";</li>
+    <li>o console mostra o motivo exato (e sugere a regra certa: "Você quis dizer "required"?");</li>
+    <li>o envio é bloqueado — um formulário mal configurado nunca é enviado "sem validar".</li>
+</ul>
+
+<h2 id="quando-aparece" data-titulo="Quando o erro aparece">Quando o erro aparece</h2>
+<p>No modo padrão (<code>live</code>), o erro de um campo só aparece depois que a pessoa <strong>sai do campo</strong> pela primeira vez ou tenta <strong>enviar</strong>. A partir daí, o campo é revalidado enquanto ela digita. Selects, radios e checkboxes validam ao mudar. Outros modos em <a href="validacao.html#modos">Validação</a>.</p>
+
+<h2 id="fases" data-titulo="Fases do envio">Fases do envio</h2>
+<p><code>$form.phase</code> diz em que ponto o envio está. O atributo <code>data-form-state</code> do form recebe o mesmo valor (útil para CSS).</p>
+<div class="tabela"><table><thead><tr><th>Fase</th><th>Significado</th><th>Atalho booleano</th></tr></thead><tbody>
+<tr><td><code>idle</code></td><td>Parado.</td><td>—</td></tr>
+<tr><td><code>validating</code></td><td>Validando todos os campos antes de enviar.</td><td><code>submitting</code></td></tr>
+<tr><td><code>uploading</code></td><td>Enviando os bytes.</td><td><code>submitting</code>, <code>uploading</code></td></tr>
+<tr><td><code>paused</code></td><td>Upload em partes pausado.</td><td><code>submitting</code>, <code>uploading</code>, <code>paused</code></td></tr>
+<tr><td><code>awaiting</code></td><td>Tudo enviado; esperando a resposta do servidor.</td><td><code>submitting</code>, <code>awaitingResponse</code></td></tr>
+<tr><td><code>processing</code></td><td>Servidor aceitou (202) e está processando; a biblioteca acompanha.</td><td><code>submitting</code>, <code>processing</code></td></tr>
+<tr><td><code>success</code></td><td>Concluído com sucesso.</td><td><code>success</code></td></tr>
+<tr><td><code>error</code></td><td>Falhou (validação do servidor, rede, HTTP…).</td><td><code>failed</code></td></tr>
+<tr><td><code>canceled</code></td><td>Cancelado pelo usuário.</td><td><code>canceled</code></td></tr>
+</tbody></table></div>
+<div class="nota dica"><strong class="rotulo">100% não é concluído</strong><p>Quando a barra chega a 100%, o arquivo saiu do navegador, mas o servidor ainda vai gravar e responder (e pode recusar). Por isso existe a fase <code>awaiting</code> ("Envio concluído. Aguardando resposta do servidor…"). Só <code>success</code> significa que deu certo.</p></div>
+
+<h2 id="estado-campo" data-titulo="Estado de cada campo">Estado de cada campo</h2>
+<p><code>$form.fields['email']</code> (ou <code>$form.field('email')</code>):</p>
+<div class="tabela"><table><thead><tr><th>Propriedade</th><th>Significado</th></tr></thead><tbody>
+<tr><td><code>value</code></td><td>Valor atual (<code>null</code> em campos de senha/sensíveis).</td></tr>
+<tr><td><code>filled</code></td><td>Tem valor.</td></tr>
+<tr><td><code>touched</code></td><td>A pessoa já saiu do campo (ou mudou a escolha).</td></tr>
+<tr><td><code>dirty</code></td><td>Valor diferente do inicial.</td></tr>
+<tr><td><code>validated</code> / <code>validating</code></td><td>Já tem resultado de validação / validação em andamento.</td></tr>
+<tr><td><code>valid</code> / <code>invalid</code></td><td>Validado e sem erros / com erros. Um campo nunca validado tem os dois <code>false</code>.</td></tr>
+<tr><td><code>errors</code></td><td>Lista de mensagens (locais + do servidor).</td></tr>
+<tr><td><code>remote</code></td><td>Validação remota: <code>idle</code>, <code>pending</code>, <code>valid</code>, <code>invalid</code>, <code>inconclusive</code>.</td></tr>
+<tr><td><code>files</code> / <code>existing</code></td><td>Arquivos selecionados / arquivos já salvos (edição).</td></tr>
+</tbody></table></div>
+<p>No formulário: <code>$form.dirty</code>, <code>$form.pristine</code>, <code>$form.validating</code>, <code>$form.errors</code> (só campos com erro), <code>$form.generalErrors</code> (erros sem campo), <code>$form.result</code>, <code>$form.error</code>, <code>$form.progress</code>, <code>$form.status</code> (texto da fase).</p>
+
+<h2 id="representacoes" data-titulo="Representações de um valor">Representações de um valor</h2>
+<p>Com máscara ou normalizador, um mesmo campo tem várias formas:</p>
+<div class="tabela"><table><thead><tr><th>Representação</th><th>CPF</th><th>Moeda</th><th>Data</th></tr></thead><tbody>
+<tr><td><code>display</code> (o que está no input)</td><td><code>529.982.247-25</code></td><td><code>R$ 1.234,50</code></td><td><code>31/12/2026</code></td></tr>
+<tr><td><code>raw</code> (só o que foi digitado de significativo)</td><td><code>52998224725</code></td><td><code>123450</code></td><td><code>31122026</code></td></tr>
+<tr><td><code>formatted</code></td><td><code>529.982.247-25</code></td><td><code>R$ 1.234,50</code></td><td><code>31/12/2026</code></td></tr>
+<tr><td><code>canonical</code> (para máquinas)</td><td><code>52998224725</code></td><td><code>1234.50</code></td><td><code>2026-12-31</code></td></tr>
+</tbody></table></div>
+<p>Você escolhe qual vai para a validação (<code>data-form-mask-validation-value</code>) e qual vai para o servidor (<code>data-form-submit-value</code>). Detalhes em <a href="mascaras.html#representacoes">Máscaras</a>.</p>
+
+<h2 id="isolamento" data-titulo="Formulários isolados">Formulários isolados</h2>
+<p>Cada <code>&lt;form x-form&gt;</code> tem seu próprio estado. Vários formulários na mesma página, inclusive com campos de mesmo nome, não interferem entre si.</p>

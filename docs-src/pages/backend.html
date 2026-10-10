@@ -1,0 +1,233 @@
+titulo: Backend (PHP, Joomla, Laravel)
+lead: Como escrever o lado do servidor que responde ao AlpineForm: PHP puro, controller do Joomla 3/4/5 e controller do Laravel, com validação, erros por campo, arquivos, CSRF e idempotência.
+---
+<div class="nota aviso"><p>O servidor sempre valida de novo. Tudo que o navegador conferiu pode ter sido burlado.</p></div>
+
+<h2 id="contrato" data-titulo="O contrato em uma linha">O contrato em uma linha</h2>
+<p>Responda JSON <code>{ "success": bool, "message": "…", "errors": { "campo": ["…"] }, "data": … }</code>, com HTTP 200 no sucesso e 422 (ou 200 com <code>success: false</code>) na falha. Detalhes em <a href="respostas-e-erros.html">Respostas e erros</a>.</p>
+
+<h2 id="php" data-titulo="PHP puro">PHP puro</h2>
+@@@php resposta.php (funções de apoio)
+<?php
+function responder(array $corpo, int $status = 200): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($corpo, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function sucesso(string $mensagem, $dados = null): void
+{
+    responder(['success' => true, 'message' => $mensagem, 'data' => $dados]);
+}
+
+function falhaValidacao(array $erros, string $mensagem = 'Confira os campos destacados.'): void
+{
+    responder(['success' => false, 'message' => $mensagem, 'errors' => $erros], 422);
+}
+@@@
+@@@php cliente-salvar.php
+<?php
+require __DIR__ . '/resposta.php';
+session_start();
+
+// CSRF: o AlpineForm envia X-CSRF-TOKEN quando a página tem <meta name="csrf-token">
+if (!hash_equals($_SESSION['csrf'] ?? '', $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) {
+    responder(['success' => false, 'message' => 'Sessão expirada. Recarregue a página.'], 419);
+}
+
+$erros = [];
+$nome = trim($_POST['nome'] ?? '');
+$cpf = preg_replace('/\D+/', '', $_POST['cpf'] ?? '');
+if (mb_strlen($nome) < 3) $erros['nome'][] = 'Informe o nome completo.';
+if (!cpfValido($cpf)) $erros['cpf'][] = 'CPF inválido.';
+if (clienteExiste($cpf)) $erros['cpf'][] = 'Já existe cliente com este CPF.';
+
+// itens[0][produto], itens[1][produto]...
+foreach ($_POST['itens'] ?? [] as $i => $item) {
+    if (trim($item['produto'] ?? '') === '') $erros["itens.$i.produto"][] = 'Informe o produto.';
+}
+
+if ($erros) falhaValidacao($erros);
+
+$id = salvarCliente($nome, $cpf);
+sucesso('Cliente salvo.', ['id' => $id]);
+@@@
+@@@php Gerando o token CSRF na página
+<?php session_start(); $_SESSION['csrf'] ??= bin2hex(random_bytes(32)); ?>
+<meta name="csrf-token" content="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+@@@
+<p>Com <code>data-form-encoding="json"</code>, leia com <code>json_decode(file_get_contents('php://input'), true)</code> em vez de <code>$_POST</code>.</p>
+
+<h2 id="joomla" data-titulo="Joomla 3, 4 e 5">Joomla 3, 4 e 5</h2>
+@@@html Formulário (tmpl)
+<form x-data x-form action="<?php echo JRoute::_('index.php?option=com_loja&task=cliente.salvar'); ?>"
+      method="post" data-form-response-adapter="joomla" novalidate>
+    <input name="jform[nome]" data-form-label="Nome" data-form-v="required|min:3">
+    <input name="jform[email]" type="email" data-form-label="E-mail" data-form-v="required|email">
+    <button type="submit" :disabled="$form.submitting">Salvar</button>
+    <p data-form-status></p>
+    <?php echo JHtml::_('form.token'); ?>
+</form>
+@@@
+@@@php Controller — Joomla 4 e 5
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\Controller\BaseController;
+use Joomla\CMS\Response\JsonResponse;
+use Joomla\CMS\Session\Session;
+
+class ClienteController extends BaseController
+{
+    public function salvar()
+    {
+        $app = Factory::getApplication();
+        $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
+        $app->sendHeaders();
+
+        if (!Session::checkToken()) {                       // campo oculto do form.token
+            echo new JsonResponse(null, Text::_('JINVALID_TOKEN'), true);
+            $app->close();
+        }
+
+        $dados = $this->input->get('jform', [], 'array');
+        $erros = [];
+        if (mb_strlen(trim($dados['nome'] ?? '')) < 3) {
+            $erros['jform[nome]'] = 'Informe o nome completo.';
+        }
+        if (!filter_var($dados['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+            $erros['jform[email]'] = 'E-mail inválido.';
+        }
+
+        if ($erros) {
+            // success:false, message, data.errors → cada erro no seu campo
+            echo new JsonResponse(['errors' => $erros], 'Confira os campos destacados.', true);
+            $app->close();
+        }
+
+        $id = $this->getModel('Cliente')->salvar($dados);
+        echo new JsonResponse(['id' => $id], 'Cliente salvo.');
+        $app->close();
+    }
+}
+@@@
+@@@php Controller — Joomla 3
+class LojaControllerCliente extends JControllerLegacy
+{
+    public function salvar()
+    {
+        $app = JFactory::getApplication();
+        $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
+        $app->sendHeaders();
+
+        if (!JSession::checkToken()) {
+            echo new JResponseJson(null, JText::_('JINVALID_TOKEN'), true);
+            $app->close();
+        }
+        // ... mesma validação ...
+        echo new JResponseJson(['id' => $id], 'Cliente salvo.');
+        $app->close();
+    }
+}
+@@@
+<ul>
+    <li><code>JsonResponse(dados, mensagem, erro)</code> produz <code>{ success, message, messages, data }</code>, exatamente o que <code>data-form-response-adapter="joomla"</code> lê.</li>
+    <li>Mensagens de <code>$app-&gt;enqueueMessage('…', 'error')</code> (e <code>warning</code>) entram no resumo de erros.</li>
+    <li>Erros por campo em <code>data.errors</code>, com o nome do HTML (<code>jform[nome]</code>) ou com ponto (<code>jform.nome</code>).</li>
+    <li>O token do Joomla vai no campo oculto gerado por <code>form.token</code>, enviado como qualquer outro campo.</li>
+</ul>
+
+<h2 id="laravel" data-titulo="Laravel">Laravel</h2>
+@@@html Formulário (Blade)
+<form x-data x-form action="{{ route('clientes.store') }}" method="post" data-form-response-adapter="laravel" novalidate>
+    <input name="nome" data-form-v="required|min:3">
+    <input name="email" type="email" data-form-v="required|email"
+           data-form-remote="{{ route('clientes.email-disponivel') }}">
+    <input name="itens[0][produto]" data-form-label="Produto" data-form-v="required">
+    <button type="submit">Salvar</button>
+    <p data-form-status></p>
+</form>
+@@@
+@@@php app/Http/Controllers/ClienteController.php
+public function store(Request $request)
+{
+    // falha → 422 { message, errors: { "email": [...], "itens.0.produto": [...] } } automaticamente
+    $dados = $request->validate([
+        'nome' => ['required', 'min:3'],
+        'email' => ['required', 'email', 'unique:clientes,email'],
+        'itens' => ['required', 'array'],
+        'itens.*.produto' => ['required', 'string'],
+    ]);
+
+    $cliente = Cliente::create($dados);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Cliente salvo.',
+        'data' => ['id' => $cliente->id],
+        'redirect' => route('clientes.show', $cliente),   // com data-form-redirect="response"
+    ]);
+}
+
+public function emailDisponivel(Request $request)
+{
+    $existe = Cliente::where('email', $request->input('email'))->exists();
+    return response()->json(['valid' => !$existe, 'message' => $existe ? 'E-mail já cadastrado.' : null]);
+}
+@@@
+<ul>
+    <li>O Laravel responde JSON (e não redireciona) porque o AlpineForm envia <code>X-Requested-With: XMLHttpRequest</code> e <code>Accept</code> com JSON.</li>
+    <li>O CSRF segue no cabeçalho <code>X-CSRF-TOKEN</code> a partir de <code>&lt;meta name="csrf-token" content="{{ csrf_token() }}"&gt;</code>; token expirado = 419, mostrado como "O token de segurança expirou. Recarregue a página e tente novamente.".</li>
+    <li>Arquivos: <code>$request-&gt;file('documentos')</code>; erros como <code>documentos.1</code> vão para o 2º arquivo.</li>
+</ul>
+
+<h2 id="arquivos" data-titulo="Recebendo arquivos com segurança">Recebendo arquivos com segurança</h2>
+@@@php
+$arquivo = $_FILES['contrato'];
+if ($arquivo['error'] !== UPLOAD_ERR_OK) falhaValidacao(['contrato' => 'Envie o contrato.']);
+
+$mime = (new finfo(FILEINFO_MIME_TYPE))->file($arquivo['tmp_name']);   // conteúdo real, não o nome
+if ($mime !== 'application/pdf') falhaValidacao(['contrato' => 'O arquivo não é um PDF.']);
+if ($arquivo['size'] > 5_000_000) falhaValidacao(['contrato' => 'Máximo 5 MB.']);
+
+$destino = '/dados/privados/' . bin2hex(random_bytes(16)) . '.pdf';   // fora da pasta pública, nome novo
+move_uploaded_file($arquivo['tmp_name'], $destino);
+@@@
+
+<h2 id="idempotencia" data-titulo="Idempotência">Idempotência</h2>
+<p>Com <code>data-form-idempotency</code>, cada envio traz <code>Idempotency-Key</code>. Guarde a resposta por chave e devolva a mesma se a chave voltar:</p>
+@@@php
+$chave = $_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null;
+if ($chave) {
+    $salva = $db->fetch('SELECT corpo, status FROM respostas_idempotentes WHERE chave = ? AND usuario = ?', [$chave, $usuarioId]);
+    if ($salva) {
+        http_response_code((int) $salva['status']);
+        header('Content-Type: application/json; charset=utf-8');
+        exit($salva['corpo']);                     // mesma resposta, nenhum pedido novo
+    }
+}
+
+$corpo = json_encode(['success' => true, 'message' => 'Pedido criado.', 'data' => ['id' => criarPedido()]]);
+if ($chave) $db->insert('respostas_idempotentes', ['chave' => $chave, 'usuario' => $usuarioId, 'status' => 200, 'corpo' => $corpo]);
+header('Content-Type: application/json; charset=utf-8');
+echo $corpo;
+@@@
+<p>O backend de referência faz isso com trava e também detecta a mesma chave com dados diferentes (422) ou ainda em processamento (409): <code>server/src/Idempotency.php</code>.</p>
+
+<h2 id="chunks" data-titulo="Upload em partes e jobs">Upload em partes e jobs</h2>
+<p>Esses protocolos têm mais estado (sessões, partes, fila). Em vez de reescrever do zero, use como modelo o backend de referência deste repositório:</p>
+<div class="tabela"><table><thead><tr><th>Arquivo</th><th>O que faz</th></tr></thead><tbody>
+<tr><td><code>server/router.php</code></td><td>Roteador para <code>php -S</code>.</td></tr>
+<tr><td><code>server/src/Api.php</code></td><td>Todos os endpoints dos exemplos, com o formato de resposta.</td></tr>
+<tr><td><code>server/src/ChunkStore.php</code></td><td>Protocolo de <a href="chunks.html">upload em partes</a>: sessões, partes atômicas, hash, montagem, tokens, limpeza.</td></tr>
+<tr><td><code>server/src/JobQueue.php</code> e <code>server/bin/worker.php</code></td><td>Fila e worker de <a href="processamento.html">processamento</a>.</td></tr>
+<tr><td><code>server/src/Idempotency.php</code></td><td>Idempotência com trava.</td></tr>
+<tr><td><code>server/src/UploadInspector.php</code></td><td>Conferência do conteúdo real dos arquivos.</td></tr>
+<tr><td><code>server/bin/cleanup.php</code></td><td>Remove uploads e tokens expirados (agende no cron).</td></tr>
+</tbody></table></div>
+@@@txt Rodando o backend de referência
+npm run serve                  # http://127.0.0.1:8080/examples/
+php server/bin/worker.php      # em outro terminal, para jobs
+php server/tests/run.php       # testes do backend
+@@@

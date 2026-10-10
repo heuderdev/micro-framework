@@ -1,0 +1,142 @@
+titulo: Máscaras
+lead: Formatação durante a digitação com cursor preservado, colagem, seleção e IME, separando o valor exibido do valor validado e do enviado. Requer alpine-form-masks.
+---
+<div class="nota aviso"><strong class="rotulo">Máscara não é validação</strong><p><code>529.982.247-24</code> está bem formatado e é um CPF inválido. Use sempre a máscara <strong>junto</strong> com a regra: <code>data-form-mask="cpf" data-form-v="required|cpf"</code>.</p></div>
+
+<h2 id="disponiveis" data-titulo="Máscaras disponíveis">Máscaras disponíveis</h2>
+<div class="tabela"><table><thead><tr><th><code>data-form-mask</code></th><th>Exibe</th><th>Valida (padrão)</th><th>Envia (padrão)</th></tr></thead><tbody>
+<tr><td><code>cpf</code></td><td><code>529.982.247-25</code></td><td>raw <code>52998224725</code></td><td>formatted</td></tr>
+<tr><td><code>cnpj</code></td><td><code>11.222.333/0001-81</code> · <code>12.ABC.345/01DE-35</code></td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>cpf_cnpj</code></td><td>CPF até 11 dígitos; CNPJ com mais ou com letra</td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>cep</code></td><td><code>01310-100</code></td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>telefone_fixo</code></td><td><code>(11) 3456-7890</code></td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>celular</code></td><td><code>(11) 98765-4321</code></td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>telefone_br</code></td><td>fixo até 10 dígitos, celular com 11</td><td>raw</td><td>formatted</td></tr>
+<tr><td><code>card</code></td><td><code>4111 1111 1111 1111</code> (agrupamento da bandeira)</td><td>raw</td><td>raw</td></tr>
+<tr><td><code>date</code></td><td><code>31/12/2026</code></td><td>canonical <code>2026-12-31</code></td><td>canonical</td></tr>
+<tr><td><code>time</code></td><td><code>14:30</code></td><td>canonical <code>14:30</code></td><td>canonical</td></tr>
+<tr><td><code>month_year</code></td><td><code>12/2026</code></td><td>canonical <code>2026-12</code></td><td>canonical</td></tr>
+<tr><td><code>integer</code></td><td><code>1.234</code></td><td>canonical <code>1234</code></td><td>canonical</td></tr>
+<tr><td><code>decimal</code></td><td><code>1.234,56</code></td><td>canonical <code>1234.56</code></td><td>canonical</td></tr>
+<tr><td><code>currency</code></td><td><code>R$ 1.234,56</code></td><td>canonical <code>1234.56</code></td><td>canonical</td></tr>
+<tr><td><code>percent</code></td><td><code>12,5%</code></td><td>canonical <code>12.5</code></td><td>canonical</td></tr>
+<tr><td><code>pattern</code></td><td>o padrão de <code>data-form-mask-pattern</code></td><td>formatted</td><td>formatted</td></tr>
+</tbody></table></div>
+<p>Máscaras só em <code>input type="text"</code>, <code>tel</code>, <code>search</code> ou <code>textarea</code>. O <code>inputmode</code> adequado (teclado numérico no celular) é adicionado se você não declarou um.</p>
+
+<h2 id="representacoes" data-titulo="Escolhendo o que validar e o que enviar">Escolhendo o que validar e o que enviar</h2>
+<div class="tabela"><table><thead><tr><th>Representação</th><th>O que é</th></tr></thead><tbody>
+<tr><td><code>raw</code></td><td>Só os caracteres significativos, sem pontuação. Na moeda, sinal + dígitos digitados (não é um número).</td></tr>
+<tr><td><code>formatted</code></td><td>Como aparece no campo.</td></tr>
+<tr><td><code>canonical</code></td><td>Forma para máquinas: documentos sem pontuação, datas ISO, números com ponto e casas fixas (texto, nunca <code>Number</code>).</td></tr>
+</tbody></table></div>
+@@@html
+<!-- enviar CPF sem pontuação -->
+<input name="cpf" data-form-mask="cpf" data-form-v="required|cpf" data-form-submit-value="raw">
+
+<!-- validar e enviar o CEP formatado -->
+<input name="cep" data-form-mask="cep" data-form-v="required|pattern" data-form-pattern="^\d{5}-\d{3}$"
+       data-form-mask-validation-value="formatted">
+@@@
+<p>Nunca há um input hidden duplicado: o valor enviado é calculado no momento do envio. Para ler pelo código: <code>$form.getValue('cpf', { as: 'raw' })</code>.</p>
+
+<h2 id="documentos" data-titulo="Documentos">CPF, CNPJ e CPF/CNPJ</h2>
+@@@html
+<input name="cpf" data-form-mask="cpf" data-form-v="required|cpf" data-form-submit-value="raw">
+<input name="cnpj" data-form-mask="cnpj" data-form-v="required|cnpj" data-form-submit-value="raw">
+<input name="documento" data-form-mask="cpf_cnpj" data-form-v="required|cpf_cnpj" data-form-submit-value="raw">
+@@@
+<p><code>cnpj</code> aceita letras nas 12 primeiras posições (CNPJ alfanumérico), convertidas para maiúsculas. <code>cpf_cnpj</code> troca o formato sozinho: até 11 dígitos sem letra → CPF; mais que isso ou com letra → CNPJ.</p>
+
+<h2 id="contato" data-titulo="Telefone e CEP">Telefone e CEP</h2>
+@@@html
+<input name="telefone" type="tel" data-form-mask="telefone_br" data-form-v="required|telefone" data-form-submit-value="raw">
+<input name="whatsapp" type="tel" data-form-mask="celular" data-form-v="required|telefone:celular">
+<input name="fixo" type="tel" data-form-mask="telefone_fixo" data-form-v="telefone:fixo">
+<input name="cep" data-form-mask="cep" data-form-mask-placeholder="_" data-form-v="required|cep">
+@@@
+<p>Colar <code>(11) 98765-4321</code> ou <code>11987654321</code> dá o mesmo resultado. <code>data-form-mask-placeholder="_"</code> mostra <code>_____-___</code> como placeholder (se o input não tiver um).</p>
+
+<h2 id="numericas" data-titulo="Moeda, decimal, inteiro e percentual">Moeda, decimal, inteiro e percentual</h2>
+@@@html
+<input name="valor" data-form-mask="currency" data-form-v="required|min_value:0.01">
+<input name="peso" data-form-mask="decimal" data-form-mask-scale="3" data-form-v="required|positive">
+<input name="quantidade" data-form-mask="integer" data-form-v="required|min:1">
+<input name="desconto" data-form-mask="percent" data-form-mask-scale="1" data-form-v="numeric|max:100">
+<input name="saldo" data-form-mask="currency" data-form-mask-negative data-form-v="numeric">
+<input name="preco_usd" data-form-mask="currency" data-form-mask-locale="en-US" data-form-mask-currency="USD">
+@@@
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-mask-scale</code></td><td>moeda: casas da moeda (2); decimal: 2; inteiro: 0</td><td>Casas decimais (0 a 10). Casas a mais são <strong>descartadas</strong>, não arredondadas.</td></tr>
+<tr><td><code>data-form-mask-negative</code></td><td>falso</td><td>Permite <code>-</code>. Sem ele, o sinal é ignorado.</td></tr>
+<tr><td><code>data-form-mask-pad</code></td><td>moeda: verdadeiro; outros: falso</td><td>Completa as casas ao sair do campo (<code>R$ 12,3</code> → <code>R$ 12,30</code>).</td></tr>
+<tr><td><code>data-form-mask-grouping</code></td><td>verdadeiro</td><td>Separador de milhar.</td></tr>
+<tr><td><code>data-form-mask-max-digits</code></td><td>15</td><td>Máximo de dígitos na parte inteira (1 a 30).</td></tr>
+<tr><td><code>data-form-mask-locale</code></td><td><code>pt-BR</code></td><td>Separadores e símbolo (via <code>Intl</code>).</td></tr>
+<tr><td><code>data-form-mask-currency</code></td><td><code>BRL</code></td><td>Código da moeda.</td></tr>
+</tbody></table></div>
+<p><strong>Como a pessoa digita:</strong> livremente, com vírgula para os centavos — <code>1234,5</code> mostra <code>R$ 1.234,5</code> e, ao sair, <code>R$ 1.234,50</code>. Zeros à esquerda somem (<code>0071</code> → <code>R$ 71</code>). Ao <strong>colar</strong> <code>1234.56</code>, o ponto é entendido como decimal; <code>1.234</code> (três dígitos após o ponto) como milhar.</p>
+<div class="tabela"><table><caption>Valores reais coletados no navegador</caption><thead><tr><th>Digitado</th><th>Exibido</th><th>raw</th><th>canonical</th><th>Após sair</th></tr></thead><tbody>
+<tr><td>1234,5</td><td>R$ 1.234,5</td><td>12345</td><td>1234.50</td><td>R$ 1.234,50</td></tr>
+<tr><td>-12,3 (sem negative)</td><td>R$ 12,3</td><td>123</td><td>12.30</td><td>R$ 12,30</td></tr>
+<tr><td>0071</td><td>R$ 71</td><td>71</td><td>71.00</td><td>R$ 71,00</td></tr>
+<tr><td>12,5 (percent, escala 1)</td><td>12,5%</td><td>125</td><td>12.5</td><td>12,5%</td></tr>
+</tbody></table></div>
+<p>As regras numéricas recebem o canônico (<code>1234.50</code>), então <code>min_value:0.01</code> e <code>max:100</code> funcionam sem converter nada.</p>
+
+<h2 id="datas" data-titulo="Data, hora e mês">Data, hora e mês</h2>
+@@@html
+<input name="nascimento" data-form-mask="date" data-form-v="required|date|before:today">
+<input name="horario" data-form-mask="time" data-form-v="required|date:time">
+<input name="competencia" data-form-mask="month_year" data-form-v="required|date:month">
+@@@
+<p>A pessoa vê <code>31/12/2026</code>; validação e envio usam <code>2026-12-31</code>. Uma data inexistente (<code>31/02/2026</code>) não ganha forma ISO e a regra <code>date</code> a recusa.</p>
+
+<h2 id="cartao" data-titulo="Cartão">Cartão</h2>
+@@@html
+<input name="cartao" data-form-mask="card" data-form-mask-card-brands="visa,mastercard,elo,amex"
+       data-form-v="required|card:visa,mastercard,elo,amex" autocomplete="cc-number">
+@@@
+<p>O agrupamento e o tamanho máximo seguem a bandeira detectada (Amex: 4-6-5). Validação e envio usam só os dígitos.</p>
+
+<h2 id="padrao" data-titulo="Padrão personalizado">Padrão personalizado</h2>
+@@@html
+<input name="codigo" data-form-mask="pattern" data-form-mask-pattern="AAA-9999" data-form-mask-case="upper"
+       data-form-v="required|pattern" data-form-pattern="^[A-Z]{3}-[0-9]{4}$">
+
+<input name="placa" data-form-mask="pattern" data-form-mask-pattern="AAA-9*99" data-form-mask-case="upper">
+<input name="protocolo" data-form-mask="pattern" data-form-mask-pattern="\P\R\O-99999">
+<input name="pis" data-form-mask="pattern" data-form-mask-pattern="999.99999.99-9" data-form-submit-value="raw">
+@@@
+<div class="tabela"><table><thead><tr><th>Token</th><th>Aceita</th></tr></thead><tbody>
+<tr><td><code>9</code></td><td>dígito 0–9</td></tr>
+<tr><td><code>A</code></td><td>letra (inclusive acentuada)</td></tr>
+<tr><td><code>*</code></td><td>letra ou dígito</td></tr>
+<tr><td><code>\x</code></td><td>o caractere x fixo (ex.: <code>\A</code> mostra "A" literal)</td></tr>
+<tr><td>qualquer outro</td><td>literal (<code>-</code>, <code>.</code>, <code>/</code>, espaço, parênteses…)</td></tr>
+</tbody></table></div>
+<p><code>data-form-mask-case</code>: <code>upper</code> ou <code>lower</code>. No padrão personalizado, validação e envio usam o valor formatado por padrão.</p>
+
+<h2 id="api" data-titulo="Valores iniciais, API e reset">Valores iniciais, API e reset</h2>
+@@@html
+<!-- valor vindo do servidor: formatado ao carregar, sem marcar o formulário como alterado -->
+<input name="cep" value="01310100" data-form-mask="cep">
+<input name="valor" data-form-mask="currency">
+<input name="cpf" data-form-mask="cpf">
+
+<button type="button" @click="$form.setValue('valor', '1234.5', { as: 'canonical' })">Preencher R$ 1.234,50</button>
+<button type="button" @click="$form.setValue('cpf', '52998224725')">Preencher CPF</button>
+<span x-text="$form.ready ? $form.getValue('valor', { as: 'canonical' }) : ''"></span>
+@@@
+<p><code>setValue</code> aceita <code>as: 'display'</code> (padrão), <code>'raw'</code>, <code>'formatted'</code> ou <code>'canonical'</code>; <code>getValue</code> aceita esses e mais <code>'validation'</code> e <code>'submit'</code>. O reset do formulário restaura o valor original e reaplica a formatação.</p>
+
+<h2 id="comportamento" data-titulo="Cursor, colagem e edição">Cursor, colagem e edição</h2>
+<ul>
+    <li>Digitar no meio mantém o cursor logo após o caractere digitado.</li>
+    <li><kbd>Backspace</kbd> logo depois de um separador apaga o dígito anterior (não fica "preso" no ponto).</li>
+    <li>Selecionar um trecho e digitar substitui o trecho.</li>
+    <li>Colar texto formatado ou só números produz o mesmo valor.</li>
+    <li>Teclados de composição (IME) só são formatados ao terminar a composição.</li>
+    <li>A máscara pode ser trocada dinamicamente (<code>:data-form-mask="tipo === 'pj' ? 'cnpj' : 'cpf'"</code>): o valor é reformatado a partir dos caracteres significativos.</li>
+</ul>
+<div class="nota"><p>Desfazer (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) usa o histórico do navegador e pode pular estados intermediários, porque o valor é reescrito pela máscara.</p></div>

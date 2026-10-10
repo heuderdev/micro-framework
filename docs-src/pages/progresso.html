@@ -1,0 +1,103 @@
+titulo: Progresso e cancelamento
+lead: Barra de progresso com bytes reais, velocidade, tempo restante, texto de status, botão cancelar e tempo limite — sem nenhuma animação falsa.
+---
+<h2 id="basico" data-titulo="Barra de progresso">Barra de progresso</h2>
+@@@html Com elemento progress
+<div data-form-progress>
+    <progress data-form-progress-bar max="100" aria-label="Progresso do envio"></progress>
+    <span data-form-progress-percent></span>
+    <p data-form-status></p>
+</div>
+@@@
+@@@html Com div (estilizável)
+<div data-form-progress class="caixa-progresso">
+    <div class="trilho"><div class="preenchimento" data-form-progress-bar aria-label="Enviado"></div></div>
+    <p>
+        <span data-form-progress-percent></span>
+        (<span data-form-progress-loaded></span> de <span data-form-progress-total></span>)
+        · <span data-form-progress-speed></span>
+        · restam <span data-form-progress-eta></span>
+        · <span data-form-progress-elapsed></span>
+    </p>
+    <p data-form-status></p>
+</div>
+@@@
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Recebe</th></tr></thead><tbody>
+<tr><td><code>data-form-progress</code></td><td>Contêiner: atributos <code>data-form-state</code> (a fase) e <code>aria-busy</code>. Com o CSS opcional, fica oculto em <code>idle</code>.</td></tr>
+<tr><td><code>data-form-progress-bar</code></td><td><code>&lt;progress&gt;</code>: <code>value</code>. Outro elemento: <code>style.width</code> em %, <code>role="progressbar"</code>, <code>aria-valuenow</code>/<code>aria-valuetext</code>. <code>data-indeterminate="true"</code> quando não há total.</td></tr>
+<tr><td><code>data-form-progress-percent</code></td><td><code>42%</code></td></tr>
+<tr><td><code>data-form-progress-loaded</code> / <code>-total</code></td><td><code>3,4 MB</code> / <code>8,1 MB</code></td></tr>
+<tr><td><code>data-form-progress-speed</code></td><td><code>1,2 MB/s</code> (média dos últimos 3 s)</td></tr>
+<tr><td><code>data-form-progress-eta</code></td><td>tempo restante estimado (aparece após 1 s)</td></tr>
+<tr><td><code>data-form-progress-elapsed</code></td><td>tempo decorrido</td></tr>
+<tr><td><code>data-form-status</code></td><td>texto da fase; recebe <code>role="status"</code> e <code>aria-live="polite"</code> para leitores de tela</td></tr>
+</tbody></table></div>
+@@@html Com Alpine, do seu jeito
+<div x-show="$form.uploading || $form.awaitingResponse">
+    <div class="trilho"><div class="preenchimento" :style="`width: ${$form.progress.percent ?? 0}%`"></div></div>
+    <small x-text="$form.awaitingResponse ? 'Processando no servidor…' : ($form.progress.percent ?? 0) + '%'"></small>
+</div>
+@@@
+
+<h2 id="textos" data-titulo="Textos de status">Textos de status</h2>
+<div class="tabela"><table><thead><tr><th>Fase</th><th>Texto padrão</th><th>Chave</th></tr></thead><tbody>
+<tr><td>validating</td><td>Validando…</td><td><code>status.validating</code></td></tr>
+<tr><td>uploading</td><td>Enviando… 42%</td><td><code>status.uploading_percent</code> (sem total: <code>status.uploading</code>)</td></tr>
+<tr><td>awaiting</td><td>Envio concluído. Aguardando resposta do servidor…</td><td><code>status.awaiting</code></td></tr>
+<tr><td>processing</td><td>Processando no servidor… 60%</td><td><code>status.processing_percent</code> / <code>status.processing</code></td></tr>
+<tr><td>paused</td><td>Envio pausado.</td><td><code>status.paused</code></td></tr>
+<tr><td>success</td><td>a <code>message</code> do servidor, ou "Concluído."</td><td><code>status.success</code></td></tr>
+<tr><td>error</td><td>a mensagem do erro</td><td><code>status.error</code></td></tr>
+<tr><td>canceled</td><td>Envio cancelado.</td><td><code>status.canceled</code></td></tr>
+</tbody></table></div>
+@@@js
+AlpineForm.configure({ messages: { 'status.awaiting': 'Recebido! Estamos salvando seus arquivos…' } })
+@@@
+
+<h2 id="como-medido" data-titulo="Como é medido">Como é medido</h2>
+<ul>
+    <li>Os números vêm dos eventos reais do navegador durante o envio (<code>XMLHttpRequest</code>). Nada é simulado.</li>
+    <li>Em multipart, os bytes são do corpo HTTP inteiro (inclui os separadores do multipart), então o total é um pouco maior que a soma dos arquivos.</li>
+    <li>100% = tudo saiu do navegador. Daí em diante a fase é <code>awaiting</code> até a resposta chegar.</li>
+    <li>Velocidade e tempo restante são estimativas e oscilam com a rede.</li>
+    <li>Com <code>data-form-transport="fetch"</code> não existe progresso de upload: a barra fica indeterminada.</li>
+    <li>Em localhost o envio é quase instantâneo; para ver a barra andar, use o DevTools (Network → Throttling).</li>
+</ul>
+<p>Por arquivo, num único envio, não há como medir; para isso use o <a href="chunks.html">upload em partes</a>.</p>
+
+<h2 id="cancelar" data-titulo="Cancelar">Cancelar</h2>
+@@@html
+<button type="button" data-form-cancel>Cancelar</button>
+<!-- ou -->
+<button type="button" x-show="$form.submitting" @click="$form.cancel()">Cancelar</button>
+@@@
+<p><code>[data-form-cancel]</code> fica desabilitado quando não há o que cancelar. Cancelar interrompe a requisição, leva à fase <code>canceled</code> ("Envio cancelado.") e dispara <code>form:cancel</code>; não é tratado como erro do formulário.</p>
+<div class="nota aviso"><p>Cancelar depois que o upload chegou a 100% interrompe a <strong>espera</strong>, mas o servidor pode já ter recebido e gravado. Em processamento posterior (202), cancelar só para de acompanhar — veja <a href="processamento.html#cancelar">Processamento</a>.</p></div>
+
+<h2 id="timeout" data-titulo="Tempo limite">Tempo limite</h2>
+@@@html
+<form x-data x-form action="/api/importar" method="post" data-form-timeout="2min" novalidate>
+@@@
+<div class="tabela"><table><thead><tr><th>Quando o tempo acaba</th><th><code>$form.error.kind</code></th><th>Mensagem</th></tr></thead><tbody>
+<tr><td>Ainda enviando</td><td><code>timeout</code></td><td>O servidor demorou demais para responder.</td></tr>
+<tr><td>Já enviou tudo, esperando resposta</td><td><code>unknown</code></td><td>A conexão caiu depois do envio. Não é possível confirmar se a operação foi concluída; verifique antes de enviar novamente.</td></tr>
+</tbody></table></div>
+<p>No segundo caso o servidor pode ter concluído; por isso nada é reenviado automaticamente. Use <a href="envio.html#idempotencia">idempotência</a> se reenvios duplicados forem um problema.</p>
+
+<h2 id="eventos" data-titulo="Eventos de progresso">Eventos de progresso</h2>
+@@@html
+<form x-data="{ pct: 0 }" x-form action="/api/upload" method="post"
+      @form:progress="pct = $event.detail.percent ?? 0"
+      @form:uploaded="console.log('Upload concluído, aguardando resposta')" novalidate>
+@@@
+<p><code>$event.detail</code> de <code>form:progress</code>: <code>{ loaded, total, percent, indeterminate, lengthComputable, speed, eta, elapsed, uploaded, phase }</code>.</p>
+
+<h2 id="css" data-titulo="CSS útil">CSS útil</h2>
+@@@html
+<style>
+    .trilho { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .preenchimento { height: 100%; width: 0; background: #2563eb; transition: width .2s; }
+    form[data-form-state="awaiting"] .preenchimento { background: #16a34a; }
+</style>
+@@@
+<p>O CSS opcional (<code>alpine-form.css</code>) já anima a barra indeterminada (respeitando "reduzir movimento") e esconde <code>[data-form-progress]</code> quando parado.</p>

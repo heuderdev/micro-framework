@@ -1,0 +1,106 @@
+titulo: Eventos e hooks
+lead: Reagir a cada momento do formulário com eventos DOM (@form:success no Alpine) ou com hooks de configuração que podem alterar ou impedir o envio.
+---
+<h2 id="uso" data-titulo="Como escutar">Como escutar</h2>
+<p>Os eventos são disparados no <code>&lt;form&gt;</code> e sobem (bubbling). Os dados ficam em <code>event.detail</code>.</p>
+@@@html Com Alpine
+<form x-data x-form action="/api/cadastro" method="post"
+      @form:success="$dispatch('notificar', { texto: $event.detail.result.message })"
+      @form:error="console.warn($event.detail.error.kind, $event.detail.error.message)" novalidate>
+@@@
+@@@js Com JavaScript
+document.getElementById('cadastro').addEventListener('form:success', event => {
+    console.log('Salvo:', event.detail.result.data)
+})
+
+// todos os formulários da página
+document.addEventListener('form:error', event => {
+    meuMonitoramento.registrar(event.target.id, event.detail.error)
+})
+@@@
+
+<h2 id="lista" data-titulo="Todos os eventos">Todos os eventos</h2>
+<div class="tabela"><table><thead><tr><th>Evento</th><th>Quando</th><th>Cancelável</th><th><code>detail</code></th></tr></thead><tbody>
+<tr><td><code>form:ready</code></td><td>Formulário inicializado</td><td>não</td><td><code>{ form, fields }</code></td></tr>
+<tr><td><code>form:change</code></td><td>Valor de um campo mudou</td><td>não</td><td><code>{ field, name, value, trigger }</code> (sem <code>value</code> em senha)</td></tr>
+<tr><td><code>form:validating</code></td><td>Campo começou a validar</td><td>não</td><td><code>{ field, trigger }</code></td></tr>
+<tr><td><code>form:validated</code></td><td>Campo terminou de validar</td><td>não</td><td><code>{ field, valid, errors, trigger }</code></td></tr>
+<tr><td><code>form:invalid</code></td><td><code>validate()</code>/envio encontrou erros</td><td>não</td><td><code>{ errors, trigger }</code></td></tr>
+<tr><td><code>form:before-submit</code></td><td>Início do envio, antes de validar</td><td><strong>sim</strong></td><td><code>{ submitter }</code></td></tr>
+<tr><td><code>form:submit</code></td><td>Requisição pronta, antes de sair</td><td><strong>sim</strong></td><td><code>{ request: { url, method, headers }, submitter }</code></td></tr>
+<tr><td><code>form:progress</code></td><td>A cada atualização de progresso</td><td>não</td><td>progresso + <code>phase</code></td></tr>
+<tr><td><code>form:uploaded</code></td><td>Todos os bytes enviados</td><td>não</td><td>progresso</td></tr>
+<tr><td><code>form:processing</code></td><td>Servidor respondeu 202 e a cada atualização do job</td><td>não</td><td><code>{ job }</code></td></tr>
+<tr><td><code>form:success</code></td><td>Envio concluído</td><td>não</td><td><code>{ result }</code></td></tr>
+<tr><td><code>form:error</code></td><td>Envio falhou</td><td>não</td><td><code>{ error, result }</code></td></tr>
+<tr><td><code>form:cancel</code></td><td>Envio cancelado / acompanhamento encerrado</td><td>não</td><td><code>{ reason, job }</code></td></tr>
+<tr><td><code>form:reset</code></td><td>Antes do reset (botão ou <code>reset()</code>)</td><td><strong>sim</strong></td><td><code>{ source: 'api' | 'native' }</code></td></tr>
+<tr><td><code>form:field-added</code> · <code>form:field-removed</code></td><td>Campo entrou / saiu</td><td>não</td><td><code>{ field, name }</code></td></tr>
+<tr><td><code>form:reveal</code></td><td>Antes de focar um campo com erro (disparado <strong>no campo</strong>)</td><td>sim</td><td><code>{ field, name, element }</code></td></tr>
+<tr><td><code>form:config-error</code></td><td>Erros de configuração encontrados</td><td>não</td><td><code>{ errors }</code></td></tr>
+<tr><td><code>form:destroy</code></td><td>Formulário destruído</td><td>não</td><td><code>{}</code></td></tr>
+</tbody></table></div>
+
+<h2 id="exemplos" data-titulo="Exemplos">Exemplos</h2>
+@@@html Confirmar antes de enviar
+<form x-data x-form action="/api/excluir" method="post"
+      @form:before-submit="confirm('Tem certeza?') || $event.preventDefault()" novalidate>
+@@@
+@@@html Avisar ao sair com alterações não salvas
+<form x-data x-form action="/api/perfil" method="post"
+      x-init="window.addEventListener('beforeunload', e => { if ($form.dirty && !$form.success) e.preventDefault() })" novalidate>
+@@@
+@@@html Fechar o modal no sucesso
+<div x-data="{ aberto: true }" x-show="aberto">
+    <form x-data x-form action="/api/contato" method="post" @form:success="aberto = false" novalidate>
+        ...
+    </form>
+</div>
+@@@
+@@@html Auto-salvar rascunho a cada mudança (com espera)
+<form x-data="{ timer: null }" x-form action="/api/rascunho" method="post"
+      @form:change="clearTimeout(timer); timer = setTimeout(() => $form.submit(), 1500)" novalidate>
+@@@
+@@@html Analytics
+<form x-data x-form action="/api/lead" method="post"
+      @form:invalid="gtag('event', 'form_invalido', { campos: Object.keys($event.detail.errors).join(',') })"
+      @form:success="gtag('event', 'lead_enviado')" novalidate>
+@@@
+
+<h2 id="hooks" data-titulo="Hooks de configuração">Hooks de configuração</h2>
+<p>Funções em <code>hooks</code> (no <code>AlpineForm.configure</code> ou no objeto de <code>x-form</code>). Podem ser <code>async</code>: o envio espera.</p>
+<div class="tabela"><table><thead><tr><th>Hook</th><th>Recebe</th><th>Uso</th></tr></thead><tbody>
+<tr><td><code>beforeSubmit(state, { submitter })</code></td><td>estado do form</td><td>Devolver <code>false</code> cancela o envio.</td></tr>
+<tr><td><code>beforeRequest(request, state)</code></td><td><code>{ url, method, headers, body, … }</code></td><td>Alterar cabeçalhos/URL antes de enviar.</td></tr>
+<tr><td><code>afterResponse(result, state)</code></td><td>resposta já interpretada</td><td>Log, métricas, ajustes.</td></tr>
+<tr><td><code>reveal(campo, estadoDoCampo)</code></td><td>elemento a focar</td><td>Abrir aba/accordion/modal antes do foco.</td></tr>
+</tbody></table></div>
+@@@js
+AlpineForm.configure({
+    hooks: {
+        async beforeSubmit(state) {
+            // getValue devolve o canônico ("12000.00" mesmo com máscara de moeda)
+            if (state.has('valor') && Number(state.getValue('valor')) > 10000) {
+                return confirm('Valor acima de R$ 10.000. Continuar?')
+            }
+        },
+        beforeRequest(request) {
+            request.headers['X-Tela'] = location.pathname
+        },
+        afterResponse(result) {
+            if (result.kind === 'auth') location.href = '/login'
+        },
+    },
+})
+@@@
+<h3 id="reveal">Abrir accordion antes do foco</h3>
+@@@html
+<form x-data x-form="{ hooks: { reveal: el => el.closest('details')?.setAttribute('open', '') } }"
+      action="/api/cadastro" method="post" novalidate>
+    <details>
+        <summary>Dados adicionais</summary>
+        <input name="rg" data-form-v="required">
+    </details>
+    <button type="submit">Salvar</button>
+</form>
+@@@

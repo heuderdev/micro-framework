@@ -1,0 +1,127 @@
+titulo: Interface e Bootstrap
+lead: O que o AlpineForm escreve na página (classes, elementos de erro, ARIA), o CSS opcional, o adaptador Bootstrap 5 e como trocar as classes pelas do seu CSS.
+---
+<h2 id="o-que-muda" data-titulo="O que é escrito na página">O que é escrito na página</h2>
+<div class="tabela"><table><thead><tr><th>Onde</th><th>O quê</th></tr></thead><tbody>
+<tr><td>Campo com erro</td><td>classe <code>af-invalid</code>, <code>aria-invalid="true"</code>, <code>aria-describedby</code> apontando para a mensagem</td></tr>
+<tr><td>Campo válido</td><td>classe <code>af-valid</code> (só com <code>data-form-show-valid</code>)</td></tr>
+<tr><td>Validação remota em andamento</td><td>classe <code>af-pending</code>; mensagem "Verificando..." em <code>af-error--pending</code></td></tr>
+<tr><td>Mensagem</td><td><code>&lt;div class="af-error"&gt;</code> com <code>&lt;span class="af-error__item"&gt;</code> por mensagem</td></tr>
+<tr><td>Resumo</td><td><code>af-summary</code>, <code>af-summary__title</code>, <code>af-summary__list</code>, <code>role="alert"</code></td></tr>
+<tr><td>Lista de arquivos</td><td><code>af-files</code>, <code>af-file</code>, <code>af-file--invalid</code>, <code>af-file__thumb</code>, <code>af-file__name</code>, <code>af-file__size</code>, <code>af-file__errors</code>, <code>af-file__remove</code></td></tr>
+<tr><td>Arquivo existente removido</td><td><code>af-existing--removed</code></td></tr>
+<tr><td>Dropzone com arquivo sobre ela</td><td><code>af-dropzone--over</code></td></tr>
+<tr><td><code>&lt;form&gt;</code></td><td><code>data-form-state="&lt;fase&gt;"</code>; <code>aria-busy="true"</code> durante o envio</td></tr>
+</tbody></table></div>
+<p>Tudo que a biblioteca cria leva <code>data-form-generated</code> e é removido (com os atributos ARIA originais restaurados) quando o formulário é destruído.</p>
+
+<h2 id="css" data-titulo="CSS opcional">CSS opcional</h2>
+<p><code>css/alpine-form.css</code> estiliza as classes acima, a barra indeterminada e esconde <code>[data-form-progress]</code> parado. Adapta-se ao modo escuro e é personalizável por variáveis:</p>
+@@@html
+<style>
+    :root {
+        --af-danger: #c0392b;
+        --af-success: #1e8449;
+        --af-accent: #0d6efd;
+        --af-radius: 4px;
+    }
+</style>
+@@@
+<p>Exemplos de CSS próprio usando o estado:</p>
+@@@html
+<style>
+    form[data-form-state="uploading"] .so-no-envio { display: block; }
+    form[aria-busy="true"] fieldset { opacity: .6; }
+    .af-invalid { box-shadow: 0 0 0 2px #fca5a5; }
+</style>
+@@@
+
+<h2 id="bootstrap" data-titulo="Bootstrap 5">Bootstrap 5</h2>
+@@@html
+<link rel="stylesheet" href="/css/bootstrap.min.css">
+<script src="/js/alpine-form/alpine-form.min.js"></script>
+<script src="/js/alpine-form/alpine-form-bootstrap.min.js"></script>
+<script defer src="/js/alpine.min.js"></script>
+
+<form class="card card-body" x-data x-form action="/api/cadastro" method="post" data-form-ui="bootstrap" data-form-show-valid novalidate>
+    <div class="mb-3">
+        <label class="form-label" for="nome">Nome</label>
+        <input class="form-control" id="nome" name="nome" data-form-v="required|min:3">
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="email">E-mail</label>
+        <div class="input-group">
+            <span class="input-group-text">@</span>
+            <input class="form-control" id="email" name="email" type="email" data-form-v="required|email">
+        </div>
+    </div>
+    <div class="form-floating mb-3">
+        <input class="form-control" id="cpf" name="cpf" placeholder="CPF" data-form-v="required|cpf">
+        <label for="cpf">CPF</label>
+    </div>
+    <fieldset class="mb-3">
+        <legend class="col-form-label">Contato preferido</legend>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="contato" id="c1" value="email" data-form-v="required">
+            <label class="form-check-label" for="c1">E-mail</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="contato" id="c2" value="telefone">
+            <label class="form-check-label" for="c2">Telefone</label>
+        </div>
+    </fieldset>
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="termos" name="termos" value="1" data-form-v="accepted">
+        <label class="form-check-label" for="termos">Aceito os termos</label>
+    </div>
+    <button class="btn btn-primary" type="submit" :disabled="$form.submitting">Enviar</button>
+    <div class="mt-3" data-form-progress>
+        <div class="progress"><div class="progress-bar" data-form-progress-bar></div></div>
+        <p class="small mt-1 mb-0" data-form-status></p>
+    </div>
+</form>
+@@@
+<ul>
+    <li>Classes: <code>is-invalid</code>, <code>is-valid</code>, <code>invalid-feedback</code>, resumo como <code>alert alert-danger</code>, lista de arquivos como <code>list-group</code>, botão remover <code>btn btn-sm btn-outline-danger</code>.</li>
+    <li>Posição da mensagem: depois do <code>.input-group</code>, dentro do <code>.form-floating</code>, depois do último <code>.form-check</code> (ou no fim do <code>fieldset</code> em grupos).</li>
+    <li>Para todos os formulários: <code>AlpineForm.configure({ ui: 'bootstrap' })</code>. O CSS do Bootstrap não é carregado pela biblioteca.</li>
+</ul>
+
+<h2 id="classes" data-titulo="Usar as classes do seu CSS">Usar as classes do seu CSS</h2>
+<p>Registre um adaptador que estende o padrão trocando só as classes (Tailwind, Bulma, CSS próprio):</p>
+@@@js
+const Base = AlpineForm.internals.DefaultUiAdapter
+AlpineForm.uiAdapter('tailwind', ctx => new Base(ctx, {
+    classes: {
+        invalid: 'border-red-500 ring-1 ring-red-500',
+        valid: 'border-green-600',
+        error: 'mt-1 text-sm text-red-600',
+        summary: 'rounded border border-red-300 bg-red-50 p-3 text-red-800',
+        fileList: 'mt-2 space-y-1',
+        fileItem: 'flex items-center gap-2',
+        fileRemove: 'ml-auto text-sm text-red-600 underline',
+    },
+}))
+AlpineForm.configure({ ui: 'tailwind' })
+@@@
+<p>Chaves disponíveis: <code>invalid</code>, <code>valid</code>, <code>pending</code>, <code>error</code>, <code>errorItem</code>, <code>errorPending</code>, <code>summary</code>, <code>summaryTitle</code>, <code>summaryList</code>, <code>fileList</code>, <code>fileItem</code>, <code>fileItemInvalid</code>, <code>fileThumb</code>, <code>fileName</code>, <code>fileSize</code>, <code>fileErrors</code>, <code>fileRemove</code>, <code>existingRemoved</code>, <code>dropzoneOver</code>. Use várias classes separadas por espaço.</p>
+<div class="nota"><p><code>AlpineForm.internals</code> é usado pelos módulos oficiais e não tem garantia de estabilidade entre versões. Para controle total do HTML, implemente um adaptador completo (<a href="extensoes.html#ui">Extensões › Adaptador de UI</a>).</p></div>
+
+<h2 id="sem-elemento" data-titulo="Sem nenhum elemento gerado">Sem nenhum elemento gerado</h2>
+<p>Prefere desenhar tudo com Alpine? Use <code>data-form-summary="none"</code> e mostre os erros pelo estado:</p>
+@@@html
+<div>
+    <input name="email" :class="{ 'erro': $form.hasError('email') }" data-form-v="required|email"
+           data-form-error-target="#email-erro">
+    <p id="email-erro" class="texto-erro"></p>
+</div>
+@@@
+
+<h2 id="acessibilidade" data-titulo="Acessibilidade">Acessibilidade</h2>
+<ul>
+    <li>Mensagens de campo são ligadas por <code>aria-describedby</code> e lidas ao focar o campo (não são anunciadas a cada tecla).</li>
+    <li>O resumo usa <code>role="alert"</code>; <code>[data-form-status]</code> recebe <code>role="status"</code> e <code>aria-live="polite"</code>.</li>
+    <li>No envio inválido, o foco vai para o primeiro campo com erro; a rolagem respeita "reduzir movimento".</li>
+    <li>Botões de remover arquivo têm <code>aria-label="Remover &lt;nome&gt;"</code> e o foco é preservado ao redesenhar a lista.</li>
+    <li>Do seu lado: <code>&lt;label&gt;</code> em todo campo, <code>&lt;fieldset&gt;</code>/<code>&lt;legend&gt;</code> em grupos, <code>aria-label</code> nas barras de progresso e contraste adequado.</li>
+</ul>

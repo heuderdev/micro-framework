@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arquivos · AlpineForm</title>
+<meta name="description" content="Um ou vários arquivos, remoção antes de enviar, seleção acumulada, arrastar e soltar, preview de imagem, regras de tamanho, tipo e dimensão, e edição com anexos já salvos.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Arquivos › Arquivos</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" class="ativo" aria-current="page" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Arquivos</h1>
+<p class="lead">Um ou vários arquivos, remoção antes de enviar, seleção acumulada, arrastar e soltar, preview de imagem, regras de tamanho, tipo e dimensão, e edição com anexos já salvos.</p>
+<div id="nesta-pagina"></div>
+<h2 id="unico" data-titulo="Arquivo único">Arquivo único</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/upload&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot; novalidate&gt;
+    &lt;label for=&quot;contrato&quot;&gt;Contrato (PDF até 5 MB)&lt;/label&gt;
+    &lt;input id=&quot;contrato&quot; name=&quot;contrato&quot; type=&quot;file&quot; accept=&quot;.pdf,application/pdf&quot;
+           data-form-v=&quot;required|file_max:5MB|ext:pdf|mime:application/pdf|non_empty_file&quot;
+           data-form-msg.required=&quot;Selecione o contrato em PDF.&quot;&gt;
+    &lt;button type=&quot;submit&quot;&gt;Enviar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="codigo"><pre><code data-lang="php">$arquivo = $_FILES['contrato'] ?? null;
+if (!$arquivo || $arquivo['error'] === UPLOAD_ERR_NO_FILE) { /* nenhum arquivo */ }
+// confira o conteúdo real: finfo_file(finfo_open(FILEINFO_MIME_TYPE), $arquivo['tmp_name']) === 'application/pdf'</code></pre></div>
+<p><code>accept</code> só filtra a janela de seleção; quem valida são as regras. Sem arquivo selecionado, uma parte vazia é enviada (o PHP recebe <code>UPLOAD_ERR_NO_FILE</code>), como faria o navegador.</p>
+
+<h2 id="multiplos" data-titulo="Vários arquivos com lista e remoção">Vários arquivos com lista e remoção</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input id=&quot;documentos&quot; name=&quot;documentos[]&quot; type=&quot;file&quot; multiple accept=&quot;.pdf,.jpg,.jpeg,.png&quot;
+       data-form-files-append
+       data-form-v=&quot;required|files_max:5|file_max:10MB|files_total_max:30MB|ext:pdf,jpg,jpeg,png&quot;
+       data-form-msg.file_max=&quot;Cada arquivo pode ter no máximo :max.&quot;&gt;
+&lt;div data-form-file-list=&quot;documentos[]&quot;&gt;&lt;/div&gt;</code></pre></div>
+<ul>
+    <li><code>data-form-file-list</code> mostra a lista com nome, tamanho, miniatura (imagens), erros por arquivo e botão <strong>Remover</strong>.</li>
+    <li>Remover tira o arquivo do envio, mesmo que o navegador não permita alterar o <code>input.files</code>.</li>
+    <li><code>data-form-files-append</code>: cada nova seleção <strong>soma</strong> à lista (sem ele, substitui).</li>
+    <li>Arquivos repetidos (mesmo nome, tamanho e data) são ignorados; para aceitar, <code>data-form-files-duplicates="allow"</code>.</li>
+    <li>Erros por arquivo (<code>file_max</code>, <code>ext</code>…) aparecem no item da lista e no campo.</li>
+</ul>
+<div class="codigo"><div class="titulo-codigo">No PHP, $_FILES em formato de lista</div><pre><code data-lang="php">foreach ($_FILES['documentos']['name'] as $i =&gt; $nome) {
+    $tmp = $_FILES['documentos']['tmp_name'][$i];
+    $erro = $_FILES['documentos']['error'][$i];
+    if ($erro !== UPLOAD_ERR_OK) continue;
+    // ... valide e mova ...
+}
+// erro para o 2º arquivo: $errors['documentos.1'][] = 'Arquivo corrompido.';</code></pre></div>
+
+<h2 id="lista-propria" data-titulo="Lista montada por você">Lista montada por você</h2>
+<p>Prefere seu próprio HTML? Use <code>$form.fields.&lt;campo&gt;.files</code> e <code>$form.removeFile()</code>:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;anexos[]&quot; type=&quot;file&quot; multiple data-form-files-append data-form-v=&quot;files_max:3&quot;&gt;
+&lt;ul&gt;
+    &lt;template x-for=&quot;arq in ($form.fields.anexos?.files || [])&quot; :key=&quot;arq.id&quot;&gt;
+        &lt;li&gt;
+            &lt;img x-show=&quot;arq.previewUrl&quot; :src=&quot;arq.previewUrl&quot; width=&quot;40&quot; alt=&quot;&quot;&gt;
+            &lt;span x-text=&quot;arq.name&quot;&gt;&lt;/span&gt; (&lt;span x-text=&quot;arq.sizeText&quot;&gt;&lt;/span&gt;)
+            &lt;span class=&quot;erro&quot; x-text=&quot;arq.errors.join(' ')&quot;&gt;&lt;/span&gt;
+            &lt;button type=&quot;button&quot; @click=&quot;$form.removeFile('anexos', arq.id)&quot;&gt;Remover&lt;/button&gt;
+        &lt;/li&gt;
+    &lt;/template&gt;
+&lt;/ul&gt;</code></pre></div>
+<p>Cada item: <code>{ id, name, size, sizeText, type, previewUrl, errors }</code>.</p>
+
+<h2 id="dropzone" data-titulo="Arrastar e soltar">Arrastar e soltar</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input id=&quot;fotos&quot; name=&quot;fotos[]&quot; type=&quot;file&quot; multiple accept=&quot;image/*&quot; data-form-files-append data-form-v=&quot;files_max:10|image&quot;&gt;
+&lt;div class=&quot;dropzone&quot; data-form-dropzone=&quot;fotos[]&quot;&gt;Arraste as fotos para cá&lt;/div&gt;
+&lt;div data-form-file-list=&quot;fotos[]&quot;&gt;&lt;/div&gt;</code></pre></div>
+<p>Enquanto um arquivo é arrastado sobre a área, ela recebe a classe <code>af-dropzone--over</code>. A área é um complemento: o input continua acessível pelo teclado.</p>
+
+<h2 id="imagem" data-titulo="Imagem com preview e dimensões">Imagem com preview e dimensões</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input id=&quot;foto&quot; name=&quot;foto&quot; type=&quot;file&quot; accept=&quot;image/png,image/jpeg,image/webp&quot;
+       data-form-v=&quot;required|image|file_max:5MB|width_min:200|height_min:200|aspect_ratio:1/1,0.02&quot;
+       data-form-msg.aspect_ratio=&quot;A foto precisa ser quadrada.&quot;&gt;
+&lt;div data-form-file-list=&quot;foto&quot;&gt;&lt;/div&gt;</code></pre></div>
+<ul>
+    <li>Regras de dimensão decodificam a imagem no navegador (PNG, JPEG, GIF, WebP, AVIF, BMP); o campo fica "validando" por um instante.</li>
+    <li>Miniaturas só para imagens até 20 MB e nunca para SVG (pode conter código). Desligue com <code>data-form-preview="false"</code>.</li>
+    <li>As miniaturas são liberadas da memória ao remover, limpar, resetar ou destruir o formulário.</li>
+</ul>
+
+<h2 id="pelo-codigo" data-titulo="Adicionar arquivos pelo código">Adicionar arquivos pelo código</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;button type=&quot;button&quot; @click=&quot;$form.addFiles('relatorio', [new File(['a;b\n1;2'], 'relatorio.csv', { type: 'text/csv' })])&quot;&gt;
+    Gerar CSV de exemplo
+&lt;/button&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Colar imagem da área de transferência</div><pre><code data-lang="js">document.addEventListener('paste', event =&gt; {
+    const imagens = Array.from(event.clipboardData.files).filter(f =&gt; f.type.startsWith('image/'))
+    if (imagens.length) AlpineForm.get('perfil').addFiles('foto', imagens)
+})</code></pre></div>
+
+<h2 id="edicao" data-titulo="Edição com arquivos já salvos">Edição com arquivos já salvos</h2>
+<p>Arquivos existentes são renderizados pelo servidor. "Remover" um deles gera um <strong>pedido de remoção</strong> enviado junto, separado dos arquivos novos:</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/perfil&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot; novalidate&gt;
+    &lt;ul&gt;
+        &lt;li data-form-existing=&quot;anexos[]&quot; data-form-existing-id=&quot;101&quot; data-form-existing-name=&quot;contrato.pdf&quot;&gt;
+            contrato.pdf &lt;button type=&quot;button&quot; data-form-existing-remove&gt;Remover / desfazer&lt;/button&gt;
+        &lt;/li&gt;
+        &lt;li data-form-existing=&quot;anexos[]&quot; data-form-existing-id=&quot;102&quot; data-form-existing-name=&quot;rg.jpg&quot;&gt;
+            rg.jpg &lt;button type=&quot;button&quot; data-form-existing-remove&gt;Remover / desfazer&lt;/button&gt;
+        &lt;/li&gt;
+    &lt;/ul&gt;
+
+    &lt;input name=&quot;anexos[]&quot; type=&quot;file&quot; multiple data-form-files-append
+           data-form-existing-remove-name=&quot;anexos_remover[]&quot;
+           data-form-v=&quot;required|files_max:4|file_max:10MB&quot;
+           data-form-msg.required=&quot;Mantenha ou envie pelo menos um anexo.&quot;&gt;
+    &lt;div data-form-file-list=&quot;anexos[]&quot;&gt;&lt;/div&gt;
+    &lt;button type=&quot;submit&quot;&gt;Salvar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<ul>
+    <li>O item marcado para remoção recebe a classe <code>af-existing--removed</code> e o botão <code>aria-pressed="true"</code>. Clicar de novo desfaz.</li>
+    <li>No envio vão os arquivos novos em <code>anexos[]</code> e os ids removidos em <code>anexos_remover[]</code> (padrão: <code>&lt;nome&gt;_remover[]</code>).</li>
+    <li><code>required</code>, <code>files_min</code> e <code>files_max</code> contam os existentes mantidos + os novos.</li>
+    <li>O servidor precisa conferir se os ids pertencem ao registro antes de apagar.</li>
+    <li>Pelo código: <code>$form.removeExisting('anexos', '101')</code> alterna; <code>$form.removeExisting('anexos', '101', false)</code> desfaz.</li>
+</ul>
+
+<h2 id="servidor" data-titulo="Limites do servidor">Limites do servidor</h2>
+<div class="nota aviso"><p>O PHP recusa uploads acima de <code>upload_max_filesize</code> e corpos acima de <code>post_max_size</code> <strong>antes</strong> do seu código rodar (com <code>post_max_size</code> estourado, <code>$_POST</code> e <code>$_FILES</code> chegam vazios). Mantenha <code>file_max</code>/<code>files_total_max</code> abaixo desses limites, ou use o <a href="chunks.html">upload em partes</a>. Proxies (nginx <code>client_max_body_size</code>) respondem 413, que o AlpineForm mostra como "Os dados enviados excedem o limite aceito pelo servidor.".</p></div>
+<div class="nota perigo"><p>Extensão, tipo e até dimensões conferidos no navegador podem ser falsificados. O servidor deve conferir o <strong>conteúdo real</strong> (finfo, getimagesize), renomear o arquivo e guardá-lo fora da pasta pública.</p></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="progresso.html"><small>← Anterior</small>Progresso e cancelamento</a><a class="proxima" href="inspetores.html"><small>Próxima →</small>Inspetores de arquivo</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

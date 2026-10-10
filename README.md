@@ -54,6 +54,7 @@ Alpine.start()
 
 | Documento | Conteúdo |
 |---|---|
+| [docs/index.html](docs/index.html) | **Guia completo com exemplos** (26 páginas: instalação, validação, regras, máscaras, arquivos, envio, backend PHP/Joomla/Laravel, receitas, referência rápida, erros e soluções). Abra direto no navegador ou em `npm run serve` → `/docs/index.html` |
 | [docs/contrato.md](docs/contrato.md) | Contrato final: atributos HTML, regras, máscaras, API `$form`, estado, eventos, API global |
 | [docs/integracao.md](docs/integracao.md) | Contrato de resposta do backend, CSRF, Laravel/Joomla, chunks, jobs, segurança |
 | [docs/extensao.md](docs/extensao.md) | Validadores, normalizadores, máscaras, transportes, adaptadores, componentes, plugins |
@@ -121,6 +122,8 @@ php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 | `npm run test:php` | 28 testes do backend (chunks, concorrência com processos reais, fila, idempotência, validação) | backend real, sem HTTP |
 | `npm run test:e2e` | 44 testes Playwright no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
 | `npm run test:all` | build + os três acima | |
+| `npm run docs:check` | gera `docs/*.html` a partir de `docs-src/` e confere atributos, regras, máscaras, métodos e links de todos os exemplos contra a biblioteca | estático |
+| `npm run docs:browser` | carrega cada exemplo HTML da documentação no Chrome (servidor em 127.0.0.1:8099) | navegador real |
 
 Último resultado executado (2026-10-09): unitários 168/168, PHP 28/28 (PHP 8.4.2), E2E 44/44 (Chrome).
 

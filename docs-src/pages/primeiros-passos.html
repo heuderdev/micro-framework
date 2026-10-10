@@ -1,0 +1,124 @@
+titulo: Primeiros passos
+lead: Um formulário de contato completo, do HTML ao PHP que responde, explicando o que acontece em cada etapa.
+---
+<h2 id="pagina" data-titulo="1. A página">1. A página</h2>
+@@@html contato.html
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <title>Contato</title>
+    <link rel="stylesheet" href="/js/alpine-form/alpine-form.css">
+    <script src="/js/alpine-form/alpine-form.min.js"></script>
+    <script src="/js/alpine-form/alpine-form-masks.min.js"></script>
+    <script defer src="/js/alpine.min.js"></script>
+</head>
+<body>
+<form id="contato" x-data x-form action="/contato.php" method="post" novalidate>
+    <div>
+        <label for="nome">Nome</label>
+        <input id="nome" name="nome" autocomplete="name" data-form-v="required|min:3|max:120">
+    </div>
+    <div>
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" data-form-v="required|email">
+    </div>
+    <div>
+        <label for="telefone">Telefone</label>
+        <input id="telefone" name="telefone" data-form-mask="telefone_br" data-form-v="telefone"
+               data-form-submit-value="raw">
+    </div>
+    <div>
+        <label for="mensagem">Mensagem</label>
+        <textarea id="mensagem" name="mensagem" data-form-v="required|min:10|max:2000"></textarea>
+    </div>
+
+    <button type="submit" :disabled="$form.submitting">Enviar</button>
+    <p data-form-status aria-live="polite"></p>
+    <p x-show="$form.success" x-text="$form.result && $form.result.message"></p>
+</form>
+</body>
+</html>
+@@@
+<ul>
+    <li><code>x-data</code> faz o Alpine processar o form; <code>x-form</code> liga o AlpineForm a ele.</li>
+    <li><code>novalidate</code> desliga as mensagens nativas do navegador (as do AlpineForm as substituem).</li>
+    <li>O telefone não tem <code>required</code>: é opcional, mas se preenchido precisa ser válido.</li>
+    <li><code>$form</code> é o estado do formulário, disponível em qualquer expressão Alpine dentro dele.</li>
+</ul>
+
+<h2 id="backend" data-titulo="2. O PHP que responde">2. O PHP que responde</h2>
+@@@php contato.php
+<?php
+header('Content-Type: application/json; charset=utf-8');
+
+$nome = trim($_POST['nome'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$telefone = preg_replace('/\D+/', '', $_POST['telefone'] ?? '');
+$mensagem = trim($_POST['mensagem'] ?? '');
+
+$errors = [];
+if (mb_strlen($nome) < 3) {
+    $errors['nome'][] = 'Informe seu nome.';
+}
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $errors['email'][] = 'Informe um e-mail válido.';
+}
+if ($telefone !== '' && !preg_match('/^\d{10,11}$/', $telefone)) {
+    $errors['telefone'][] = 'Telefone inválido.';
+}
+if (mb_strlen($mensagem) < 10) {
+    $errors['mensagem'][] = 'Escreva pelo menos 10 caracteres.';
+}
+
+if ($errors) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'Confira os campos destacados.', 'errors' => $errors]);
+    exit;
+}
+
+// ... grava ou envia o e-mail ...
+
+echo json_encode(['success' => true, 'message' => 'Mensagem enviada. Obrigado!', 'data' => ['protocolo' => 1234]]);
+@@@
+<p>O servidor valida <strong>de novo</strong> e responde sempre JSON. As chaves de <code>errors</code> são os <code>name</code> dos campos: cada mensagem aparece embaixo do campo correspondente.</p>
+
+<h2 id="o-que-acontece" data-titulo="3. O que acontece">3. O que acontece, passo a passo</h2>
+<ol class="passos">
+    <li><strong>Página carrega.</strong> Os quatro campos são descobertos. Nenhum erro aparece.</li>
+    <li><strong>A pessoa digita "Jo" no nome e sai do campo.</strong> Aparece "Digite pelo menos 3 caracteres." abaixo do input, que recebe <code>aria-invalid="true"</code> e a classe <code>af-invalid</code>.</li>
+    <li><strong>Ela volta e completa "João".</strong> Ao parar de digitar (200 ms), o erro some.</li>
+    <li><strong>Digita 11987654321 no telefone.</strong> A máscara mostra <code>(11) 98765-4321</code>.</li>
+    <li><strong>Clica em Enviar com a mensagem vazia.</strong> Todos os campos são validados; o foco vai para "Mensagem", que mostra "O campo Mensagem é obrigatório." (o nome vem do <code>&lt;label&gt;</code>). Nada é enviado.</li>
+    <li><strong>Corrige e envia.</strong> O botão é desabilitado (<code>$form.submitting</code>), o status mostra "Enviando…" e o POST sai com <code>telefone=11987654321</code> (sem máscara, por causa de <code>data-form-submit-value="raw"</code>).</li>
+    <li><strong>Servidor responde 200.</strong> O status mostra "Mensagem enviada. Obrigado!" e <code>$form.success</code> fica <code>true</code>.</li>
+    <li><strong>Ou responde 422.</strong> Cada mensagem de <code>errors</code> aparece no campo; o foco vai para o primeiro com erro. Ao editar o campo, o erro do servidor some.</li>
+</ol>
+
+<h2 id="melhorias" data-titulo="4. Melhorias comuns">4. Melhorias comuns</h2>
+@@@html Mensagens próprias, rótulo e limpar após sucesso
+<form id="contato" x-data x-form action="/contato.php" method="post"
+      data-form-reset-on-success novalidate>
+    <input name="nome" data-form-v="required|min:3"
+           data-form-label="seu nome"
+           data-form-msg.required="Como podemos te chamar?"
+           data-form-msg.min="Use pelo menos :min letras.">
+    ...
+</form>
+@@@
+@@@html Reagir ao sucesso com Alpine
+<form x-data="{ enviado: false }" x-form action="/contato.php" method="post"
+      @form:success="enviado = true" novalidate>
+    <template x-if="!enviado">
+        <div> ... campos ... </div>
+    </template>
+    <p x-show="enviado">Recebemos sua mensagem!</p>
+</form>
+@@@
+
+<h2 id="proximos" data-titulo="Próximos passos">Próximos passos</h2>
+<ul>
+    <li><a href="conceitos.html">Conceitos</a>: fases, estados e representações de valor.</li>
+    <li><a href="regras.html">Regras</a>: todas as validações disponíveis.</li>
+    <li><a href="receitas.html">Receitas</a>: formulários completos para copiar.</li>
+</ul>

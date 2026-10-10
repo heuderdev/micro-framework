@@ -1,0 +1,163 @@
+titulo: Tipos de campo
+lead: Como cada tipo de controle é lido, validado e enviado: texto, número, select, radio, checkbox, datas, hidden, senha, desabilitado e componentes próprios.
+---
+<h2 id="texto" data-titulo="Texto, textarea, e-mail, URL">Texto, textarea, e-mail, URL</h2>
+@@@html
+<input name="nome" data-form-v="required|min:3">
+<input name="email" type="email" data-form-v="required|email">
+<input name="site" type="url" data-form-v="url">
+<textarea name="descricao" data-form-v="max:2000"></textarea>
+@@@
+<p>O valor é o texto. Espaços nas pontas contam (use <code>data-form-normalize="trim"</code> para removê-los no valor validado e enviado, sem alterar o que aparece).</p>
+
+<h2 id="numero" data-titulo="Número">Número</h2>
+@@@html
+<input name="idade" type="number" min="0" data-form-v="required|integer|min:18">
+@@@
+<p>Em <code>type="number"</code>, <code>min</code>/<code>max</code> comparam o valor. Se o navegador não consegue ler o número digitado, o erro é "Informe um número válido em :field.". Para valores monetários com vírgula, prefira <code>type="text"</code> com máscara <code>currency</code> ou <code>decimal</code> (máscara em <code>type="number"</code> não é permitida).</p>
+
+<h2 id="select" data-titulo="Select">Select</h2>
+@@@html
+<select name="estado" data-form-v="required">
+    <option value="">Selecione</option>
+    <option value="SP">São Paulo</option>
+    <option value="MG">Minas Gerais</option>
+</select>
+@@@
+<p>A opção de valor vazio conta como "não preenchido". Valida ao mudar a seleção. Opções <code>disabled</code> são ignoradas.</p>
+
+<h2 id="select-multiplo" data-titulo="Select múltiplo">Select múltiplo</h2>
+@@@html
+<select name="estados[]" multiple data-form-v="required|min:2|max:3">
+    <option value="SP">São Paulo</option>
+    <option value="RJ">Rio de Janeiro</option>
+    <option value="MG">Minas Gerais</option>
+</select>
+@@@
+<p>O valor é uma lista; <code>min</code>/<code>max</code> contam opções selecionadas. No envio, cada opção vira uma entrada <code>estados[]</code>.</p>
+
+<h2 id="radio" data-titulo="Radio">Radio</h2>
+@@@html
+<fieldset>
+    <legend>Plano</legend>
+    <label><input type="radio" name="plano" value="basico" data-form-v="required"
+                  data-form-msg.required="Escolha um plano."> Básico</label>
+    <label><input type="radio" name="plano" value="pro"> Pro</label>
+</fieldset>
+@@@
+<p>Todos os radios de mesmo nome formam um campo. Declare as regras em <strong>um</strong> deles (ou repita exatamente iguais — valores diferentes no mesmo grupo são erro). O erro aparece no fim do <code>&lt;fieldset&gt;</code>.</p>
+
+<h2 id="checkbox" data-titulo="Checkbox individual">Checkbox individual</h2>
+@@@html
+<label><input type="checkbox" name="termos" value="1" data-form-v="accepted"> Aceito os termos</label>
+
+<label><input type="checkbox" name="newsletter" value="1" data-form-unchecked-value="0"> Receber novidades</label>
+@@@
+<p>Desmarcado, um checkbox não é enviado (comportamento do HTML). Com <code>data-form-unchecked-value</code>, o valor indicado é enviado quando desmarcado — útil para o servidor gravar "0".</p>
+
+<h2 id="checkbox-grupo" data-titulo="Grupo de checkboxes">Grupo de checkboxes</h2>
+@@@html
+<fieldset>
+    <legend>Interesses</legend>
+    <label><input type="checkbox" name="interesses[]" value="php" data-form-v="required|min:2"> PHP</label>
+    <label><input type="checkbox" name="interesses[]" value="js"> JavaScript</label>
+    <label><input type="checkbox" name="interesses[]" value="dados"> Dados</label>
+</fieldset>
+@@@
+<p>Vários checkboxes com o mesmo nome (ou um nome terminado em <code>[]</code>) formam um grupo cujo valor é a lista dos marcados.</p>
+
+<h2 id="datas" data-titulo="Datas e horas">Datas e horas</h2>
+@@@html
+<input name="nascimento" type="date" data-form-v="required|before:today">
+<input name="inicio" type="datetime-local" data-form-v="required|after:now">
+<input name="horario" type="time" data-form-v="required">
+<input name="competencia" type="month" data-form-v="required">
+
+<!-- texto com data brasileira, sem máscara -->
+<input name="emissao" data-form-date-format="br" data-form-v="required|date|before_or_equal:today">
+
+<!-- texto com tipo explícito -->
+<input name="hora_texto" data-form-date-kind="time" data-form-v="date">
+@@@
+<p>Os tipos nativos usam o formato ISO que o navegador entrega. Em campos de texto, o formato é ISO, a menos que <code>data-form-date-format="br"</code> (no campo, grupo ou form) ou uma máscara de data esteja presente.</p>
+
+<h2 id="hidden" data-titulo="Hidden">Hidden</h2>
+@@@html
+<input type="hidden" name="id" value="42">
+<input type="hidden" name="token_pagamento" data-form-v="required"
+       data-form-msg.required="Clique em “Gerar pagamento” antes de enviar.">
+@@@
+<p>Hidden sem <code>data-form-v</code> é apenas enviado. Com regras, é validado, e como não tem onde mostrar o erro, a mensagem vai para o <a href="validacao.html#resumo">resumo</a> (ou para <code>data-form-error-target</code>).</p>
+
+<h2 id="senha" data-titulo="Senha e dados sensíveis">Senha e dados sensíveis</h2>
+@@@html
+<input name="senha" type="password" data-form-v="required|min:8">
+<input name="cartao_cvv" data-form-sensitive data-form-v="required|digits:3">
+@@@
+<p>Campos <code>type="password"</code> e com <code>data-form-sensitive</code> nunca expõem o valor: <code>$form.fields.senha.value</code> é <code>null</code>, o evento <code>form:change</code> não traz o valor, <code>:value</code> nas mensagens fica vazio, normalizadores são proibidos e validação remota por GET exige autorização explícita.</p>
+
+<h2 id="desabilitado" data-titulo="Desabilitado, somente leitura e ignorado">Desabilitado, somente leitura e ignorado</h2>
+<div class="tabela"><table><thead><tr><th>Situação</th><th>Valida?</th><th>Envia?</th></tr></thead><tbody>
+<tr><td><code>disabled</code> (ou dentro de <code>&lt;fieldset disabled&gt;</code>)</td><td>Não</td><td>Não</td></tr>
+<tr><td><code>readonly</code></td><td>Sim</td><td>Sim</td></tr>
+<tr><td><code>data-form-ignore</code></td><td>Não</td><td>Sim, se tiver <code>name</code> (serialização normal do HTML)</td></tr>
+<tr><td>Sem <code>name</code></td><td>Não</td><td>Não (com <code>data-form-v</code> vira erro de configuração)</td></tr>
+<tr><td>Oculto (<code>x-show</code>) com <code>data-form-hidden="skip"</code></td><td>Não, enquanto invisível</td><td>Sim</td></tr>
+</tbody></table></div>
+@@@html Desabilitar com Alpine
+<div x-data="{ entrega: false }">
+    <label><input type="checkbox" x-model="entrega"> Entregar</label>
+    <input name="endereco" :disabled="!entrega" data-form-v="required">
+</div>
+@@@
+
+<h2 id="botoes" data-titulo="Botões de envio">Botões de envio</h2>
+@@@html
+<button type="submit" name="acao" value="rascunho" formnovalidate>Salvar rascunho</button>
+<button type="submit" name="acao" value="publicar">Publicar</button>
+<button type="submit" formaction="/api/preview" formmethod="post">Pré-visualizar</button>
+@@@
+<p>O botão clicado é enviado com seu <code>name</code>/<code>value</code>. <code>formnovalidate</code> pula a validação no cliente; <code>formaction</code>, <code>formmethod</code> e <code>formenctype</code> mudam o destino só para aquele botão.</p>
+
+<h2 id="fora-do-form" data-titulo="Campos fora do form">Campos fora do &lt;form&gt;</h2>
+@@@html
+<form id="pedido" x-data x-form action="/pedido" method="post" novalidate>...</form>
+
+<aside>
+    <input name="cupom" form="pedido" data-form-v="alphanumeric|length:8">
+</aside>
+@@@
+<p>Controles com o atributo HTML <code>form="id"</code> participam da validação e do envio. Ver também <a href="listas-dinamicas.html#data-form-for">data-form-for</a> para exibir estado fora do form.</p>
+
+<h2 id="componente" data-titulo="Componentes próprios">Componentes próprios</h2>
+<p>Um seletor de estrelas, um editor rico, um select customizado: registre um adaptador com <code>getValue</code>, <code>setValue</code> e <code>subscribe</code> e use <code>data-form-component</code> + <code>data-form-name</code>.</p>
+@@@html
+<script>
+AlpineForm.component('estrelas', {
+    getValue: el => el.getAttribute('data-valor') || '',
+    setValue(el, value) {
+        el.setAttribute('data-valor', value == null ? '' : String(value))
+    },
+    subscribe(el, notify) {
+        const onClick = event => {
+            const botao = event.target.closest('button[value]')
+            if (!botao) return
+            el.setAttribute('data-valor', botao.value)
+            notify()
+        }
+        el.addEventListener('click', onClick)
+        return () => el.removeEventListener('click', onClick)
+    },
+})
+</script>
+
+<div data-form-component="estrelas" data-form-name="nota" data-form-label="Avaliação"
+     data-form-v="required|min_value:3" role="group" aria-label="Avaliação">
+    <button type="button" value="1">★</button>
+    <button type="button" value="2">★★</button>
+    <button type="button" value="3">★★★</button>
+    <button type="button" value="4">★★★★</button>
+    <button type="button" value="5">★★★★★</button>
+</div>
+@@@
+<p>O valor entra na validação e no envio com o nome <code>nota</code>. Com <code>data-form-disabled</code> no elemento, o componente fica fora da validação e do envio.</p>

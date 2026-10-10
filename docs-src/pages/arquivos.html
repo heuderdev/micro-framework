@@ -1,0 +1,128 @@
+titulo: Arquivos
+lead: Um ou vários arquivos, remoção antes de enviar, seleção acumulada, arrastar e soltar, preview de imagem, regras de tamanho, tipo e dimensão, e edição com anexos já salvos.
+---
+<h2 id="unico" data-titulo="Arquivo único">Arquivo único</h2>
+@@@html
+<form x-data x-form action="/api/upload" method="post" enctype="multipart/form-data" novalidate>
+    <label for="contrato">Contrato (PDF até 5 MB)</label>
+    <input id="contrato" name="contrato" type="file" accept=".pdf,application/pdf"
+           data-form-v="required|file_max:5MB|ext:pdf|mime:application/pdf|non_empty_file"
+           data-form-msg.required="Selecione o contrato em PDF.">
+    <button type="submit">Enviar</button>
+</form>
+@@@
+@@@php
+$arquivo = $_FILES['contrato'] ?? null;
+if (!$arquivo || $arquivo['error'] === UPLOAD_ERR_NO_FILE) { /* nenhum arquivo */ }
+// confira o conteúdo real: finfo_file(finfo_open(FILEINFO_MIME_TYPE), $arquivo['tmp_name']) === 'application/pdf'
+@@@
+<p><code>accept</code> só filtra a janela de seleção; quem valida são as regras. Sem arquivo selecionado, uma parte vazia é enviada (o PHP recebe <code>UPLOAD_ERR_NO_FILE</code>), como faria o navegador.</p>
+
+<h2 id="multiplos" data-titulo="Vários arquivos com lista e remoção">Vários arquivos com lista e remoção</h2>
+@@@html
+<input id="documentos" name="documentos[]" type="file" multiple accept=".pdf,.jpg,.jpeg,.png"
+       data-form-files-append
+       data-form-v="required|files_max:5|file_max:10MB|files_total_max:30MB|ext:pdf,jpg,jpeg,png"
+       data-form-msg.file_max="Cada arquivo pode ter no máximo :max.">
+<div data-form-file-list="documentos[]"></div>
+@@@
+<ul>
+    <li><code>data-form-file-list</code> mostra a lista com nome, tamanho, miniatura (imagens), erros por arquivo e botão <strong>Remover</strong>.</li>
+    <li>Remover tira o arquivo do envio, mesmo que o navegador não permita alterar o <code>input.files</code>.</li>
+    <li><code>data-form-files-append</code>: cada nova seleção <strong>soma</strong> à lista (sem ele, substitui).</li>
+    <li>Arquivos repetidos (mesmo nome, tamanho e data) são ignorados; para aceitar, <code>data-form-files-duplicates="allow"</code>.</li>
+    <li>Erros por arquivo (<code>file_max</code>, <code>ext</code>…) aparecem no item da lista e no campo.</li>
+</ul>
+@@@php No PHP, $_FILES em formato de lista
+foreach ($_FILES['documentos']['name'] as $i => $nome) {
+    $tmp = $_FILES['documentos']['tmp_name'][$i];
+    $erro = $_FILES['documentos']['error'][$i];
+    if ($erro !== UPLOAD_ERR_OK) continue;
+    // ... valide e mova ...
+}
+// erro para o 2º arquivo: $errors['documentos.1'][] = 'Arquivo corrompido.';
+@@@
+
+<h2 id="lista-propria" data-titulo="Lista montada por você">Lista montada por você</h2>
+<p>Prefere seu próprio HTML? Use <code>$form.fields.&lt;campo&gt;.files</code> e <code>$form.removeFile()</code>:</p>
+@@@html
+<input name="anexos[]" type="file" multiple data-form-files-append data-form-v="files_max:3">
+<ul>
+    <template x-for="arq in ($form.fields.anexos?.files || [])" :key="arq.id">
+        <li>
+            <img x-show="arq.previewUrl" :src="arq.previewUrl" width="40" alt="">
+            <span x-text="arq.name"></span> (<span x-text="arq.sizeText"></span>)
+            <span class="erro" x-text="arq.errors.join(' ')"></span>
+            <button type="button" @click="$form.removeFile('anexos', arq.id)">Remover</button>
+        </li>
+    </template>
+</ul>
+@@@
+<p>Cada item: <code>{ id, name, size, sizeText, type, previewUrl, errors }</code>.</p>
+
+<h2 id="dropzone" data-titulo="Arrastar e soltar">Arrastar e soltar</h2>
+@@@html
+<input id="fotos" name="fotos[]" type="file" multiple accept="image/*" data-form-files-append data-form-v="files_max:10|image">
+<div class="dropzone" data-form-dropzone="fotos[]">Arraste as fotos para cá</div>
+<div data-form-file-list="fotos[]"></div>
+@@@
+<p>Enquanto um arquivo é arrastado sobre a área, ela recebe a classe <code>af-dropzone--over</code>. A área é um complemento: o input continua acessível pelo teclado.</p>
+
+<h2 id="imagem" data-titulo="Imagem com preview e dimensões">Imagem com preview e dimensões</h2>
+@@@html
+<input id="foto" name="foto" type="file" accept="image/png,image/jpeg,image/webp"
+       data-form-v="required|image|file_max:5MB|width_min:200|height_min:200|aspect_ratio:1/1,0.02"
+       data-form-msg.aspect_ratio="A foto precisa ser quadrada.">
+<div data-form-file-list="foto"></div>
+@@@
+<ul>
+    <li>Regras de dimensão decodificam a imagem no navegador (PNG, JPEG, GIF, WebP, AVIF, BMP); o campo fica "validando" por um instante.</li>
+    <li>Miniaturas só para imagens até 20 MB e nunca para SVG (pode conter código). Desligue com <code>data-form-preview="false"</code>.</li>
+    <li>As miniaturas são liberadas da memória ao remover, limpar, resetar ou destruir o formulário.</li>
+</ul>
+
+<h2 id="pelo-codigo" data-titulo="Adicionar arquivos pelo código">Adicionar arquivos pelo código</h2>
+@@@html
+<button type="button" @click="$form.addFiles('relatorio', [new File(['a;b\n1;2'], 'relatorio.csv', { type: 'text/csv' })])">
+    Gerar CSV de exemplo
+</button>
+@@@
+@@@js Colar imagem da área de transferência
+document.addEventListener('paste', event => {
+    const imagens = Array.from(event.clipboardData.files).filter(f => f.type.startsWith('image/'))
+    if (imagens.length) AlpineForm.get('perfil').addFiles('foto', imagens)
+})
+@@@
+
+<h2 id="edicao" data-titulo="Edição com arquivos já salvos">Edição com arquivos já salvos</h2>
+<p>Arquivos existentes são renderizados pelo servidor. "Remover" um deles gera um <strong>pedido de remoção</strong> enviado junto, separado dos arquivos novos:</p>
+@@@html
+<form x-data x-form action="/api/perfil" method="post" enctype="multipart/form-data" novalidate>
+    <ul>
+        <li data-form-existing="anexos[]" data-form-existing-id="101" data-form-existing-name="contrato.pdf">
+            contrato.pdf <button type="button" data-form-existing-remove>Remover / desfazer</button>
+        </li>
+        <li data-form-existing="anexos[]" data-form-existing-id="102" data-form-existing-name="rg.jpg">
+            rg.jpg <button type="button" data-form-existing-remove>Remover / desfazer</button>
+        </li>
+    </ul>
+
+    <input name="anexos[]" type="file" multiple data-form-files-append
+           data-form-existing-remove-name="anexos_remover[]"
+           data-form-v="required|files_max:4|file_max:10MB"
+           data-form-msg.required="Mantenha ou envie pelo menos um anexo.">
+    <div data-form-file-list="anexos[]"></div>
+    <button type="submit">Salvar</button>
+</form>
+@@@
+<ul>
+    <li>O item marcado para remoção recebe a classe <code>af-existing--removed</code> e o botão <code>aria-pressed="true"</code>. Clicar de novo desfaz.</li>
+    <li>No envio vão os arquivos novos em <code>anexos[]</code> e os ids removidos em <code>anexos_remover[]</code> (padrão: <code>&lt;nome&gt;_remover[]</code>).</li>
+    <li><code>required</code>, <code>files_min</code> e <code>files_max</code> contam os existentes mantidos + os novos.</li>
+    <li>O servidor precisa conferir se os ids pertencem ao registro antes de apagar.</li>
+    <li>Pelo código: <code>$form.removeExisting('anexos', '101')</code> alterna; <code>$form.removeExisting('anexos', '101', false)</code> desfaz.</li>
+</ul>
+
+<h2 id="servidor" data-titulo="Limites do servidor">Limites do servidor</h2>
+<div class="nota aviso"><p>O PHP recusa uploads acima de <code>upload_max_filesize</code> e corpos acima de <code>post_max_size</code> <strong>antes</strong> do seu código rodar (com <code>post_max_size</code> estourado, <code>$_POST</code> e <code>$_FILES</code> chegam vazios). Mantenha <code>file_max</code>/<code>files_total_max</code> abaixo desses limites, ou use o <a href="chunks.html">upload em partes</a>. Proxies (nginx <code>client_max_body_size</code>) respondem 413, que o AlpineForm mostra como "Os dados enviados excedem o limite aceito pelo servidor.".</p></div>
+<div class="nota perigo"><p>Extensão, tipo e até dimensões conferidos no navegador podem ser falsificados. O servidor deve conferir o <strong>conteúdo real</strong> (finfo, getimagesize), renomear o arquivo e guardá-lo fora da pasta pública.</p></div>

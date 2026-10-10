@@ -1,0 +1,275 @@
+titulo: Receitas
+lead: Formulários completos para copiar e adaptar: cadastro PF/PJ com endereço, busca de CEP, login, troca de senha, pedido com itens, formulário em etapas, avatar, importação de planilha e formulário em modal.
+---
+<p>Todas as receitas assumem os scripts carregados como em <a href="instalacao.html">Instalação</a> (núcleo + máscaras, e os módulos citados). Os endpoints são exemplos: troque pelos seus.</p>
+
+<h2 id="cadastro" data-titulo="Cadastro PF/PJ com endereço">Cadastro PF/PJ com endereço</h2>
+@@@html
+<form x-data="{ tipo: 'pf' }" x-form action="/api/clientes" method="post"
+      data-form-idempotency data-form-reset-on-success novalidate>
+    <fieldset>
+        <legend>Tipo</legend>
+        <label><input type="radio" name="tipo" value="pf" x-model="tipo" data-form-v="required"> Pessoa física</label>
+        <label><input type="radio" name="tipo" value="pj" x-model="tipo"> Pessoa jurídica</label>
+    </fieldset>
+
+    <label for="nome" x-text="tipo === 'pf' ? 'Nome completo' : 'Razão social'"></label>
+    <input id="nome" name="nome" data-form-v="required|min:3|max:150">
+
+    <div x-show="tipo === 'pf'" data-form-hidden="skip">
+        <label for="cpf">CPF</label>
+        <input id="cpf" name="cpf" data-form-mask="cpf" data-form-v="required_if:tipo,pf|cpf" data-form-submit-value="raw">
+    </div>
+    <div x-show="tipo === 'pj'" data-form-hidden="skip">
+        <label for="cnpj">CNPJ</label>
+        <input id="cnpj" name="cnpj" data-form-mask="cnpj" data-form-v="required_if:tipo,pj|cnpj" data-form-submit-value="raw">
+    </div>
+
+    <label for="email">E-mail</label>
+    <input id="email" name="email" type="email" data-form-v="required|email"
+           data-form-normalize="trim|lowercase"
+           data-form-remote="/api/clientes/email-disponivel" data-form-msg.remote="E-mail já cadastrado.">
+
+    <label for="telefone">Telefone</label>
+    <input id="telefone" name="telefone" type="tel" data-form-mask="telefone_br" data-form-v="required|telefone"
+           data-form-submit-value="raw">
+
+    <label for="cep">CEP</label>
+    <input id="cep" name="cep" data-form-mask="cep" data-form-v="required|cep" data-form-submit-value="raw">
+    <label for="rua">Rua</label>
+    <input id="rua" name="rua" data-form-v="required|max:150">
+    <label for="numero">Número</label>
+    <input id="numero" name="numero" data-form-v="required|max:10">
+    <label for="cidade">Cidade</label>
+    <input id="cidade" name="cidade" data-form-v="required">
+    <label for="uf">UF</label>
+    <select id="uf" name="uf" data-form-v="required"><option value="">--</option><option>SP</option><option>MG</option><option>RJ</option></select>
+
+    <label><input type="checkbox" name="termos" value="1" data-form-v="accepted" data-form-label="os termos de uso"> Aceito os termos de uso</label>
+
+    <button type="submit" :disabled="$form.submitting">Cadastrar</button>
+    <p data-form-status></p>
+</form>
+@@@
+
+<h2 id="cep" data-titulo="Preencher endereço pelo CEP">Preencher endereço pelo CEP</h2>
+<p>Acrescente ao cadastro acima: quando o CEP for válido, consulta o ViaCEP e preenche os campos (sem bloquear se o serviço falhar).</p>
+@@@html
+<form x-data="enderecoForm()" x-form action="/api/clientes" method="post"
+      @form:validated="$event.detail.field === 'cep' && $event.detail.valid && buscarCep()" novalidate>
+    <input name="cep" data-form-mask="cep" data-form-v="required|cep">
+    <input name="rua" data-form-v="required">
+    <input name="bairro">
+    <input name="cidade" data-form-v="required">
+    <input name="uf" data-form-v="required|length:2">
+    <small x-show="buscando">Buscando endereço…</small>
+</form>
+
+<script>
+function enderecoForm() {
+    return {
+        buscando: false,
+        ultimo: null,
+        async buscarCep() {
+            const cep = this.$form.getValue('cep', { as: 'raw' })
+            if (cep === this.ultimo) return
+            this.ultimo = cep
+            this.buscando = true
+            try {
+                const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                const d = await r.json()
+                if (d.erro) return this.$form.setErrors({ cep: 'CEP não encontrado.' }, { replace: false })
+                this.$form.setValue('rua', d.logradouro)
+                this.$form.setValue('bairro', d.bairro)
+                this.$form.setValue('cidade', d.localidade)
+                this.$form.setValue('uf', d.uf)
+            } catch (e) {
+                // serviço fora: a pessoa preenche manualmente
+            } finally {
+                this.buscando = false
+            }
+        },
+    }
+}
+</script>
+@@@
+
+<h2 id="login" data-titulo="Login">Login</h2>
+@@@html
+<form x-data x-form action="/api/login" method="post" data-form-redirect="response" data-form-validation="submit" novalidate>
+    <label for="login-email">E-mail</label>
+    <input id="login-email" name="email" type="email" autocomplete="username" data-form-v="required|email">
+    <label for="login-senha">Senha</label>
+    <input id="login-senha" name="senha" type="password" autocomplete="current-password" data-form-v="required">
+    <label><input type="checkbox" name="lembrar" value="1"> Manter conectado</label>
+    <button type="submit" :disabled="$form.submitting">Entrar</button>
+    <p data-form-status></p>
+</form>
+@@@
+@@@php
+// falha: 422 com erro geral (não diga qual dos dois está errado)
+responder(['success' => false, 'errors' => ['' => ['E-mail ou senha incorretos.']]], 422);
+// sucesso: { "success": true, "redirect": "/painel" }
+@@@
+
+<h2 id="senha" data-titulo="Trocar senha">Trocar senha</h2>
+@@@html
+<form x-data x-form action="/api/conta/senha" method="post" data-form-reset-on-success novalidate>
+    <label for="atual">Senha atual</label>
+    <input id="atual" name="senha_atual" type="password" autocomplete="current-password" data-form-v="required">
+    <label for="nova">Nova senha</label>
+    <input id="nova" name="senha_nova" type="password" autocomplete="new-password"
+           data-form-v="required|min:8|different:senha_atual|pattern" data-form-pattern="^(?=.*[A-Za-z])(?=.*\d)"
+           data-form-msg.pattern="Use letras e números." data-form-msg.different="A nova senha deve ser diferente da atual."
+           data-form-errors="all">
+    <label for="confirma">Confirme a nova senha</label>
+    <input id="confirma" name="senha_nova_confirmacao" type="password" autocomplete="new-password"
+           data-form-v="required|same:senha_nova" data-form-msg.same="As senhas não conferem.">
+    <button type="submit">Alterar senha</button>
+    <p data-form-status></p>
+</form>
+@@@
+
+<h2 id="pedido" data-titulo="Pedido com itens e total">Pedido com itens e total</h2>
+@@@html
+<form x-data="pedido()" x-form action="/api/pedidos" method="post" data-form-encoding="json" data-form-idempotency novalidate>
+    <template x-for="(item, i) in itens" :key="item.id">
+        <div class="linha">
+            <input :name="`itens[${i}][produto]`" x-model="item.produto" data-form-label="Produto" data-form-v="required|min:2">
+            <input :name="`itens[${i}][quantidade]`" x-model.number="item.qtd" type="number" min="1"
+                   data-form-label="Quantidade" data-form-v="required|integer|min:1|max:999">
+            <input :name="`itens[${i}][preco]`" data-form-mask="currency" data-form-label="Preço"
+                   data-form-v="required|min_value:0.01"
+                   @input="item.preco = Number($form.getValue(`itens[${i}][preco]`) || 0)">
+            <span x-text="(item.qtd * item.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })"></span>
+            <button type="button" @click="itens.splice(i, 1)" :disabled="itens.length === 1">Remover</button>
+        </div>
+    </template>
+    <button type="button" @click="itens.push({ id: ++seq, produto: '', qtd: 1, preco: 0 })">Adicionar item</button>
+
+    <p>Total: <strong x-text="total().toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })"></strong></p>
+    <button type="submit" :disabled="$form.submitting">Fechar pedido</button>
+    <p data-form-status></p>
+</form>
+<script>
+function pedido() {
+    return {
+        seq: 1,
+        itens: [{ id: 1, produto: '', qtd: 1, preco: 0 }],
+        total() { return this.itens.reduce((s, i) => s + i.qtd * i.preco, 0) },
+    }
+}
+</script>
+@@@
+<p>O total exibido é só conforto: o servidor recalcula com os preços do banco. O corpo enviado é <code>{"itens":[{"produto":"…","quantidade":"2","preco":"19.90"}]}</code> (preço canônico, sem "R$").</p>
+
+<h2 id="etapas" data-titulo="Formulário em etapas (wizard)">Formulário em etapas (wizard)</h2>
+@@@html
+<form x-data="wizard()" x-form="{ hooks: { reveal: el => irPara(el) } }"
+      action="/api/inscricao" method="post" novalidate>
+
+    <section data-etapa="1" x-show="etapa === 1">
+        <input name="nome" data-form-v="required|min:3">
+        <input name="email" type="email" data-form-v="required|email">
+        <button type="button" @click="avancar(['nome', 'email'])">Próximo</button>
+    </section>
+
+    <section data-etapa="2" x-show="etapa === 2">
+        <input name="cpf" data-form-mask="cpf" data-form-v="required|cpf">
+        <input name="nascimento" type="date" data-form-v="required|before:today">
+        <button type="button" @click="etapa = 1">Voltar</button>
+        <button type="button" @click="avancar(['cpf', 'nascimento'])">Próximo</button>
+    </section>
+
+    <section data-etapa="3" x-show="etapa === 3">
+        <label><input type="checkbox" name="termos" value="1" data-form-v="accepted"> Aceito</label>
+        <button type="button" @click="etapa = 2">Voltar</button>
+        <button type="submit" :disabled="$form.submitting">Concluir</button>
+    </section>
+    <p data-form-status></p>
+</form>
+
+<script>
+function wizard() {
+    return {
+        etapa: 1,
+        async avancar(campos) {
+            const resultados = await Promise.all(campos.map(nome => this.$form.validateField(nome)))
+            if (resultados.every(r => r.valid)) this.etapa++
+        },
+        irPara(campo) {
+            this.etapa = Number(campo.closest('[data-etapa]').dataset.etapa)
+        },
+    }
+}
+</script>
+@@@
+<p>Cada "Próximo" valida só os campos da etapa. No envio final, todos são validados; se o erro (inclusive do servidor) estiver numa etapa escondida, o hook <code>reveal</code> volta para ela antes do foco.</p>
+
+<h2 id="avatar" data-titulo="Foto de perfil">Foto de perfil</h2>
+@@@html
+<form x-data x-form action="/api/perfil/foto" method="post" enctype="multipart/form-data" novalidate>
+    <input id="foto" name="foto" type="file" accept="image/png,image/jpeg,image/webp"
+           data-form-v="required|image|file_max:5MB|width_min:200|height_min:200|aspect_ratio:1/1,0.05"
+           data-form-msg.aspect_ratio="Use uma foto quadrada.">
+    <div data-form-file-list="foto"></div>
+    <button type="submit" :disabled="$form.submitting">Salvar foto</button>
+    <div data-form-progress>
+        <progress data-form-progress-bar max="100" aria-label="Enviando foto"></progress>
+        <span data-form-status></span>
+    </div>
+</form>
+@@@
+
+<h2 id="importacao" data-titulo="Importação de planilha CSV">Importação de planilha CSV</h2>
+<p>Requer <code>alpine-form-inspectors</code> (e <code>alpine-form-chunks</code> para arquivos muito grandes). O servidor responde 202 e processa em segundo plano.</p>
+@@@html
+<form x-data x-form action="/api/importacoes" method="post" enctype="multipart/form-data"
+      data-form-job-interval="1s" data-form-job-persist novalidate>
+    <input name="planilha" type="file" accept=".csv"
+           data-form-v="required|ext:csv|file_max:50MB|csv|csv_headers:nome,email,valor"
+           data-form-csv-encoding="utf-8">
+    <div data-form-file-list="planilha"></div>
+
+    <button type="submit" :disabled="$form.submitting">Importar</button>
+    <button type="button" x-show="$form.processing" @click="$form.cancelJob()">Cancelar importação</button>
+
+    <div data-form-progress>
+        <progress data-form-progress-bar max="100" aria-label="Progresso da importação"></progress>
+        <p data-form-status></p>
+    </div>
+    <p x-show="$form.success" x-text="$form.result && ('Importadas ' + $form.result.data.linhas + ' linhas.')"></p>
+</form>
+@@@
+
+<h2 id="modal" data-titulo="Formulário em modal">Formulário em modal</h2>
+@@@html
+<div x-data="{ aberto: false }">
+    <button type="button" @click="aberto = true">Novo contato</button>
+
+    <dialog x-ref="dialogo" x-effect="aberto ? $refs.dialogo.showModal() : $refs.dialogo.close()" @close="aberto = false">
+        <template x-if="aberto">
+            <form x-data x-form action="/api/contatos" method="post"
+                  @form:success="aberto = false; $dispatch('contato-criado', $event.detail.result.data)" novalidate>
+                <input name="nome" data-form-v="required">
+                <input name="email" type="email" data-form-v="required|email">
+                <button type="submit" :disabled="$form.submitting">Salvar</button>
+                <button type="button" @click="aberto = false">Fechar</button>
+                <p data-form-status></p>
+            </form>
+        </template>
+    </dialog>
+</div>
+@@@
+<p>Com <code>x-if</code>, o formulário é criado limpo a cada abertura e destruído (com todos os recursos liberados) ao fechar.</p>
+
+<h2 id="busca" data-titulo="Filtro de busca (GET)">Filtro de busca (GET)</h2>
+@@@html
+<form x-data="{ resultados: [] }" x-form action="/api/produtos" method="get" data-form-transport="fetch"
+      @form:success="resultados = $event.detail.result.data" novalidate>
+    <input name="q" type="search" data-form-v="min:2" placeholder="Buscar…">
+    <select name="categoria"><option value="">Todas</option><option value="1">Papelaria</option></select>
+    <button type="submit">Buscar</button>
+    <ul><template x-for="p in resultados" :key="p.id"><li x-text="p.nome"></li></template></ul>
+</form>
+@@@

@@ -1,0 +1,55 @@
+titulo: Inspetores de arquivo
+lead: Conferir o conteúdo de planilhas CSV, arquivos JSON, PDF, XLSX e a duração de áudios e vídeos antes de enviar. Requer alpine-form-inspectors.
+---
+<p>Carregue <code>alpine-form-inspectors.min.js</code> depois do núcleo. Sem o módulo, essas regras são "regra desconhecida". Todas são <strong>assíncronas</strong> (leem o arquivo) e o resultado é memorizado por arquivo.</p>
+<div class="nota aviso"><p>A inspeção no navegador evita enviar o arquivo errado, mas não substitui a validação no servidor — especialmente no CSV, conferido só numa amostra.</p></div>
+
+<h2 id="csv" data-titulo="CSV">CSV</h2>
+@@@html
+<input name="planilha" type="file" accept=".csv,text/csv"
+       data-form-v="required|ext:csv|file_max:20MB|csv|csv_headers:nome,email,valor"
+       data-form-csv-delimiter="auto"
+       data-form-csv-sample="64KB">
+<div data-form-file-list="planilha"></div>
+@@@
+<div class="tabela"><table><thead><tr><th>Regra</th><th>Confere</th><th>Mensagem</th></tr></thead><tbody>
+<tr><td><code>csv</code></td><td>A amostra é um CSV válido (aspas, colunas consistentes) e está na codificação esperada.</td><td>O arquivo :file não parece um CSV válido (verificado em amostra).</td></tr>
+<tr><td><code>csv_headers:col1,col2</code></td><td>O cabeçalho contém essas colunas (sem diferenciar maiúsculas; ordem livre).</td><td>O arquivo :file deve conter as colunas: :allowed (verificado no cabeçalho).</td></tr>
+<tr><td><code>csv_columns:n</code></td><td>O cabeçalho tem exatamente n colunas.</td><td>O arquivo :file deve ter :count colunas (verificado no cabeçalho).</td></tr>
+</tbody></table></div>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Valores</th></tr></thead><tbody>
+<tr><td><code>data-form-csv-delimiter</code></td><td><code>auto</code></td><td><code>auto</code>, <code>,</code>, <code>;</code>, <code>tab</code>, <code>pipe</code></td></tr>
+<tr><td><code>data-form-csv-sample</code></td><td><code>64KB</code></td><td>tamanho lido do início do arquivo</td></tr>
+<tr><td><code>data-form-csv-encoding</code></td><td><code>utf-8</code></td><td>rótulos do <code>TextDecoder</code>, ex.: <code>windows-1252</code></td></tr>
+</tbody></table></div>
+<p>Só o início do arquivo é lido (a amostra); se o arquivo é maior, a última linha (possivelmente cortada) é descartada da análise. Linhas além da amostra só são conferidas no servidor.</p>
+
+<h2 id="json" data-titulo="JSON">JSON</h2>
+@@@html
+<input name="config" type="file" accept=".json,application/json"
+       data-form-v="required|json|json_root:object|json_keys:versao,itens"
+       data-form-json-max="2MB">
+@@@
+<div class="tabela"><table><thead><tr><th>Regra</th><th>Confere</th></tr></thead><tbody>
+<tr><td><code>json</code></td><td>JSON válido (lê o arquivo inteiro, até <code>data-form-json-max</code>, padrão 5 MB; acima disso: "O arquivo :file é grande demais para ser verificado no navegador.").</td></tr>
+<tr><td><code>json_root:object</code> · <code>json_root:array</code></td><td>Tipo da raiz.</td></tr>
+<tr><td><code>json_keys:a,b</code></td><td>A raiz (objeto) contém essas chaves.</td></tr>
+</tbody></table></div>
+
+<h2 id="assinaturas" data-titulo="PDF e XLSX">PDF e XLSX</h2>
+@@@html
+<input name="contrato" type="file" accept=".pdf" data-form-v="required|ext:pdf|pdf_signature">
+<input name="planilha" type="file" accept=".xlsx" data-form-v="required|ext:xlsx|xlsx_signature">
+@@@
+<p>Lê os primeiros bytes: <code>pdf_signature</code> exige o cabeçalho <code>%PDF-</code>; <code>xlsx_signature</code> exige a estrutura ZIP de uma planilha Excel. Pega o caso clássico do arquivo renomeado (um <code>.txt</code> chamado <code>contrato.pdf</code>).</p>
+
+<h2 id="midia" data-titulo="Áudio e vídeo">Áudio e vídeo</h2>
+@@@html
+<input name="video" type="file" accept="video/*"
+       data-form-v="required|file_max:200MB|media_duration_min:5|media_duration_max:120"
+       data-form-msg.media_duration_max="O vídeo pode ter no máximo 2 minutos.">
+@@@
+<p>A duração (em segundos) é lida pelos metadados que o navegador consegue decodificar. Formatos que o navegador não lê geram "Não foi possível ler os metadados de :file neste navegador.".</p>
+
+<h2 id="combinando" data-titulo="Combinando com processamento">Combinando com processamento</h2>
+<p>O padrão para importações: inspecionar a amostra no navegador, enviar e deixar o servidor processar o arquivo inteiro em segundo plano. Veja <a href="processamento.html">Processamento (jobs)</a> e a receita <a href="receitas.html#importacao">Importação de CSV</a>.</p>

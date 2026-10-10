@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Processamento (jobs) · AlpineForm</title>
+<meta name="description" content="Quando o servidor aceita o envio e processa depois (importação de planilha, geração de relatório, conversão de vídeo): resposta 202, acompanhamento do progresso sem sobrecarregar o servidor, cancelamento e retomada após recarregar.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Arquivos › Processamento (jobs)</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" class="ativo" aria-current="page" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Processamento (jobs)</h1>
+<p class="lead">Quando o servidor aceita o envio e processa depois (importação de planilha, geração de relatório, conversão de vídeo): resposta 202, acompanhamento do progresso sem sobrecarregar o servidor, cancelamento e retomada após recarregar.</p>
+<div id="nesta-pagina"></div>
+<h2 id="como" data-titulo="Como funciona">Como funciona</h2>
+<div class="fluxo">
+    <div class="etapa"><strong>Envio</strong><span>o formulário sobe o arquivo normalmente</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>Servidor responde 202</strong><span>{ "job": { "id", "status_url", "cancel_url" } }</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>Fase processing</strong><span>a biblioteca consulta status_url em intervalos</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>succeeded / failed / canceled</strong><span>vira success ou error no formulário</span></div>
+</div>
+<p>Nenhum atributo é necessário para ativar: basta o servidor responder 202 com <code>job</code>.</p>
+
+<h2 id="html" data-titulo="Formulário">Formulário</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/importacoes&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;
+      data-form-job-interval=&quot;1s&quot; data-form-job-max-interval=&quot;5s&quot; data-form-job-timeout=&quot;10min&quot;
+      data-form-job-persist novalidate&gt;
+    &lt;input name=&quot;planilha&quot; type=&quot;file&quot; accept=&quot;.csv&quot; data-form-v=&quot;required|ext:csv|file_max:50MB&quot;&gt;
+
+    &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Importar&lt;/button&gt;
+    &lt;button type=&quot;button&quot; data-form-cancel&gt;Parar de acompanhar&lt;/button&gt;
+    &lt;button type=&quot;button&quot; x-show=&quot;$form.processing&quot; @click=&quot;$form.cancelJob().catch(e =&gt; alert(e.message))&quot;&gt;
+        Cancelar importação
+    &lt;/button&gt;
+
+    &lt;div data-form-progress&gt;
+        &lt;progress data-form-progress-bar max=&quot;100&quot; aria-label=&quot;Progresso&quot;&gt;&lt;/progress&gt;
+        &lt;p data-form-status&gt;&lt;/p&gt;
+        &lt;p x-show=&quot;$form.job&quot; x-text=&quot;$form.job &amp;&amp; $form.job.status&quot;&gt;&lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;template x-if=&quot;$form.success &amp;&amp; $form.result.data&quot;&gt;
+        &lt;p&gt;Linhas importadas: &lt;strong x-text=&quot;$form.result.data.linhas&quot;&gt;&lt;/strong&gt;&lt;/p&gt;
+    &lt;/template&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-job-interval</code></td><td>1,5 s</td><td>Intervalo inicial entre consultas.</td></tr>
+<tr><td><code>data-form-job-max-interval</code></td><td>10 s</td><td>Sem mudanças, o intervalo cresce 1,5× até este limite.</td></tr>
+<tr><td><code>data-form-job-timeout</code></td><td>10 min</td><td>Tempo máximo acompanhando ("O processamento está demorando mais que o esperado. Consulte o status mais tarde.").</td></tr>
+<tr><td><code>data-form-job-persist</code></td><td>falso</td><td>Guarda o id do job no <code>sessionStorage</code>: ao recarregar, o acompanhamento continua.</td></tr>
+<tr><td><code>data-form-job-url</code> · <code>data-form-job-cancel-url</code></td><td>—</td><td>Modelos com <code>{id}</code> quando a resposta traz só o id: <code>/api/jobs/{id}</code>.</td></tr>
+</tbody></table></div>
+
+<h2 id="contrato" data-titulo="Respostas do servidor">Respostas do servidor</h2>
+<div class="codigo"><div class="titulo-codigo">Ao receber o envio</div><pre><code data-lang="js">HTTP 202
+{ &quot;success&quot;: true, &quot;message&quot;: &quot;Arquivo recebido. Processando…&quot;,
+  &quot;job&quot;: { &quot;id&quot;: &quot;a3c0…&quot;, &quot;status_url&quot;: &quot;/api/jobs/a3c0…&quot;, &quot;cancel_url&quot;: &quot;/api/jobs/a3c0…&quot; } }</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">GET status_url</div><pre><code data-lang="js">{ &quot;status&quot;: &quot;processing&quot;, &quot;progress&quot;: 42, &quot;message&quot;: &quot;Lendo linhas…&quot; }
+
+{ &quot;status&quot;: &quot;succeeded&quot;, &quot;progress&quot;: 100, &quot;result&quot;: { &quot;linhas&quot;: 5000 } }
+
+{ &quot;status&quot;: &quot;failed&quot;, &quot;error&quot;: { &quot;message&quot;: &quot;Coluna 'valor' ausente.&quot; } }</code></pre></div>
+<ul>
+    <li><code>status</code>: <code>queued</code>, <code>processing</code>, <code>succeeded</code>, <code>failed</code> ou <code>canceled</code> (outro valor é erro de contrato).</li>
+    <li><code>progress</code> (0 a 100) é opcional: sem ele, a barra fica indeterminada. Nunca é inventado.</li>
+    <li><code>result</code> vira <code>$form.result.data</code> no sucesso.</li>
+    <li>Também são aceitos <code>job_id</code>/<code>jobId</code> e <code>statusUrl</code>/<code>cancelUrl</code>.</li>
+    <li>Uma consulta só é feita depois que a anterior terminou. <code>Retry-After</code> é respeitado; até 5 falhas de rede seguidas são toleradas; 404/410 encerra com erro.</li>
+</ul>
+
+<h2 id="cancelar" data-titulo="Cancelar">Cancelar</h2>
+<div class="tabela"><table><thead><tr><th>Ação</th><th>O que faz</th></tr></thead><tbody>
+<tr><td><code>data-form-cancel</code> / <code>$form.cancel()</code></td><td>Para de <strong>acompanhar</strong>. O processamento continua no servidor ("Acompanhamento encerrado. O processamento pode continuar no servidor.").</td></tr>
+<tr><td><code>$form.cancelJob()</code></td><td>Envia <code>DELETE</code> para <code>cancel_url</code>, pedindo ao servidor para cancelar. O acompanhamento continua até o status virar <code>canceled</code>.</td></tr>
+</tbody></table></div>
+
+<h2 id="php" data-titulo="Servidor (PHP)">Servidor (PHP)</h2>
+<div class="codigo"><div class="titulo-codigo">importacoes.php (resumo)</div><pre><code data-lang="php">// 1. recebe o arquivo, guarda, cria o job e responde 202
+$id = bin2hex(random_bytes(16));
+move_uploaded_file($_FILES['planilha']['tmp_name'], &quot;/dados/importacoes/$id.csv&quot;);
+$db-&gt;insert('jobs', ['id' =&gt; $id, 'dono' =&gt; $usuarioId, 'status' =&gt; 'queued', 'progress' =&gt; 0]);
+
+http_response_code(202);
+echo json_encode([
+    'success' =&gt; true,
+    'message' =&gt; 'Arquivo recebido. Processando…',
+    'job' =&gt; ['id' =&gt; $id, 'status_url' =&gt; &quot;/api/jobs/$id&quot;, 'cancel_url' =&gt; &quot;/api/jobs/$id&quot;],
+]);</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">jobs.php (GET /api/jobs/{id})</div><pre><code data-lang="php">$job = $db-&gt;fetch('SELECT * FROM jobs WHERE id = ? AND dono = ?', [$id, $usuarioId]);
+if (!$job) { http_response_code(404); exit; }
+
+echo json_encode([
+    'status' =&gt; $job['status'],
+    'progress' =&gt; (int) $job['progress'],
+    'message' =&gt; $job['mensagem'],
+    'result' =&gt; $job['status'] === 'succeeded' ? json_decode($job['resultado'], true) : null,
+    'error' =&gt; $job['status'] === 'failed' ? ['message' =&gt; $job['erro']] : null,
+]);</code></pre></div>
+<p>O processamento em si roda num worker (cron, fila, supervisor), que atualiza <code>status</code> e <code>progress</code>. O backend de referência tem uma fila em arquivos e um worker real: <code>server/src/JobQueue.php</code> e <code>php server/bin/worker.php</code>.</p>
+<div class="nota"><p>Sem o worker rodando, o job fica em <code>queued</code> para sempre: a biblioteca não tem como saber que ninguém está processando, e encerra no <code>data-form-job-timeout</code>.</p></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="chunks.html"><small>← Anterior</small>Upload em partes</a><a class="proxima" href="interface.html"><small>Próxima →</small>Interface e Bootstrap</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

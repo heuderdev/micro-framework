@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extensões · AlpineForm</title>
+<meta name="description" content="Criar regras, normalizadores, componentes, transportes e adaptadores próprios sem mexer no código da biblioteca.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Integração › Extensões</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" class="ativo" aria-current="page" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Extensões</h1>
+<p class="lead">Criar regras, normalizadores, componentes, transportes e adaptadores próprios sem mexer no código da biblioteca.</p>
+<div id="nesta-pagina"></div>
+<div class="nota dica"><strong class="rotulo">Onde registrar</strong><p>Antes de o Alpine iniciar: num <code>&lt;script&gt;</code> entre <code>alpine-form.min.js</code> e o Alpine (com <code>defer</code>), ou antes de <code>Alpine.start()</code> no ESM. Registrar um nome que já existe é erro; para substituir de propósito, passe <code>{ replace: true }</code> como terceiro argumento.</p></div>
+
+<h2 id="regra" data-titulo="Regra simples">Regra simples</h2>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.validator('placa', {
+    validate: value =&gt; /^[A-Z]{3}-?\d[A-Z0-9]\d{2}$/.test(String(value).toUpperCase()),
+})
+AlpineForm.messages.placa = 'Informe uma placa no padrão antigo (ABC-1234) ou Mercosul (ABC1D23).'</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;placa&quot; data-form-v=&quot;required|placa&quot; data-form-normalize=&quot;trim|uppercase&quot;&gt;</code></pre></div>
+<p>Retornos aceitos: <code>true</code> (válido), <code>false</code> (inválido, usa a mensagem configurada), um texto (inválido, usado como mensagem se não houver uma configurada) ou <code>{ valid: false, vars: { … } }</code> com valores extras para a mensagem. A regra não roda com o campo vazio — <code>required</code> cuida disso.</p>
+
+<h2 id="parametros" data-titulo="Regra com parâmetros">Regra com parâmetros</h2>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.validator('idade_minima', {
+    params: [{ name: 'anos', type: 'integer' }],
+    validate(value, ctx) {
+        const nascimento = new Date(value + 'T00:00:00')
+        const limite = ctx.clock()
+        limite.setFullYear(limite.getFullYear() - ctx.params.anos)
+        return nascimento &lt;= limite
+    },
+})
+AlpineForm.messages.idade_minima = 'Você precisa ter pelo menos :anos anos.'</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;nascimento&quot; type=&quot;date&quot; data-form-v=&quot;required|date|idade_minima:18&quot;&gt;</code></pre></div>
+<p>Tipos de parâmetro: <code>integer</code>, <code>number</code> (decimal como texto), <code>size</code> (<code>{ bytes, text }</code>), <code>field</code> (<code>{ ref }</code>, cria dependência), <code>date-or-field</code>, <code>enum</code> (com <code>values: [...]</code>), <code>string</code>. Use <code>optional: true</code> para opcionais e <code>rest: { name, type, min }</code> para listas (<code>regra:a,b,c</code>). Parâmetro inválido vira erro de configuração com mensagem clara.</p>
+
+<h2 id="outro-campo" data-titulo="Regra que olha outro campo">Regra que olha outro campo</h2>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.validator('menor_que_salario', {
+    params: [{ name: 'salario', type: 'field' }],
+    validate(value, ctx) {
+        const salario = ctx.other(ctx.params.salario.ref)   // { value, label, ... }
+        if (!salario.value) return true
+        return AlpineForm.utils.compareDecimal(value, salario.value) &lt; 0 || { valid: false, vars: { other: salario.label } }
+    },
+})
+AlpineForm.messages.menor_que_salario = ':field deve ser menor que :other.'</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;salario&quot; data-form-mask=&quot;currency&quot; data-form-v=&quot;required&quot;&gt;
+&lt;input name=&quot;parcela&quot; data-form-mask=&quot;currency&quot; data-form-v=&quot;required|menor_que_salario:salario&quot;&gt;</code></pre></div>
+<p>Ao mudar o salário, a parcela é revalidada automaticamente (o parâmetro do tipo <code>field</code> cria a dependência).</p>
+
+<h2 id="assincrona" data-titulo="Regra assíncrona">Regra assíncrona</h2>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.validator('cep_existe', {
+    async: true,
+    async validate(value, ctx) {
+        const resposta = await fetch(`https://viacep.com.br/ws/${String(value).replace(/\D/g, '')}/json/`, { signal: ctx.signal })
+        if (!resposta.ok) return true                        // serviço fora: não bloqueia
+        const dados = await resposta.json()
+        return !dados.erro || 'CEP não encontrado.'
+    },
+})</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|cep|cep_existe&quot;&gt;</code></pre></div>
+<ul>
+    <li>Regras assíncronas só rodam se as síncronas passaram.</li>
+    <li>Passe <code>ctx.signal</code> para o <code>fetch</code>: se a pessoa digitar de novo, a consulta anterior é cancelada e o resultado antigo descartado.</li>
+    <li>Para consultar o <strong>seu</strong> servidor, prefira <a href="validacao-remota.html">data-form-remote</a> (já tem cache, debounce e política de falha).</li>
+</ul>
+
+<h2 id="ctx" data-titulo="O objeto ctx">O objeto ctx</h2>
+<div class="tabela"><table><thead><tr><th>Membro</th><th>Conteúdo</th></tr></thead><tbody>
+<tr><td><code>ctx.params</code></td><td>Parâmetros convertidos, pelo nome.</td></tr>
+<tr><td><code>ctx.field</code></td><td><code>{ name, label, kind, … }</code> do campo.</td></tr>
+<tr><td><code>ctx.other(nome)</code></td><td>Valor e dados de outro campo.</td></tr>
+<tr><td><code>ctx.signal</code></td><td><code>AbortSignal</code> da validação.</td></tr>
+<tr><td><code>ctx.clock()</code></td><td>Data atual (substituível em testes com <code>configure({ clock })</code>).</td></tr>
+<tr><td><code>ctx.attribute(nome)</code></td><td>Lê um atributo do campo.</td></tr>
+<tr><td><code>ctx.configError(msg)</code></td><td>Marca configuração inválida.</td></tr>
+</tbody></table></div>
+
+<h2 id="normalizador" data-titulo="Normalizador">Normalizador</h2>
+<p>Transforma o valor usado na validação e no envio, sem mudar o que aparece na tela. Embutidos: <code>trim</code>, <code>lowercase</code>, <code>uppercase</code>, <code>digits</code>, <code>collapse_spaces</code>, <code>decimal[:locale]</code>.</p>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.normalizer('sem_acentos', value =&gt;
+    typeof value === 'string' ? value.normalize('NFD').replace(/[̀-ͯ]/g, '') : value)</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cidade&quot; data-form-normalize=&quot;trim|sem_acentos&quot;&gt;
+&lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-normalize=&quot;trim|lowercase&quot; data-form-v=&quot;required|email&quot;&gt;
+&lt;input name=&quot;preco&quot; data-form-normalize=&quot;decimal&quot; data-form-v=&quot;numeric|min_value:0.01&quot;&gt;   &lt;!-- &quot;1.234,56&quot; → &quot;1234.56&quot; --&gt;</code></pre></div>
+
+<h2 id="componente" data-titulo="Componente próprio">Componente próprio</h2>
+<p>Qualquer widget que não é um input (editor rico, estrelas, seletor de cor, mapa) participa da validação e do envio com um adaptador:</p>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.component('editor', {
+    getValue: el =&gt; el.querySelector('[contenteditable]').innerHTML.trim(),
+    setValue(el, value) { el.querySelector('[contenteditable]').innerHTML = value ?? '' },
+    subscribe(el, notify) {
+        const area = el.querySelector('[contenteditable]')
+        area.addEventListener('input', notify)
+        return () =&gt; area.removeEventListener('input', notify)   // obrigatório: limpeza
+    },
+})</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;div data-form-component=&quot;editor&quot; data-form-name=&quot;conteudo&quot; data-form-label=&quot;Conteúdo&quot; data-form-v=&quot;required|min:20&quot;&gt;
+    &lt;div contenteditable=&quot;true&quot; class=&quot;editor&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;</code></pre></div>
+
+<h2 id="transporte" data-titulo="Transporte próprio">Transporte próprio</h2>
+<p>Muda como a requisição é feita (axios, autenticação especial, mock em testes):</p>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.transport('axios', async request =&gt; {
+    const resposta = await axios({
+        url: request.url,
+        method: request.method,
+        headers: request.headers,
+        data: request.body,
+        signal: request.signal,
+        timeout: request.timeout || 0,
+        withCredentials: request.credentials === 'include',
+        onUploadProgress: e =&gt; request.onUploadProgress?.({ loaded: e.loaded, total: e.total, lengthComputable: !!e.total }),
+        transformResponse: r =&gt; r,          // texto cru: o AlpineForm interpreta
+        validateStatus: () =&gt; true,         // erros HTTP também são respostas
+    })
+    request.onUploadComplete?.()
+    return {
+        status: resposta.status,
+        statusText: resposta.statusText,
+        url: request.url,
+        redirected: false,
+        headers: { get: nome =&gt; resposta.headers[nome.toLowerCase()] ?? null },
+        text: typeof resposta.data === 'string' ? resposta.data : JSON.stringify(resposta.data),
+    }
+})</code></pre></div>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/x&quot; method=&quot;post&quot; data-form-transport=&quot;axios&quot; novalidate&gt;</code></pre></div>
+<p>Registrar um transporte com o nome <code>remote</code>, <code>job</code> ou <code>chunk</code> faz a validação remota, o acompanhamento de jobs ou o upload em partes usá-lo.</p>
+<div class="nota"><p>Erros de rede devem ser lançados com <code>kind: 'network'</code> (ou <code>'timeout'</code>) e cancelamentos com <code>name: 'AbortError'</code>, para a biblioteca classificar corretamente.</p></div>
+
+<h2 id="resposta" data-titulo="Adaptador de resposta">Adaptador de resposta</h2>
+<p>Para APIs com outro formato de resposta. Exemplo completo em <a href="respostas-e-erros.html#outro-formato">Respostas e erros</a>.</p>
+
+<h2 id="ui" data-titulo="Adaptador de UI">Adaptador de UI</h2>
+<p>Para trocar só as classes CSS, veja <a href="interface.html#classes">Interface</a>. Para controlar todo o HTML gerado, registre uma fábrica que devolve um objeto com <code>renderField(field, view)</code>, <code>removeField(field)</code>, <code>renderSummary(view)</code>, <code>focusSummary()</code>, <code>renderFileList(field, container, items, { onRemove })</code>, <code>renderExisting(entry)</code>, <code>setDropzoneOver(el, over)</code> e <code>destroy()</code>:</p>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.uiAdapter('meu', ({ form, uid, controller }) =&gt; new MeuAdaptador(form))</code></pre></div>
+<p>Marque com <code>data-form-generated</code> tudo que o adaptador criar e remova no <code>destroy()</code>.</p>
+
+<h2 id="plugin" data-titulo="Plugin">Plugin</h2>
+<div class="codigo"><pre><code data-lang="js">export default function meuPlugin(AlpineForm) {
+    AlpineForm.validator('placa', { validate: v =&gt; /^[A-Z]{3}-?\d[A-Z0-9]\d{2}$/i.test(v) })
+    AlpineForm.messages.placa = 'Placa inválida.'
+    AlpineForm.fieldAttributes(['data-form-placa-uf'])        // novos atributos de campo aceitos
+    AlpineForm.formHook(controller =&gt; ({                       // um objeto por formulário
+        async beforeSend(ctx) { /* antes de montar a requisição */ },
+        destroy() { /* limpeza */ },
+    }))
+}
+
+AlpineForm.use(meuPlugin)   // carregar duas vezes não tem efeito</code></pre></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="eventos.html"><small>← Anterior</small>Eventos e hooks</a><a class="proxima" href="backend.html"><small>Próxima →</small>Backend (PHP, Joomla, Laravel)</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primeiros passos · AlpineForm</title>
+<meta name="description" content="Um formulário de contato completo, do HTML ao PHP que responde, explicando o que acontece em cada etapa.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Começando › Primeiros passos</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" class="ativo" aria-current="page" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Primeiros passos</h1>
+<p class="lead">Um formulário de contato completo, do HTML ao PHP que responde, explicando o que acontece em cada etapa.</p>
+<div id="nesta-pagina"></div>
+<h2 id="pagina" data-titulo="1. A página">1. A página</h2>
+<div class="codigo"><div class="titulo-codigo">contato.html</div><pre><code data-lang="html">&lt;!doctype html&gt;
+&lt;html lang=&quot;pt-BR&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;Contato&lt;/title&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;/js/alpine-form/alpine-form.css&quot;&gt;
+    &lt;script src=&quot;/js/alpine-form/alpine-form.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;/js/alpine-form/alpine-form-masks.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script defer src=&quot;/js/alpine.min.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;form id=&quot;contato&quot; x-data x-form action=&quot;/contato.php&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;div&gt;
+        &lt;label for=&quot;nome&quot;&gt;Nome&lt;/label&gt;
+        &lt;input id=&quot;nome&quot; name=&quot;nome&quot; autocomplete=&quot;name&quot; data-form-v=&quot;required|min:3|max:120&quot;&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
+        &lt;label for=&quot;email&quot;&gt;E-mail&lt;/label&gt;
+        &lt;input id=&quot;email&quot; name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
+        &lt;label for=&quot;telefone&quot;&gt;Telefone&lt;/label&gt;
+        &lt;input id=&quot;telefone&quot; name=&quot;telefone&quot; data-form-mask=&quot;telefone_br&quot; data-form-v=&quot;telefone&quot;
+               data-form-submit-value=&quot;raw&quot;&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
+        &lt;label for=&quot;mensagem&quot;&gt;Mensagem&lt;/label&gt;
+        &lt;textarea id=&quot;mensagem&quot; name=&quot;mensagem&quot; data-form-v=&quot;required|min:10|max:2000&quot;&gt;&lt;/textarea&gt;
+    &lt;/div&gt;
+
+    &lt;button type=&quot;submit&quot; :disabled=&quot;$form.submitting&quot;&gt;Enviar&lt;/button&gt;
+    &lt;p data-form-status aria-live=&quot;polite&quot;&gt;&lt;/p&gt;
+    &lt;p x-show=&quot;$form.success&quot; x-text=&quot;$form.result &amp;&amp; $form.result.message&quot;&gt;&lt;/p&gt;
+&lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+<ul>
+    <li><code>x-data</code> faz o Alpine processar o form; <code>x-form</code> liga o AlpineForm a ele.</li>
+    <li><code>novalidate</code> desliga as mensagens nativas do navegador (as do AlpineForm as substituem).</li>
+    <li>O telefone não tem <code>required</code>: é opcional, mas se preenchido precisa ser válido.</li>
+    <li><code>$form</code> é o estado do formulário, disponível em qualquer expressão Alpine dentro dele.</li>
+</ul>
+
+<h2 id="backend" data-titulo="2. O PHP que responde">2. O PHP que responde</h2>
+<div class="codigo"><div class="titulo-codigo">contato.php</div><pre><code data-lang="php">&lt;?php
+header('Content-Type: application/json; charset=utf-8');
+
+$nome = trim($_POST['nome'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$telefone = preg_replace('/\D+/', '', $_POST['telefone'] ?? '');
+$mensagem = trim($_POST['mensagem'] ?? '');
+
+$errors = [];
+if (mb_strlen($nome) &lt; 3) {
+    $errors['nome'][] = 'Informe seu nome.';
+}
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $errors['email'][] = 'Informe um e-mail válido.';
+}
+if ($telefone !== '' &amp;&amp; !preg_match('/^\d{10,11}$/', $telefone)) {
+    $errors['telefone'][] = 'Telefone inválido.';
+}
+if (mb_strlen($mensagem) &lt; 10) {
+    $errors['mensagem'][] = 'Escreva pelo menos 10 caracteres.';
+}
+
+if ($errors) {
+    http_response_code(422);
+    echo json_encode(['success' =&gt; false, 'message' =&gt; 'Confira os campos destacados.', 'errors' =&gt; $errors]);
+    exit;
+}
+
+// ... grava ou envia o e-mail ...
+
+echo json_encode(['success' =&gt; true, 'message' =&gt; 'Mensagem enviada. Obrigado!', 'data' =&gt; ['protocolo' =&gt; 1234]]);</code></pre></div>
+<p>O servidor valida <strong>de novo</strong> e responde sempre JSON. As chaves de <code>errors</code> são os <code>name</code> dos campos: cada mensagem aparece embaixo do campo correspondente.</p>
+
+<h2 id="o-que-acontece" data-titulo="3. O que acontece">3. O que acontece, passo a passo</h2>
+<ol class="passos">
+    <li><strong>Página carrega.</strong> Os quatro campos são descobertos. Nenhum erro aparece.</li>
+    <li><strong>A pessoa digita "Jo" no nome e sai do campo.</strong> Aparece "Digite pelo menos 3 caracteres." abaixo do input, que recebe <code>aria-invalid="true"</code> e a classe <code>af-invalid</code>.</li>
+    <li><strong>Ela volta e completa "João".</strong> Ao parar de digitar (200 ms), o erro some.</li>
+    <li><strong>Digita 11987654321 no telefone.</strong> A máscara mostra <code>(11) 98765-4321</code>.</li>
+    <li><strong>Clica em Enviar com a mensagem vazia.</strong> Todos os campos são validados; o foco vai para "Mensagem", que mostra "O campo Mensagem é obrigatório." (o nome vem do <code>&lt;label&gt;</code>). Nada é enviado.</li>
+    <li><strong>Corrige e envia.</strong> O botão é desabilitado (<code>$form.submitting</code>), o status mostra "Enviando…" e o POST sai com <code>telefone=11987654321</code> (sem máscara, por causa de <code>data-form-submit-value="raw"</code>).</li>
+    <li><strong>Servidor responde 200.</strong> O status mostra "Mensagem enviada. Obrigado!" e <code>$form.success</code> fica <code>true</code>.</li>
+    <li><strong>Ou responde 422.</strong> Cada mensagem de <code>errors</code> aparece no campo; o foco vai para o primeiro com erro. Ao editar o campo, o erro do servidor some.</li>
+</ol>
+
+<h2 id="melhorias" data-titulo="4. Melhorias comuns">4. Melhorias comuns</h2>
+<div class="codigo"><div class="titulo-codigo">Mensagens próprias, rótulo e limpar após sucesso</div><pre><code data-lang="html">&lt;form id=&quot;contato&quot; x-data x-form action=&quot;/contato.php&quot; method=&quot;post&quot;
+      data-form-reset-on-success novalidate&gt;
+    &lt;input name=&quot;nome&quot; data-form-v=&quot;required|min:3&quot;
+           data-form-label=&quot;seu nome&quot;
+           data-form-msg.required=&quot;Como podemos te chamar?&quot;
+           data-form-msg.min=&quot;Use pelo menos :min letras.&quot;&gt;
+    ...
+&lt;/form&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Reagir ao sucesso com Alpine</div><pre><code data-lang="html">&lt;form x-data=&quot;{ enviado: false }&quot; x-form action=&quot;/contato.php&quot; method=&quot;post&quot;
+      @form:success=&quot;enviado = true&quot; novalidate&gt;
+    &lt;template x-if=&quot;!enviado&quot;&gt;
+        &lt;div&gt; ... campos ... &lt;/div&gt;
+    &lt;/template&gt;
+    &lt;p x-show=&quot;enviado&quot;&gt;Recebemos sua mensagem!&lt;/p&gt;
+&lt;/form&gt;</code></pre></div>
+
+<h2 id="proximos" data-titulo="Próximos passos">Próximos passos</h2>
+<ul>
+    <li><a href="conceitos.html">Conceitos</a>: fases, estados e representações de valor.</li>
+    <li><a href="regras.html">Regras</a>: todas as validações disponíveis.</li>
+    <li><a href="receitas.html">Receitas</a>: formulários completos para copiar.</li>
+</ul>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="instalacao.html"><small>← Anterior</small>Instalação</a><a class="proxima" href="conceitos.html"><small>Próxima →</small>Conceitos</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

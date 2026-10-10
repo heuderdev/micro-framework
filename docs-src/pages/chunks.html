@@ -1,0 +1,113 @@
+titulo: Upload em partes
+lead: Arquivos grandes enviados em partes, com várias partes ao mesmo tempo, nova tentativa automática, pausa, retomada (inclusive após recarregar a página) e verificação de integridade. Requer alpine-form-chunks e um backend que implemente o protocolo.
+---
+<h2 id="quando" data-titulo="Quando usar">Quando usar</h2>
+<ul>
+    <li>Arquivos maiores que o limite do servidor (<code>post_max_size</code>, proxy).</li>
+    <li>Conexões instáveis: uma falha repete só a parte, não o arquivo inteiro.</li>
+    <li>Precisa de pausar/retomar ou de progresso por arquivo.</li>
+</ul>
+<p>O arquivo é enviado <strong>antes</strong> do formulário, para um endpoint próprio. Ao terminar, o servidor devolve um <strong>token</strong>; o formulário é então enviado com o token no lugar do arquivo.</p>
+
+<h2 id="uso" data-titulo="Uso">Uso</h2>
+@@@html
+<script src="/js/alpine-form/alpine-form.min.js"></script>
+<script src="/js/alpine-form/alpine-form-chunks.min.js"></script>
+<script defer src="/js/alpine.min.js"></script>
+
+<form x-data x-form action="/api/documentos" method="post" novalidate>
+    <input name="titulo" data-form-v="required">
+
+    <input name="arquivo" type="file"
+           data-form-chunked
+           data-form-chunk-endpoint="/api/uploads"
+           data-form-chunk-size="5MiB"
+           data-form-chunk-concurrency="3"
+           data-form-chunk-retries="5"
+           data-form-chunk-persist
+           data-form-v="required|file_max:2GB">
+    <div data-form-file-list="arquivo"></div>
+
+    <button type="submit" :disabled="$form.submitting">Enviar</button>
+    <button type="button" data-form-pause>Pausar</button>
+    <button type="button" data-form-resume>Retomar</button>
+    <button type="button" data-form-cancel>Cancelar</button>
+
+    <div data-form-progress>
+        <progress data-form-progress-bar max="100" aria-label="Enviado"></progress>
+        <span data-form-progress-percent></span> · <span data-form-progress-speed></span>
+        <p data-form-status></p>
+    </div>
+</form>
+@@@
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-chunked</code></td><td>—</td><td>Ativa o envio em partes no campo.</td></tr>
+<tr><td><code>data-form-chunk-endpoint</code></td><td>obrigatório</td><td>URL base do protocolo.</td></tr>
+<tr><td><code>data-form-chunk-size</code></td><td><code>5MiB</code></td><td>Tamanho de cada parte (64 KiB a 100 MiB).</td></tr>
+<tr><td><code>data-form-chunk-concurrency</code></td><td>3</td><td>Partes enviadas ao mesmo tempo (1 a 6).</td></tr>
+<tr><td><code>data-form-chunk-retries</code></td><td>5</td><td>Novas tentativas por parte (0 a 10).</td></tr>
+<tr><td><code>data-form-chunk-persist</code></td><td>falso</td><td>Guarda a sessão para retomar após recarregar a página.</td></tr>
+<tr><td><code>data-form-chunk-checksum</code></td><td>verdadeiro</td><td>SHA-256 de cada parte (requer HTTPS ou localhost).</td></tr>
+</tbody></table></div>
+
+<h2 id="fluxo" data-titulo="O que acontece">O que acontece</h2>
+<div class="fluxo">
+    <div class="etapa"><strong>POST /api/uploads</strong><span>cria a sessão → uploadId</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>PUT /api/uploads/{id}/parts/{n}</strong><span>partes em paralelo, com nova tentativa em falha</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>POST /api/uploads/{id}/complete</strong><span>servidor monta o arquivo → token</span></div>
+    <div class="seta">↓</div>
+    <div class="etapa"><strong>POST /api/documentos</strong><span>formulário com arquivo=&lt;token&gt;; o servidor vincula o arquivo ao registro</span></div>
+</div>
+<p>O progresso conta só partes confirmadas + bytes em voo: uma parte repetida não é contada duas vezes. Fases: <code>uploading</code> (partes) → <code>uploading</code>/<code>awaiting</code> (formulário) → <code>success</code>.</p>
+
+<h2 id="pausa" data-titulo="Pausar e retomar">Pausar e retomar</h2>
+<ul>
+    <li><strong>Pausar</strong> interrompe as partes em voo (os bytes delas deixam de contar) e não inicia novas. Fase <code>paused</code>.</li>
+    <li><strong>Retomar</strong> pergunta ao servidor quais partes ele já tem e envia só as que faltam.</li>
+    <li>Pelo código: <code>$form.pauseUpload()</code>, <code>$form.resumeUpload()</code> (com nome do campo para um só).</li>
+    <li>Os botões <code>data-form-pause</code>/<code>data-form-resume</code> se habilitam sozinhos conforme o estado.</li>
+</ul>
+
+<h2 id="recarregar" data-titulo="Retomar depois de recarregar">Retomar depois de recarregar</h2>
+<p>Com <code>data-form-chunk-persist</code>, só os dados da sessão (id, nome, tamanho, data) ficam no <code>localStorage</code>. O navegador <strong>não</strong> guarda o arquivo: a pessoa precisa selecionar o <strong>mesmo arquivo</strong> de novo e enviar; ele é reconhecido (nome, tamanho, data e amostras do conteúdo) e só as partes que faltam são enviadas.</p>
+@@@html
+<template x-if="$form.uploads.arquivo?.resumable?.length">
+    <p class="aviso">Há um envio incompleto. Selecione o mesmo arquivo e clique em Enviar para continuar de onde parou.</p>
+</template>
+@@@
+
+<h2 id="estado" data-titulo="Estado">Estado</h2>
+@@@html
+<template x-for="u in ($form.uploads.arquivo?.files || [])">
+    <p>
+        <span x-text="u.name"></span>:
+        <span x-text="u.status"></span>
+        (<span x-text="u.receivedParts + '/' + u.totalParts"></span> partes)
+        <span x-show="u.resumed">retomado</span>
+    </p>
+</template>
+@@@
+<p><code>$form.uploads.&lt;campo&gt;</code>: <code>{ status, files: [...], resumable }</code>, com <code>status</code> em <code>idle</code>, <code>uploading</code>, <code>paused</code>, <code>completed</code>, <code>failed</code>. Cada arquivo: <code>{ name, size, uploadId, status, totalParts, receivedParts, loaded, resumed, error }</code> (também em <code>$form.getUploadSession('arquivo')</code>).</p>
+
+<h2 id="erros" data-titulo="Falhas">Falhas</h2>
+<div class="tabela"><table><thead><tr><th>Situação</th><th>Reação</th></tr></thead><tbody>
+<tr><td>Rede, 408, 429, 5xx numa parte</td><td>Repete a parte com espera crescente (respeita <code>Retry-After</code>).</td></tr>
+<tr><td>409 (parte já existe com conteúdo diferente)</td><td>Falha sem repetir.</td></tr>
+<tr><td>404/410 (sessão expirou)</td><td>Cria nova sessão uma vez e recomeça.</td></tr>
+<tr><td>Erro ao finalizar</td><td>Status <code>failed</code>; enviar de novo tenta outra vez.</td></tr>
+<tr><td>Cancelar</td><td>Interrompe e pede ao servidor para apagar a sessão (DELETE).</td></tr>
+</tbody></table></div>
+<p>Mensagem de falha: "Falha ao enviar o arquivo :file." seguida do motivo.</p>
+
+<h2 id="protocolo" data-titulo="Protocolo do servidor">Protocolo do servidor</h2>
+<div class="tabela"><table><thead><tr><th>Requisição</th><th>Resposta</th></tr></thead><tbody>
+<tr><td><code>POST {endpoint}</code> JSON <code>{name, size, type, lastModified, chunkSize, fingerprint}</code></td><td><code>201 {uploadId, chunkSize, totalParts, expiresAt, receivedParts: []}</code></td></tr>
+<tr><td><code>GET {endpoint}/{id}</code></td><td><code>{uploadId, size, chunkSize, totalParts, receivedParts, status, expiresAt}</code></td></tr>
+<tr><td><code>PUT {endpoint}/{id}/parts/{n}</code> corpo = bytes; cabeçalhos <code>X-Chunk-Offset</code>, <code>X-Chunk-Size</code>, <code>X-Chunk-Sha256</code></td><td><code>200 {received}</code> · 409 · 404/410</td></tr>
+<tr><td><code>POST {endpoint}/{id}/complete</code> JSON <code>{manifest}</code></td><td><code>{status: "completed", token, size}</code></td></tr>
+<tr><td><code>DELETE {endpoint}/{id}</code></td><td><code>204</code></td></tr>
+</tbody></table></div>
+<p>Uma implementação completa em PHP está em <code>server/src/ChunkStore.php</code> (gravação atômica das partes, verificação de hash, montagem sob trava, tokens por dono, limpeza por <code>server/bin/cleanup.php</code>). Veja <a href="backend.html#chunks">Backend › Upload em partes</a>.</p>
+<div class="nota aviso"><p>"Upload concluído" ainda não é "registro salvo": o endpoint do formulário precisa validar o token (pertence ao usuário? ainda não foi usado?) e vincular o arquivo.</p></div>
