@@ -19,7 +19,7 @@ O que a biblioteca faz:
 - envio por XHR com **progresso real** de upload; distinção entre *enviado 100%*, *aguardando resposta* e *concluído*; cancelamento, timeout, `Idempotency-Key`;
 - associação de erros do servidor aos campos (inclusive `itens.0.nome`, `jform[title]`, arquivo individual) e resumo de erros sem campo; adaptadores Laravel e Joomla;
 - arquivos: lista interna como fonte de verdade, remoção, duplicados, preview com revogação de object URLs, dimensões de imagem, arquivos existentes em edição;
-- módulos opcionais: **máscaras** (motor próprio com cursor/seleção/colagem/IME), **chunks** (upload em partes com pausa, retomada, SHA-256 e backend real), **inspetores** (CSV por amostragem, JSON, PDF/XLSX, mídia), **rascunho** (guarda o que foi digitado e devolve ao reabrir a página) e **Bootstrap 5**;
+- módulos opcionais: **máscaras** (motor próprio com cursor/seleção/colagem/IME), **chunks** (upload em partes com pausa, retomada, SHA-256 e backend real), **inspetores** (CSV por amostragem, JSON, PDF/XLSX, mídia), **rascunho** (guarda o que foi digitado e devolve ao reabrir a página), **listagens** (`x-lista`: paginação, ordenação, filtros com espera, URL compartilhável, seleção em lote, rolagem infinita e atualização após cadastro com `data-form-lista`) e **Bootstrap 5**;
 - processamento assíncrono após upload (HTTP 202 + polling sem sobreposição).
 
 ## Instalação e ordem de carregamento
@@ -32,6 +32,7 @@ Sem bundler (IIFE): o núcleo primeiro, depois os módulos opcionais, e **o Alpi
 <script src="/dist/alpine-form-chunks.min.js"></script>    <!-- opcional -->
 <script src="/dist/alpine-form-inspectors.min.js"></script><!-- opcional -->
 <script src="/dist/alpine-form-rascunho.min.js"></script>  <!-- opcional -->
+<script src="/dist/alpine-form-lista.min.js"></script>     <!-- opcional -->
 <script defer src="/caminho/alpine.min.js"></script>
 <link rel="stylesheet" href="/css/alpine-form.css">        <!-- opcional -->
 ```
@@ -44,8 +45,9 @@ import AlpineFormPlugin, { AlpineForm } from 'alpine-form'
 import masks from 'alpine-form/masks'
 import chunks from 'alpine-form/chunks'
 import rascunho from 'alpine-form/rascunho'
+import lista from 'alpine-form/lista'
 
-AlpineForm.use(masks).use(chunks).use(rascunho)
+AlpineForm.use(masks).use(chunks).use(rascunho).use(lista)
 Alpine.plugin(AlpineFormPlugin)
 Alpine.start()
 ```
@@ -79,7 +81,7 @@ x-form (diretiva Alpine) ──► FormController (um por <form>, estado reativo
    │                            ├─ FileManager ...... lista interna de arquivos, previews, existentes
    │                            ├─ UI adapter ....... erros, ARIA, resumo, lista de arquivos (default | bootstrap)
    │                            └─ ProgressUi ....... data-form-progress-*, data-form-status, botões
-   └─ registry ◄── plugins opcionais: masks, chunks, inspectors, bootstrap, rascunho (somente API pública)
+   └─ registry ◄── plugins opcionais: masks, chunks, inspectors, bootstrap, rascunho, lista (somente API pública)
 ```
 
 O núcleo não depende dos módulos opcionais: um atributo de módulo não carregado (`data-form-mask`, `data-form-chunked`…) é **erro de configuração explícito**, nunca ignorado.
@@ -99,6 +101,7 @@ src/
   chunks/                     módulo opcional de upload em partes
   inspectors/                 módulo opcional de inspeção de arquivos
   rascunho/                   módulo opcional de rascunho automático (localStorage/sessionStorage)
+  lista/                      módulo opcional de listagens (x-lista: paginação, filtros, ordenação, seleção)
   lib/                        utilidades (decimal exato, datas, tamanhos, caminhos, DOM, cartões, BR)
 css/alpine-form.css           CSS mínimo opcional
 dist/                         saída do build (ESM, IIFE, IIFE minificado)
@@ -121,19 +124,19 @@ php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 
 | Comando | O que executa | Tipo |
 |---|---|---|
-| `npm test` | 186 testes Vitest/jsdom com Alpine real | integração; **rede simulada** por transportes registrados |
+| `npm test` | 210 testes Vitest/jsdom com Alpine real | integração; **rede simulada** por transportes registrados |
 | `npm run test:php` | 28 testes do backend (chunks, concorrência com processos reais, fila, idempotência, validação) | backend real, sem HTTP |
-| `npm run test:e2e` | 50 testes Playwright (inclui CSP estrita e Trusted Types) no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
+| `npm run test:e2e` | 54 testes Playwright (inclui CSP estrita e Trusted Types) no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
 | `npm run test:all` | build + os três acima | |
 | `npm run docs:check` | gera `docs/*.html` a partir de `docs-src/` e confere atributos, regras, máscaras, métodos e links de todos os exemplos contra a biblioteca | estático |
 | `npm run docs:serve` | gera e serve a documentação em `http://localhost:1900` (técnica em `/tecnica`); no Windows também `docs-servidor.bat` | servidor |
 | `npm run docs:browser` | carrega cada exemplo HTML da documentação no Chrome (servidor em 127.0.0.1:8099) | navegador real |
 
-Último resultado executado (2026-10-10): unitários 186/186, PHP 28/28 (PHP 8.4.2), E2E 50/50 (Chrome).
+Último resultado executado (2026-10-10): unitários 210/210, PHP 28/28 (PHP 8.4.2), E2E 54/54 (Chrome).
 
 O Playwright usa `channel: 'chrome'` (Chrome instalado). Para usar o Chromium do Playwright: `npx playwright install chromium` e `PW_CHANNEL= npm run test:e2e`.
 
-Tamanho (minificado / gzip): núcleo 143,8 / 44,9 KiB; máscaras 21,7 / 7,8; chunks 19,5 / 6,7; inspetores 9,1 / 3,7; Bootstrap 1,6 / 0,8; rascunho 3,5 / 1,5.
+Tamanho (minificado / gzip): núcleo 144,8 / 45,1 KiB; máscaras 21,8 / 7,8; chunks 19,7 / 6,8; inspetores 9,1 / 3,7; Bootstrap 1,6 / 0,8; rascunho 3,5 / 1,5; listagens 27,3 / 8,5.
 
 ## Documentação em Docker (porta 1900)
 

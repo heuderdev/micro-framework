@@ -82,6 +82,8 @@ Atributos de módulos (exigem o módulo carregado): `data-form-mask*`, `data-for
 
 No `<form>`, com o módulo `alpine-form-rascunho`: `data-form-rascunho` (validade em dias, padrão 7; exige `id` no form) e `data-form-rascunho-sessao` (usa `sessionStorage`). Eventos: `form:rascunho-restaurado` (`{ salvoEm, campos }`), `form:rascunho-salvo` (`{ campos }`), `form:rascunho-apagado`. API: `AlpineForm.rascunho.salvar|ler|descartar(formOuId)`.
 
+No `<form>`, com o módulo `alpine-form-lista`: `data-form-lista="idOuGrupo ..."` — depois de `form:success`, recarrega as listas (`x-lista`) cujo `id` ou `data-lista-grupo` corresponda; se a resposta trouxer `data.id` e a lista tiver `data-lista-destacar`, essa chave fica em `$lista.destaque`. Listagens (GET): parâmetros `page`, `per_page`, `sort`, `direction` e filtros pelo `name`; respostas aceitas: Laravel Resource (`data` + `meta`), `paginate()`, `simplePaginate()`, `{ success, data: { itens, total, pagina, por_pagina } }`, `{ items, total }` ou array. Detalhes em `docs/lista.html`.
+
 ### Elementos auxiliares (dentro do form ou em contêiner com `data-form-for="idDoForm"`)
 
 | Atributo | Função |

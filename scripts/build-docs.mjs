@@ -32,6 +32,8 @@ const PAGES = [
     { arquivo: 'mascaras', menu: 'Máscaras', busca: 'cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical' },
     { arquivo: 'rascunho', menu: 'Rascunho automático', busca: 'rascunho localstorage sessionstorage salvar recuperar restaurar perder dados recarregar' },
     { arquivo: 'listas-dinamicas', menu: 'Listas e DOM dinâmico', busca: 'x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh' },
+    { grupo: 'Listagens' },
+    { arquivo: 'lista', menu: 'Listagens (x-lista)', busca: 'tabela lista paginação paginar ordenar ordenação filtros busca pesquisa debounce url seleção lote carregar mais rolagem infinita data-form-lista atualizar recarregar laravel paginate' },
     { grupo: 'Envio' },
     { arquivo: 'envio', menu: 'Envio', busca: 'submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch' },
     { arquivo: 'respostas-e-erros', menu: 'Respostas e erros', busca: 'success errors 422 204 html laravel joomla resumo request_id seterrors' },

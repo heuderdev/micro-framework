@@ -28,6 +28,7 @@ lead: Todos os atributos, regras, métodos, eventos, opções e chaves de mensag
 <tr><td><code>data-form-job-interval</code> · <code>-max-interval</code> · <code>-timeout</code> · <code>-persist</code> · <code>data-form-job-url</code> · <code>data-form-job-cancel-url</code></td><td>1,5s · 10s · 10min · booleano · modelos com {id}</td><td><a href="processamento.html">Processamento</a></td></tr>
 <tr><td><code>data-form-debug</code></td><td>booleano (logs no console)</td><td></td></tr>
 <tr><td><code>data-form-rascunho</code> · <code>data-form-rascunho-sessao</code></td><td>dias (7) · booleano — requer o módulo</td><td><a href="rascunho.html#opcoes">Rascunho</a></td></tr>
+<tr><td><code>data-form-lista</code></td><td>ids ou grupos de listas — requer o módulo de listagens</td><td><a href="lista.html#atualizar-por-formulario">Listagens</a></td></tr>
 <tr><td><code>data-form-log</code></td><td><strong>errors</strong> · none (nada no console)</td><td><a href="seguranca.html#configuracao">Segurança</a></td></tr>
 <tr><td><code>data-form-storage</code></td><td><strong>allow</strong> · none (nada no localStorage/sessionStorage)</td><td><a href="seguranca.html#configuracao">Segurança</a></td></tr>
 </tbody></table></div>
@@ -94,7 +95,7 @@ lead: Todos os atributos, regras, métodos, eventos, opções e chaves de mensag
 </tbody></table></div>
 
 <h2 id="eventos" data-titulo="Eventos">Eventos</h2>
-<p><code>form:ready</code> · <code>form:change</code> · <code>form:validating</code> · <code>form:validated</code> · <code>form:invalid</code> · <code>form:before-submit</code>* · <code>form:submit</code>* · <code>form:progress</code> · <code>form:uploaded</code> · <code>form:processing</code> · <code>form:success</code> · <code>form:error</code> · <code>form:cancel</code> · <code>form:reset</code>* · <code>form:field-added</code> · <code>form:field-removed</code> · <code>form:reveal</code>* · <code>form:config-error</code> · <code>form:destroy</code>; com o módulo de rascunho: <code>form:rascunho-restaurado</code> · <code>form:rascunho-salvo</code> · <code>form:rascunho-apagado</code> — (*) canceláveis. Detalhes em <a href="eventos.html#lista">Eventos</a>.</p>
+<p><code>form:ready</code> · <code>form:change</code> · <code>form:validating</code> · <code>form:validated</code> · <code>form:invalid</code> · <code>form:before-submit</code>* · <code>form:submit</code>* · <code>form:progress</code> · <code>form:uploaded</code> · <code>form:processing</code> · <code>form:success</code> · <code>form:error</code> · <code>form:cancel</code> · <code>form:reset</code>* · <code>form:field-added</code> · <code>form:field-removed</code> · <code>form:reveal</code>* · <code>form:config-error</code> · <code>form:destroy</code>; com o módulo de rascunho: <code>form:rascunho-restaurado</code> · <code>form:rascunho-salvo</code> · <code>form:rascunho-apagado</code>; com o módulo de listagens (no elemento da lista): <code>lista:carregada</code> · <code>lista:erro</code> · <code>lista:selecao</code> · <code>lista:atualizada</code> — (*) canceláveis. Detalhes em <a href="eventos.html#lista">Eventos</a>.</p>
 
 <h2 id="configure" data-titulo="AlpineForm.configure">AlpineForm.configure</h2>
 @@@js

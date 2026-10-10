@@ -167,7 +167,11 @@ export default function meuPlugin(AlpineForm) {
         async beforeSend(ctx) { /* antes de montar a requisição */ },
         destroy() { /* limpeza */ },
     }))
+    AlpineForm.alpine(Alpine => {                             // diretivas e mágicas próprias do Alpine
+        Alpine.magic('agora', () => new Date().toLocaleString('pt-BR'))
+    })
 }
 
 AlpineForm.use(meuPlugin)   // carregar duas vezes não tem efeito
 @@@
+<p><code>AlpineForm.alpine(setup)</code> recebe o Alpine quando o plugin do AlpineForm é instalado (ou na hora, se já foi). É como o módulo de listagens registra <code>x-lista</code> e <code>$lista</code> sem exigir um <code>Alpine.plugin()</code> a mais.</p>

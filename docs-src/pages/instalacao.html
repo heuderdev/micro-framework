@@ -9,6 +9,7 @@ lead: Quais arquivos copiar, em que ordem carregar e como fazer isso numa págin
 <tr><td><code>dist/alpine-form-chunks.min.js</code></td><td>Se usar <code>data-form-chunked</code> (upload em partes).</td></tr>
 <tr><td><code>dist/alpine-form-inspectors.min.js</code></td><td>Se usar as regras <code>csv</code>, <code>csv_headers</code>, <code>json</code>, <code>pdf_signature</code>, <code>xlsx_signature</code>, <code>media_duration_*</code>.</td></tr>
 <tr><td><code>dist/alpine-form-rascunho.min.js</code></td><td>Se usar <code>data-form-rascunho</code> (<a href="rascunho.html">rascunho automático</a>).</td></tr>
+<tr><td><code>dist/alpine-form-lista.min.js</code></td><td>Se usar <code>x-lista</code> ou <code>data-form-lista</code> (<a href="lista.html">listagens</a>).</td></tr>
 <tr><td><code>dist/alpine-form-bootstrap.min.js</code></td><td>Se a página usa Bootstrap 5 e você quer <code>data-form-ui="bootstrap"</code>.</td></tr>
 <tr><td><code>css/alpine-form.css</code></td><td>Opcional: estilo mínimo para erros, resumo, lista de arquivos e barra de progresso (dispensável com Bootstrap).</td></tr>
 <tr><td>Alpine.js 3</td><td><strong>Sempre</strong>. Não vem junto: use <code>node_modules/alpinejs/dist/cdn.min.js</code> ou a cópia que seu projeto já tem.</td></tr>
@@ -89,9 +90,10 @@ import chunks from 'alpine-form/chunks'
 import inspectors from 'alpine-form/inspectors'
 import bootstrap from 'alpine-form/bootstrap'
 import rascunho from 'alpine-form/rascunho'
+import lista from 'alpine-form/lista'
 import 'alpine-form/css'
 
-AlpineForm.use(masks).use(chunks).use(inspectors).use(bootstrap).use(rascunho)
+AlpineForm.use(masks).use(chunks).use(inspectors).use(bootstrap).use(rascunho).use(lista)
 AlpineForm.configure({ validation: 'live' })
 
 Alpine.plugin(AlpineFormPlugin)

@@ -49,6 +49,7 @@ for (const [index, block] of blocks.entries()) {
 <script src="/dist/alpine-form-inspectors.js"></script>
 <script src="/dist/alpine-form-bootstrap.js"></script>
 <script src="/dist/alpine-form-rascunho.js"></script>
+<script src="/dist/alpine-form-lista.js"></script>
 <script>${block.setup}</script>
 <script defer src="/vendor/alpine.min.js"></script>
 </head><body>${body}</body></html>`

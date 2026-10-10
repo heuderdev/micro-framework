@@ -1,0 +1,296 @@
+titulo: Listagens
+lead: Tabelas e listas com paginação, ordenação, filtros, busca com espera, URL compartilhável, seleção em lote, "carregar mais", rolagem infinita e atualização automática depois de um cadastro. Requer alpine-form-lista.
+---
+<h2 id="instalacao" data-titulo="Instalação">Instalação</h2>
+@@@html
+<script src="/js/alpine-form/alpine-form.min.js"></script>
+<script src="/js/alpine-form/alpine-form-lista.min.js"></script>    <!-- depois do núcleo -->
+<script defer src="/js/alpine.min.js"></script>
+@@@
+@@@js ESM
+import lista from 'alpine-form/lista'
+AlpineForm.use(lista)
+@@@
+<p>O módulo não gera as linhas: elas são o seu HTML (<code>x-for</code> sobre <code>$lista.itens</code>). Ele cuida de buscar os dados, dos parâmetros, dos estados e da navegação. Exemplo executável: <code>examples/lista.php</code>.</p>
+
+<h2 id="minimo" data-titulo="Listagem mínima">Listagem mínima</h2>
+@@@html
+<section id="clientes" x-data x-lista data-lista-url="/api/clientes">
+    <table>
+        <thead><tr><th>Nome</th><th>E-mail</th></tr></thead>
+        <tbody>
+            <template x-for="item in $lista.itens" :key="item.id">
+                <tr><td x-text="item.nome"></td><td x-text="item.email"></td></tr>
+            </template>
+        </tbody>
+    </table>
+    <p data-lista-status></p>
+    <nav data-lista-paginacao></nav>
+</section>
+@@@
+<ol class="passos">
+    <li>Ao abrir, faz <code>GET /api/clientes?page=1&amp;per_page=20</code>.</li>
+    <li>Preenche <code>$lista.itens</code>; o Alpine desenha as linhas.</li>
+    <li><code>[data-lista-status]</code> mostra "Carregando…", "Mostrando 1–20 de 137", "Nenhum resultado encontrado." ou o erro.</li>
+    <li><code>[data-lista-paginacao]</code> vazio recebe a navegação: Anterior, 1 … 4 5 [6] 7 8 … 20, Próxima (botões com <code>aria-current</code>).</li>
+</ol>
+
+<h2 id="backend" data-titulo="O que o servidor responde">O que o servidor responde</h2>
+<p>Parâmetros enviados (nomes do Laravel, configuráveis): <code>page</code>, <code>per_page</code>, <code>sort</code>, <code>direction</code> (<code>asc</code>/<code>desc</code>) e cada filtro pelo <code>name</code>. Formatos reconhecidos automaticamente:</p>
+<div class="tabela"><table><thead><tr><th>Formato</th><th>Exemplo</th></tr></thead><tbody>
+<tr><td>Laravel API Resource</td><td><code>{ "data": [...], "meta": { "current_page": 1, "last_page": 7, "per_page": 20, "total": 137 } }</code></td></tr>
+<tr><td>Laravel <code>paginate()</code></td><td><code>{ "data": [...], "current_page": 1, "last_page": 7, "per_page": 20, "total": 137 }</code></td></tr>
+<tr><td>Laravel <code>simplePaginate()</code></td><td><code>{ "data": [...], "current_page": 1, "per_page": 20, "next_page_url": "…" }</code> (sem total)</td></tr>
+<tr><td>Contrato AlpineForm / Joomla <code>JsonResponse</code></td><td><code>{ "success": true, "data": { "itens": [...], "total": 137, "pagina": 1, "por_pagina": 20 } }</code></td></tr>
+<tr><td>Itens + total</td><td><code>{ "items": [...], "total": 137 }</code> (também <code>itens</code>, <code>results</code>, <code>registros</code>)</td></tr>
+<tr><td>Lista simples</td><td><code>[ ... ]</code> (sem total; "próxima" existe se vier a página cheia)</td></tr>
+</tbody></table></div>
+@@@php Laravel
+public function index(Request $request)
+{
+    $ordenaveis = ['nome', 'criado_em', 'saldo'];                   // nunca ordene por coluna vinda direto da URL
+    $ordem = in_array($request->sort, $ordenaveis, true) ? $request->sort : 'nome';
+    $direcao = $request->direction === 'desc' ? 'desc' : 'asc';
+
+    return ClienteResource::collection(
+        Cliente::query()
+            ->when($request->busca, fn ($q, $b) => $q->where('nome', 'like', "%{$b}%"))
+            ->when($request->uf, fn ($q, $uf) => $q->where('uf', $uf))
+            ->orderBy($ordem, $direcao)
+            ->paginate(min((int) $request->per_page ?: 20, 100))
+    );
+}
+@@@
+<div class="nota aviso"><p>Sempre valide no servidor a coluna de ordenação (lista branca), o tamanho máximo da página e cada filtro. A listagem é só um <code>GET</code> com parâmetros: qualquer pessoa pode alterá-los.</p></div>
+
+<h2 id="ordenacao" data-titulo="Ordenação">Ordenação</h2>
+@@@html
+<section x-data x-lista data-lista-url="/api/clientes" data-lista-ordem="nome" data-lista-direcao="asc">
+    <table>
+        <thead>
+            <tr>
+                <th><button type="button" data-lista-ordenar="nome">Nome</button></th>
+                <th><button type="button" data-lista-ordenar="criado_em">Cadastro</button></th>
+            </tr>
+        </thead>
+        <tbody>
+            <template x-for="item in $lista.itens" :key="item.id">
+                <tr><td x-text="item.nome"></td><td x-text="item.criado_em"></td></tr>
+            </template>
+        </tbody>
+    </table>
+</section>
+@@@
+<ul>
+    <li>Clicar alterna crescente/decrescente e volta para a página 1.</li>
+    <li>O <code>&lt;th&gt;</code> recebe <code>aria-sort</code> (<code>ascending</code>/<code>descending</code>/<code>none</code>) e o botão, <code>data-lista-direcao-atual</code> — use para a seta no CSS: <code>[data-lista-direcao-atual="asc"]::after { content: " ▲" }</code>.</li>
+    <li>Pelo código: <code>$lista.ordenar('nome')</code>, <code>$lista.ordenar('nome', 'desc')</code>, <code>$lista.direcaoDe('nome')</code>.</li>
+</ul>
+
+<h2 id="filtros" data-titulo="Filtros e busca">Filtros e busca</h2>
+@@@html
+<section x-data x-lista data-lista-url="/api/clientes" data-lista-debounce="300ms">
+    <form data-lista-filtros role="search">
+        <input name="busca" type="search" placeholder="Buscar" data-lista-minimo="2">
+        <select name="uf"><option value="">Todas</option><option>SP</option><option>RJ</option></select>
+        <label><input type="checkbox" name="status[]" value="ativo"> Ativo</label>
+        <label><input type="checkbox" name="status[]" value="inativo"> Inativo</label>
+        <input name="de" type="date"> <input name="ate" type="date">
+        <button type="button" data-lista-limpar>Limpar</button>
+    </form>
+    <template x-for="item in $lista.itens" :key="item.id"><p x-text="item.nome"></p></template>
+</section>
+@@@
+<div class="tabela"><table><thead><tr><th>Controle</th><th>Quando busca</th></tr></thead><tbody>
+<tr><td>Texto (input, search, textarea)</td><td>Depois que a digitação para (<code>data-lista-debounce</code>, padrão 300 ms). Com <code>data-lista-minimo="2"</code>, só busca com 2+ caracteres (ou vazio). A requisição anterior é cancelada; resposta antiga nunca sobrescreve a nova.</td></tr>
+<tr><td>Select, checkbox, radio, datas</td><td>Na hora (evento <code>change</code>).</td></tr>
+<tr><td>Formulário com <code>data-lista-aplicar-ao-enviar</code></td><td>Só ao enviar (botão "Filtrar" ou Enter).</td></tr>
+</tbody></table></div>
+<ul>
+    <li>Filtros podem estar num <code>&lt;form data-lista-filtros&gt;</code> (todos os campos com <code>name</code>) ou em campos soltos com <code>data-lista-filtro</code>.</li>
+    <li>Mudar filtro volta para a página 1. Valores vazios não são enviados. Grupos (<code>status[]</code>) e select múltiplo enviam todos os marcados.</li>
+    <li>Com o filtro dentro de um <code>x-form</code> e máscara (CPF, moeda, data), vai a representação de envio (ex.: CPF sem pontos).</li>
+    <li><code>data-lista-ignorar</code> exclui um campo dos filtros. <code>data-lista-limpar</code> volta aos valores iniciais do HTML.</li>
+    <li>Pelo código: <code>$lista.filtrar('uf', 'SP')</code>, <code>$lista.definirFiltros({ uf: 'SP', busca: '' })</code> (<code>null</code> remove), <code>$lista.limparFiltros()</code>, <code>$lista.filtros</code>.</li>
+</ul>
+
+<h2 id="paginacao" data-titulo="Paginação">Paginação</h2>
+@@@html Navegação pronta
+<nav data-lista-paginacao></nav>
+@@@
+@@@html Navegação própria
+<button type="button" data-lista-anterior>‹</button>
+<template x-for="p in $lista.paginas" :key="p.chave">
+    <span>
+        <button type="button" x-show="!p.reticencias" :data-lista-pagina="p.numero" :aria-current="p.atual ? 'page' : null" x-text="p.numero"></button>
+        <span x-show="p.reticencias">…</span>
+    </span>
+</template>
+<button type="button" data-lista-proxima>›</button>
+@@@
+@@@html Itens por página
+<select data-lista-tamanho><option>10</option><option>25</option><option>50</option></select>
+@@@
+<p><code>data-lista-anterior</code>/<code>data-lista-proxima</code> se desabilitam sozinhos. Pelo código: <code>$lista.irPara(3)</code>, <code>$lista.proxima()</code>, <code>$lista.anterior()</code>, <code>$lista.definirPorPagina(50)</code>. Se um filtro reduzir os resultados e a página atual deixar de existir, a lista volta para a última página válida.</p>
+
+<h2 id="url" data-titulo="URL compartilhável">URL compartilhável (data-lista-url-sincronizar)</h2>
+@@@html
+<section x-data x-lista data-lista-url="/api/clientes" data-lista-url-sincronizar> ... </section>
+@@@
+<ul>
+    <li>Página, tamanho, ordenação e filtros vão para a URL do navegador (<code>/clientes?page=3&amp;sort=nome&amp;busca=ana</code>). Recarregar ou compartilhar o link reabre a mesma visão, com os campos de filtro preenchidos.</li>
+    <li>Trocar de página ou ordenação cria entrada no histórico (Voltar/Avançar funcionam); digitar num filtro só substitui a URL atual.</li>
+    <li>Duas listas sincronizadas na mesma página: <code>data-lista-url-prefixo="pedidos_"</code> em uma delas para não colidir os parâmetros.</li>
+</ul>
+
+<h2 id="selecao" data-titulo="Seleção em lote">Seleção em lote</h2>
+@@@html
+<section x-data x-lista data-lista-url="/api/clientes">
+    <input type="checkbox" data-lista-selecionar-todos aria-label="Selecionar todos desta página">
+    <template x-for="item in $lista.itens" :key="item.id">
+        <label><input type="checkbox" :data-lista-selecionar="item.id"> <span x-text="item.nome"></span></label>
+    </template>
+    <p x-show="$lista.quantidadeSelecionada > 0">
+        <span x-text="$lista.quantidadeSelecionada"></span> selecionado(s)
+        <button type="button" @click="$lista.limparSelecao()">Limpar</button>
+    </p>
+</section>
+@@@
+<ul>
+    <li>A seleção é mantida ao trocar de página; o checkbox de "todos" vale para a página atual e fica <em>indeterminado</em> quando parte está marcada.</li>
+    <li><code>$lista.selecionados</code> (chaves como texto), <code>$lista.itensSelecionados()</code>, <code>$lista.alternar(id)</code>, <code>$lista.alternarTodos()</code>. A chave padrão é <code>id</code> (<code>data-lista-chave="codigo"</code> para outra). Evento <code>lista:selecao</code>.</li>
+</ul>
+@@@html Ação em lote com x-form
+<section id="clientes" x-data x-lista data-lista-url="/api/clientes">
+    <form x-data x-form action="/api/clientes/arquivar" method="post" data-form-lista="clientes" novalidate>
+        <template x-for="id in $lista.selecionados" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+        <button type="submit" x-bind:disabled="$lista.quantidadeSelecionada === 0">Arquivar selecionados</button>
+    </form>
+    <!-- tabela com data-lista-selecionar ... -->
+</section>
+@@@
+<p>O formulário fica dentro do <code>x-lista</code> para enxergar <code>$lista</code> (fora dele, use <code>data-lista-para="clientes"</code> num elemento acima do form); depois do sucesso, <code>data-form-lista</code> recarrega a lista.</p>
+
+<h2 id="acumular" data-titulo="Carregar mais e rolagem infinita">Carregar mais e rolagem infinita</h2>
+@@@html
+<section x-data x-lista data-lista-url="/api/produtos" data-lista-modo="acumular" data-lista-por-pagina="12">
+    <template x-for="item in $lista.itens" :key="item.id"><article x-text="item.nome"></article></template>
+    <p data-lista-status></p>
+    <button type="button" data-lista-mais>Carregar mais</button>   <!-- some quando não há mais -->
+    <div data-lista-sentinela aria-hidden="true"></div>           <!-- opcional: carrega sozinho ao aparecer na tela -->
+</section>
+@@@
+<p>Em <code>acumular</code>, cada página nova é acrescentada. O sentinela usa <code>IntersectionObserver</code> e continua carregando até sair da área visível (telas altas são preenchidas). Pelo código: <code>$lista.maisItens()</code>.</p>
+
+<h2 id="atualizar-por-formulario" data-titulo="Cadastro atualiza a lista (data-form-lista)">Cadastro atualiza a lista (data-form-lista)</h2>
+<p>Depois de salvar um formulário com sucesso, as listas indicadas buscam os dados de novo na API — o registro novo aparece sem recarregar a página.</p>
+@@@html
+<form id="novo-cliente" x-data x-form action="/api/clientes" method="post"
+      data-form-lista="clientes resumo" data-form-reset-on-success novalidate>
+    <input name="nome" data-form-v="required">
+    <button type="submit">Cadastrar</button>
+</form>
+
+<section id="clientes" x-data x-lista data-lista-url="/api/clientes" data-lista-destacar>
+    <template x-for="item in $lista.itens" :key="item.id">
+        <p :class="{ 'novo': $lista.destaque === String(item.id) }" x-text="item.nome"></p>
+    </template>
+</section>
+
+<section id="totais" x-data x-lista data-lista-url="/api/clientes/por-uf" data-lista-grupo="resumo"> ... </section>
+<section id="grafico" x-data x-lista data-lista-url="/api/clientes/por-mes" data-lista-grupo="resumo"> ... </section>
+@@@
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Onde</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-lista="a b"</code></td><td><code>&lt;form&gt;</code></td><td>Depois do sucesso, atualiza as listas cujo <code>id</code> ou <code>data-lista-grupo</code> seja <code>a</code> ou <code>b</code>. Erro no envio não atualiza nada.</td></tr>
+<tr><td><code>data-lista-grupo="resumo dashboard"</code></td><td>lista</td><td>Nomes de grupo: várias listas atualizam juntas com um só alvo.</td></tr>
+<tr><td><code>data-lista-ao-atualizar</code></td><td>lista</td><td><code>recarregar</code> (padrão: mantém página, filtros e ordem) ou <code>inicio</code> (volta à página 1 — útil quando o novo aparece no topo). No modo acumular, sempre recomeça.</td></tr>
+<tr><td><code>data-lista-destacar</code> / <code>="6s"</code></td><td>lista</td><td>Se a resposta do formulário trouxer <code>data.id</code>, deixa essa chave em <code>$lista.destaque</code> por 4 s (ou o tempo indicado).</td></tr>
+</tbody></table></div>
+<ul>
+    <li>Alvo que não corresponde a nenhuma lista na página gera aviso no console (provável erro de digitação).</li>
+    <li>Também funciona com processamento posterior (202): a atualização acontece quando o job termina com sucesso.</li>
+    <li>Sem formulário: <code>AlpineForm.lista.atualizar('clientes')</code> (devolve quantas listas atualizou) ou <code>document.dispatchEvent(new CustomEvent('lista:atualizar', { detail: { alvos: 'clientes' } }))</code>. A lista dispara <code>lista:atualizada</code>.</li>
+</ul>
+@@@html Excluir uma linha e atualizar
+<template x-for="item in $lista.itens" :key="item.id">
+    <form x-data x-form :action="'/api/clientes/' + item.id + '/excluir'" method="post" data-form-lista="clientes resumo" novalidate
+          @form:before-submit="confirm('Excluir?') || $event.preventDefault()">
+        <span x-text="item.nome"></span>
+        <button type="submit">Excluir</button>
+    </form>
+</template>
+@@@
+
+<h2 id="estados" data-titulo="Estados: carregando, vazio, erro">Estados: carregando, vazio, erro</h2>
+@@@html
+<div x-show="$lista.carregando && !$lista.carregado">Carregando…</div>
+<div x-show="$lista.vazio">Nenhum cliente encontrado. <button type="button" data-lista-limpar>Limpar filtros</button></div>
+<div x-show="$lista.erro" role="alert">
+    <span x-text="$lista.erro?.message"></span>
+    <button type="button" data-lista-recarregar>Tentar de novo</button>
+</div>
+<table :class="{ 'carregando': $lista.carregando }"> ... </table>
+@@@
+<ul>
+    <li>Em erro (rede, 401, 403, 500, HTML, formato inesperado), a lista anterior continua na tela e <code>$lista.erro</code> traz <code>{ kind, status, message }</code>; evento <code>lista:erro</code>.</li>
+    <li>O contêiner recebe <code>aria-busy="true"</code> enquanto carrega.</li>
+    <li><code>data-lista-carregar="manual"</code> não busca ao abrir (chame <code>$lista.recarregar()</code>).</li>
+    <li><code>data-lista-atualizar="30s"</code> recarrega periodicamente (pausa com a aba oculta) — painéis e filas de atendimento.</li>
+</ul>
+
+<h2 id="exportar" data-titulo="Exportar com os filtros atuais">Exportar com os filtros atuais</h2>
+@@@html
+<a x-bind:href="$lista.urlCom('/clientes/exportar.csv')">Exportar CSV</a>
+@@@
+<p><code>urlCom(base)</code> devolve a URL com os mesmos filtros e ordenação, sem paginação. <code>$lista.parametros</code> e <code>$lista.queryString</code> dão acesso aos parâmetros atuais.</p>
+
+<h2 id="adaptador" data-titulo="Outro formato de resposta">Outro formato de resposta</h2>
+@@@js
+// API que responde { registros: [...], qtd: 137, pag: 2, paginas: 7 }
+AlpineForm.lista.adaptador('erp', json => ({
+    itens: json.registros,
+    total: json.qtd,
+    pagina: json.pag,
+    porPagina: 20,
+    ultimaPagina: json.paginas,
+    temProxima: json.pag < json.paginas,
+}))
+@@@
+@@@html
+<section x-data x-lista data-lista-url="/api/erp/clientes" data-lista-adaptador="erp"
+         data-lista-param-pagina="pag" data-lista-param-por-pagina="tamanho"
+         data-lista-param-ordem="ordenar_por" data-lista-param-direcao="sentido"> ... </section>
+@@@
+
+<h2 id="referencia" data-titulo="Referência">Referência</h2>
+<div class="tabela"><table><caption>Atributos do elemento com x-lista</caption><thead><tr><th>Atributo</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-lista-url</code></td><td>obrigatório</td><td>Endereço da listagem (GET).</td></tr>
+<tr><td><code>data-lista-por-pagina</code></td><td>20</td><td>Itens por página (1 a 1000).</td></tr>
+<tr><td><code>data-lista-ordem</code> · <code>data-lista-direcao</code></td><td>— · asc</td><td>Ordenação inicial.</td></tr>
+<tr><td><code>data-lista-modo</code></td><td>paginas</td><td><code>paginas</code> ou <code>acumular</code>.</td></tr>
+<tr><td><code>data-lista-debounce</code></td><td>300ms</td><td>Espera da busca por texto.</td></tr>
+<tr><td><code>data-lista-url-sincronizar</code> · <code>data-lista-url-prefixo</code></td><td>— · ""</td><td>Estado na URL do navegador.</td></tr>
+<tr><td><code>data-lista-chave</code></td><td>id</td><td>Campo que identifica o item (seleção, destaque).</td></tr>
+<tr><td><code>data-lista-adaptador</code></td><td>padrao</td><td>Formato de resposta registrado.</td></tr>
+<tr><td><code>data-lista-param-pagina</code> · <code>-param-por-pagina</code> · <code>-param-ordem</code> · <code>-param-direcao</code></td><td>page · per_page · sort · direction</td><td>Nomes dos parâmetros enviados.</td></tr>
+<tr><td><code>data-lista-carregar</code></td><td>automatico</td><td><code>manual</code> para não buscar ao abrir.</td></tr>
+<tr><td><code>data-lista-atualizar</code></td><td>—</td><td>Recarga periódica (ex.: <code>30s</code>).</td></tr>
+<tr><td><code>data-lista-timeout</code></td><td>15s</td><td>Tempo máximo da requisição.</td></tr>
+<tr><td><code>data-lista-grupo</code> · <code>data-lista-ao-atualizar</code> · <code>data-lista-destacar</code></td><td>— · recarregar · —</td><td>Atualização por formulário.</td></tr>
+</tbody></table></div>
+<div class="tabela"><table><caption>Atributos de elementos dentro da lista</caption><thead><tr><th>Atributo</th><th>Função</th></tr></thead><tbody>
+<tr><td><code>data-lista-filtros</code> (form) · <code>data-lista-filtro</code> (campo) · <code>data-lista-minimo</code> · <code>data-lista-ignorar</code> · <code>data-lista-aplicar-ao-enviar</code></td><td>Filtros</td></tr>
+<tr><td><code>data-lista-ordenar="campo"</code></td><td>Botão de ordenação</td></tr>
+<tr><td><code>data-lista-paginacao</code> · <code>data-lista-pagina="n"</code> · <code>data-lista-anterior</code> · <code>data-lista-proxima</code> · <code>data-lista-tamanho</code></td><td>Paginação</td></tr>
+<tr><td><code>data-lista-status</code></td><td>Texto do estado (role=status)</td></tr>
+<tr><td><code>data-lista-mais</code> · <code>data-lista-sentinela</code></td><td>Carregar mais / rolagem infinita</td></tr>
+<tr><td><code>data-lista-selecionar="id"</code> · <code>data-lista-selecionar-todos</code></td><td>Seleção</td></tr>
+<tr><td><code>data-lista-recarregar</code> · <code>data-lista-limpar</code></td><td>Botões de ação</td></tr>
+<tr><td><code>data-lista-para="idDaLista"</code></td><td>Num elemento fora da lista: <code>$lista</code> passa a se referir a ela (barras de ferramentas, contadores).</td></tr>
+</tbody></table></div>
+<div class="tabela"><table><caption>$lista</caption><thead><tr><th>Propriedades</th><th>Métodos</th></tr></thead><tbody>
+<tr><td><code>itens</code>, <code>carregando</code>, <code>carregado</code>, <code>erro</code>, <code>vazio</code>, <code>pagina</code>, <code>porPagina</code>, <code>total</code>, <code>ultimaPagina</code>, <code>temProxima</code>, <code>temAnterior</code>, <code>de</code>, <code>ate</code>, <code>paginas</code>, <code>resumo</code>, <code>ordem</code>, <code>direcao</code>, <code>filtros</code>, <code>parametros</code>, <code>queryString</code>, <code>selecionados</code>, <code>quantidadeSelecionada</code>, <code>todosSelecionados</code>, <code>algunsSelecionados</code>, <code>destaque</code></td>
+<td><code>irPara(n)</code>, <code>proxima()</code>, <code>anterior()</code>, <code>ordenar(campo, dir?)</code>, <code>direcaoDe(campo)</code>, <code>filtrar(nome, valor)</code>, <code>definirFiltros(obj)</code>, <code>limparFiltros()</code>, <code>definirPorPagina(n)</code>, <code>recarregar()</code>, <code>maisItens()</code>, <code>alternar(id)</code>, <code>alternarTodos()</code>, <code>limparSelecao()</code>, <code>selecionado(id)</code>, <code>itensSelecionados()</code>, <code>urlCom(base)</code></td></tr>
+</tbody></table></div>
+<p>Global: <code>AlpineForm.lista.get(idOuElemento)</code>, <code>AlpineForm.lista.atualizar(alvos)</code>, <code>AlpineForm.lista.adaptador(nome, fn)</code>. Eventos no elemento: <code>lista:carregada</code>, <code>lista:erro</code>, <code>lista:selecao</code>, <code>lista:atualizada</code>. Mensagens personalizáveis em <code>AlpineForm.messages</code> (<code>lista.carregando</code>, <code>lista.vazio</code>, <code>lista.resumo</code>, <code>lista.erro</code>…).</p>
+<div class="nota"><p>CSP estrita: o módulo não avalia código; com a versão CSP do Alpine use propriedades (<code>x-show="$lista.vazio"</code>) e os atributos <code>data-lista-*</code> em vez de chamadas com argumentos.</p></div>
