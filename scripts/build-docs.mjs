@@ -32,6 +32,7 @@ const PAGES = [
     { arquivo: 'mascaras', menu: 'Máscaras', busca: 'cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical' },
     { arquivo: 'opcoes', menu: 'Selects dependentes', busca: 'select dependente cascata uf cidade bairro opções remotas api carregar combo categoria produto' },
     { arquivo: 'preencher', menu: 'Autopreenchimento', busca: 'cep endereço cnpj razão social preencher automaticamente viacep brasilapi buscar dados consulta' },
+    { arquivo: 'avisos', menu: 'Avisos e confirmação', busca: 'toast aviso notificação mensagem sucesso erro confirmar confirmação excluir modal dialog tem certeza' },
     { arquivo: 'rascunho', menu: 'Rascunho automático', busca: 'rascunho localstorage sessionstorage salvar recuperar restaurar perder dados recarregar' },
     { arquivo: 'listas-dinamicas', menu: 'Listas e DOM dinâmico', busca: 'x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh' },
     { grupo: 'Listagens' },

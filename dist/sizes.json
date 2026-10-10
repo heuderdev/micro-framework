@@ -52,5 +52,11 @@
     "min": 11135,
     "gzip": 4038,
     "esm": 17535
+  },
+  {
+    "module": "alpine-form-avisos",
+    "min": 6763,
+    "gzip": 2526,
+    "esm": 10524
   }
 ]

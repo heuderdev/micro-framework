@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avisos e confirmação · AlpineForm</title>
+<meta name="description" content="Avisos flutuantes (toasts) depois do envio e uma confirmação acessível antes de enviar ou excluir — com atributos, sem escrever modal. Requer alpine-form-avisos e o CSS opcional.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Formulários › Avisos e confirmação</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="opcoes.html" data-busca="select dependente cascata uf cidade bairro opções remotas api carregar combo categoria produto">Selects dependentes</a><a href="preencher.html" data-busca="cep endereço cnpj razão social preencher automaticamente viacep brasilapi buscar dados consulta">Autopreenchimento</a><a href="avisos.html" class="ativo" aria-current="page" data-busca="toast aviso notificação mensagem sucesso erro confirmar confirmação excluir modal dialog tem certeza">Avisos e confirmação</a><a href="rascunho.html" data-busca="rascunho localstorage sessionstorage salvar recuperar restaurar perder dados recarregar">Rascunho automático</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Listagens</div><a href="lista.html" data-busca="tabela lista paginação paginar ordenar ordenação filtros busca pesquisa debounce url seleção lote carregar mais rolagem infinita data-form-lista atualizar recarregar laravel paginate">Listagens (x-lista)</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="seguranca.html" data-busca="csp unsafe-eval trusted types banco regulado log console storage localstorage privacidade lgpd pci">Segurança</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><a href="php.html" data-busca="php helpers resposta entrada validador consulta csrf paginação ordenação lista branca sql joomla 3 php 7 pdo">Helpers PHP</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Avisos e confirmação</h1>
+<p class="lead">Avisos flutuantes (toasts) depois do envio e uma confirmação acessível antes de enviar ou excluir — com atributos, sem escrever modal. Requer alpine-form-avisos e o CSS opcional.</p>
+<div id="nesta-pagina"></div>
+<h2 id="instalacao" data-titulo="Instalação">Instalação</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;link rel=&quot;stylesheet&quot; href=&quot;/css/alpine-form.css&quot;&gt;                 &lt;!-- aparência dos avisos e do diálogo --&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-avisos.min.js&quot;&gt;&lt;/script&gt;   &lt;!-- depois do núcleo --&gt;
+&lt;script defer src=&quot;/js/alpine.min.js&quot;&gt;&lt;/script&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">ESM</div><pre><code data-lang="js">import avisos from 'alpine-form/avisos'
+AlpineForm.use(avisos)</code></pre></div>
+<p>Exemplo executável: <code>examples/avisos.php</code>.</p>
+
+<h2 id="formulario" data-titulo="Aviso depois do envio">Aviso depois do envio (data-form-avisos)</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/clientes&quot; method=&quot;post&quot; data-form-avisos novalidate&gt;
+    &lt;input name=&quot;nome&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;button type=&quot;submit&quot;&gt;Salvar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Valor</th><th>Mostra</th></tr></thead><tbody>
+<tr><td><code>data-form-avisos</code></td><td>Sucesso e erro.</td></tr>
+<tr><td><code>data-form-avisos="sucesso"</code></td><td>Só o sucesso (erros ficam no resumo/campos).</td></tr>
+<tr><td><code>data-form-avisos="erro"</code></td><td>Só erros.</td></tr>
+</tbody></table></div>
+<ul>
+    <li>Sucesso: texto de <code>data-form-aviso-sucesso</code>, senão o <code>message</code> do servidor, senão "Salvo com sucesso.".</li>
+    <li>Erro: a mensagem do erro (rede, 500, 403, 422 "Confira os campos destacados"...). Erro de validação no navegador não gera aviso — os campos já mostram.</li>
+    <li>Combina com <code>data-form-reset-on-success</code> e <code>data-form-lista</code>: salvar, limpar, avisar e atualizar a tabela.</li>
+</ul>
+
+<h2 id="confirmar" data-titulo="Confirmação antes de enviar">Confirmação antes de enviar (data-form-confirmar)</h2>
+<div class="codigo"><div class="titulo-codigo">No formulário</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/pedidos/finalizar&quot; method=&quot;post&quot; data-form-confirmar=&quot;Finalizar o pedido? Depois não será possível alterar.&quot; novalidate&gt;
+    ...
+&lt;/form&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Num botão (só ele pergunta)</div><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/pedidos/1234&quot; method=&quot;post&quot; data-form-avisos novalidate&gt;
+    &lt;input type=&quot;hidden&quot; name=&quot;id&quot; value=&quot;1234&quot;&gt;
+    &lt;button type=&quot;submit&quot; name=&quot;acao&quot; value=&quot;salvar&quot;&gt;Salvar&lt;/button&gt;
+    &lt;button type=&quot;submit&quot; name=&quot;acao&quot; value=&quot;excluir&quot;
+            data-form-confirmar=&quot;O pedido 1234 será excluído. Esta ação não pode ser desfeita.&quot;
+            data-form-confirmar-titulo=&quot;Excluir pedido?&quot;
+            data-form-confirmar-ok=&quot;Excluir&quot;
+            data-form-confirmar-perigo&gt;Excluir&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<ol class="passos">
+    <li>Clicou: o formulário é <strong>validado primeiro</strong>. Inválido não pergunta (mostra os erros).</li>
+    <li>Válido: abre um <code>&lt;dialog&gt;</code> modal com o texto, "Cancelar" e o botão de confirmação.</li>
+    <li>Cancelar, Esc ou fechar: nada é enviado (o envio termina como cancelado). Confirmar: envia normalmente, com o botão que foi clicado (<code>acao=excluir</code>).</li>
+    <li>O foco fica preso no diálogo e volta ao botão de origem ao fechar. Com <code>data-form-confirmar-perigo</code>, o foco começa em "Cancelar" (Enter por engano não exclui) e o botão fica vermelho.</li>
+</ol>
+<div class="tabela"><table><thead><tr><th>Atributo (form ou botão submit)</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-confirmar="texto"</code></td><td>Pergunta antes de enviar. No botão, vale só para ele (tem precedência sobre o do form).</td></tr>
+<tr><td><code>data-form-confirmar-titulo</code></td><td>Título do diálogo.</td></tr>
+<tr><td><code>data-form-confirmar-ok</code></td><td>Texto do botão de confirmação (padrão "Confirmar").</td></tr>
+<tr><td><code>data-form-confirmar-perigo</code></td><td>Ação destrutiva: foco em Cancelar e estilo de perigo.</td></tr>
+</tbody></table></div>
+<div class="nota"><p>Não funciona com <code>data-form-transport="native"</code> (o navegador envia sem passar pelo AlpineForm). A confirmação é uma ajuda para a pessoa, não uma proteção: o servidor continua conferindo permissão e regras.</p></div>
+
+<h2 id="codigo" data-titulo="Pelo código">Pelo código ($avisos e $confirmar)</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;div x-data&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;$avisos.sucesso('Exportação iniciada.')&quot;&gt;Exportar&lt;/button&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;$avisos.erro('Não foi possível gerar o relatório.')&quot;&gt;Erro&lt;/button&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;$avisos.aviso('Sessão expira em 5 minutos.', { duracao: 0 })&quot;&gt;Fixo&lt;/button&gt;
+    &lt;button type=&quot;button&quot; @click=&quot;if (await $confirmar('Descartar as alterações?', { confirmar: 'Descartar', perigo: true })) $dispatch('descartar')&quot;&gt;Descartar&lt;/button&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.avisos.sucesso('Salvo.')                       // também: erro, aviso, info
+const id = AlpineForm.avisos.mostrar('Processando…', { tipo: 'info', duracao: 0 })
+AlpineForm.avisos.fechar(id)
+AlpineForm.avisos.limpar()
+
+if (await AlpineForm.avisos.confirmar('Sair sem salvar?', { titulo: 'Alterações não salvas', confirmar: 'Sair', cancelar: 'Continuar editando' })) {
+    location.href = '/pedidos'
+}
+
+// em outro componente: avisar quando a lista falhar
+document.addEventListener('lista:erro', e =&gt; AlpineForm.avisos.erro(e.detail.erro.message))</code></pre></div>
+
+<h2 id="comportamento" data-titulo="Comportamento e acessibilidade">Comportamento e acessibilidade</h2>
+<ul>
+    <li>Duração: sucesso e info 5 s, aviso 7 s, erro 8 s; <code>duracao: 0</code> só fecha no ×. No máximo 4 na tela (o mais antigo sai).</li>
+    <li>Não some enquanto o mouse está em cima ou o foco está nele (dá tempo de ler).</li>
+    <li>Ficam em regiões vivas: <code>role="status"</code> (educado) e, para erros, <code>role="alert"</code> — leitores de tela anunciam sem roubar o foco.</li>
+    <li>Texto sempre como texto (<code>textContent</code>): mensagem do servidor com HTML aparece literalmente. Quebras de linha são preservadas.</li>
+    <li>Uma confirmação por vez: uma segunda chamada enquanto o diálogo está aberto resolve <code>false</code>.</li>
+    <li>Sem <code>showModal</code> (navegadores muito antigos), o diálogo abre com <code>open</code> e o módulo mantém o foco entre os botões.</li>
+    <li>Tudo que é criado tem <code>data-form-generated</code> e classes <code>af-avisos</code>, <code>af-aviso</code>, <code>af-aviso--sucesso|erro|aviso|info</code>, <code>af-confirmar</code>, <code>af-confirmar--perigo</code> — personalize no seu CSS.</li>
+    <li>Textos padrão em <code>AlpineForm.messages</code>: <code>avisos.sucesso</code>, <code>avisos.erro</code>, <code>avisos.confirmar</code>, <code>avisos.cancelar</code>, <code>avisos.confirmar_envio</code>, <code>avisos.fechar</code>.</li>
+</ul>
+
+<h2 id="referencia" data-titulo="Referência">Referência</h2>
+<p>Atributos no form: <code>data-form-avisos</code> (<code>""</code> | <code>sucesso</code> | <code>erro</code>), <code>data-form-aviso-sucesso</code>, <code>data-form-confirmar</code> e variantes. No botão submit: <code>data-form-confirmar</code>, <code>-titulo</code>, <code>-ok</code>, <code>-perigo</code>.</p>
+<p>API: <code>AlpineForm.avisos.mostrar(texto, { tipo, duracao })</code> (devolve o id), <code>sucesso</code>, <code>erro</code>, <code>aviso</code>, <code>info</code>, <code>fechar(id)</code>, <code>limpar()</code>, <code>confirmar(texto, { titulo, confirmar, cancelar, perigo })</code> → <code>Promise&lt;boolean&gt;</code>. No Alpine: <code>$avisos</code> e <code>$confirmar(texto, opções)</code>. Evento no <code>document</code>: <code>avisos:mostrado</code> (<code>{ id, tipo, texto }</code>).</p>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="preencher.html"><small>← Anterior</small>Autopreenchimento</a><a class="proxima" href="rascunho.html"><small>Próxima →</small>Rascunho automático</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

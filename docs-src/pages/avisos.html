@@ -1,0 +1,103 @@
+titulo: Avisos e confirmação
+lead: Avisos flutuantes (toasts) depois do envio e uma confirmação acessível antes de enviar ou excluir — com atributos, sem escrever modal. Requer alpine-form-avisos e o CSS opcional.
+---
+<h2 id="instalacao" data-titulo="Instalação">Instalação</h2>
+@@@html
+<link rel="stylesheet" href="/css/alpine-form.css">                 <!-- aparência dos avisos e do diálogo -->
+<script src="/js/alpine-form/alpine-form.min.js"></script>
+<script src="/js/alpine-form/alpine-form-avisos.min.js"></script>   <!-- depois do núcleo -->
+<script defer src="/js/alpine.min.js"></script>
+@@@
+@@@js ESM
+import avisos from 'alpine-form/avisos'
+AlpineForm.use(avisos)
+@@@
+<p>Exemplo executável: <code>examples/avisos.php</code>.</p>
+
+<h2 id="formulario" data-titulo="Aviso depois do envio">Aviso depois do envio (data-form-avisos)</h2>
+@@@html
+<form x-data x-form action="/api/clientes" method="post" data-form-avisos novalidate>
+    <input name="nome" data-form-v="required">
+    <button type="submit">Salvar</button>
+</form>
+@@@
+<div class="tabela"><table><thead><tr><th>Valor</th><th>Mostra</th></tr></thead><tbody>
+<tr><td><code>data-form-avisos</code></td><td>Sucesso e erro.</td></tr>
+<tr><td><code>data-form-avisos="sucesso"</code></td><td>Só o sucesso (erros ficam no resumo/campos).</td></tr>
+<tr><td><code>data-form-avisos="erro"</code></td><td>Só erros.</td></tr>
+</tbody></table></div>
+<ul>
+    <li>Sucesso: texto de <code>data-form-aviso-sucesso</code>, senão o <code>message</code> do servidor, senão "Salvo com sucesso.".</li>
+    <li>Erro: a mensagem do erro (rede, 500, 403, 422 "Confira os campos destacados"...). Erro de validação no navegador não gera aviso — os campos já mostram.</li>
+    <li>Combina com <code>data-form-reset-on-success</code> e <code>data-form-lista</code>: salvar, limpar, avisar e atualizar a tabela.</li>
+</ul>
+
+<h2 id="confirmar" data-titulo="Confirmação antes de enviar">Confirmação antes de enviar (data-form-confirmar)</h2>
+@@@html No formulário
+<form x-data x-form action="/api/pedidos/finalizar" method="post" data-form-confirmar="Finalizar o pedido? Depois não será possível alterar." novalidate>
+    ...
+</form>
+@@@
+@@@html Num botão (só ele pergunta)
+<form x-data x-form action="/api/pedidos/1234" method="post" data-form-avisos novalidate>
+    <input type="hidden" name="id" value="1234">
+    <button type="submit" name="acao" value="salvar">Salvar</button>
+    <button type="submit" name="acao" value="excluir"
+            data-form-confirmar="O pedido 1234 será excluído. Esta ação não pode ser desfeita."
+            data-form-confirmar-titulo="Excluir pedido?"
+            data-form-confirmar-ok="Excluir"
+            data-form-confirmar-perigo>Excluir</button>
+</form>
+@@@
+<ol class="passos">
+    <li>Clicou: o formulário é <strong>validado primeiro</strong>. Inválido não pergunta (mostra os erros).</li>
+    <li>Válido: abre um <code>&lt;dialog&gt;</code> modal com o texto, "Cancelar" e o botão de confirmação.</li>
+    <li>Cancelar, Esc ou fechar: nada é enviado (o envio termina como cancelado). Confirmar: envia normalmente, com o botão que foi clicado (<code>acao=excluir</code>).</li>
+    <li>O foco fica preso no diálogo e volta ao botão de origem ao fechar. Com <code>data-form-confirmar-perigo</code>, o foco começa em "Cancelar" (Enter por engano não exclui) e o botão fica vermelho.</li>
+</ol>
+<div class="tabela"><table><thead><tr><th>Atributo (form ou botão submit)</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-confirmar="texto"</code></td><td>Pergunta antes de enviar. No botão, vale só para ele (tem precedência sobre o do form).</td></tr>
+<tr><td><code>data-form-confirmar-titulo</code></td><td>Título do diálogo.</td></tr>
+<tr><td><code>data-form-confirmar-ok</code></td><td>Texto do botão de confirmação (padrão "Confirmar").</td></tr>
+<tr><td><code>data-form-confirmar-perigo</code></td><td>Ação destrutiva: foco em Cancelar e estilo de perigo.</td></tr>
+</tbody></table></div>
+<div class="nota"><p>Não funciona com <code>data-form-transport="native"</code> (o navegador envia sem passar pelo AlpineForm). A confirmação é uma ajuda para a pessoa, não uma proteção: o servidor continua conferindo permissão e regras.</p></div>
+
+<h2 id="codigo" data-titulo="Pelo código">Pelo código ($avisos e $confirmar)</h2>
+@@@html
+<div x-data>
+    <button type="button" @click="$avisos.sucesso('Exportação iniciada.')">Exportar</button>
+    <button type="button" @click="$avisos.erro('Não foi possível gerar o relatório.')">Erro</button>
+    <button type="button" @click="$avisos.aviso('Sessão expira em 5 minutos.', { duracao: 0 })">Fixo</button>
+    <button type="button" @click="if (await $confirmar('Descartar as alterações?', { confirmar: 'Descartar', perigo: true })) $dispatch('descartar')">Descartar</button>
+</div>
+@@@
+@@@js
+AlpineForm.avisos.sucesso('Salvo.')                       // também: erro, aviso, info
+const id = AlpineForm.avisos.mostrar('Processando…', { tipo: 'info', duracao: 0 })
+AlpineForm.avisos.fechar(id)
+AlpineForm.avisos.limpar()
+
+if (await AlpineForm.avisos.confirmar('Sair sem salvar?', { titulo: 'Alterações não salvas', confirmar: 'Sair', cancelar: 'Continuar editando' })) {
+    location.href = '/pedidos'
+}
+
+// em outro componente: avisar quando a lista falhar
+document.addEventListener('lista:erro', e => AlpineForm.avisos.erro(e.detail.erro.message))
+@@@
+
+<h2 id="comportamento" data-titulo="Comportamento e acessibilidade">Comportamento e acessibilidade</h2>
+<ul>
+    <li>Duração: sucesso e info 5 s, aviso 7 s, erro 8 s; <code>duracao: 0</code> só fecha no ×. No máximo 4 na tela (o mais antigo sai).</li>
+    <li>Não some enquanto o mouse está em cima ou o foco está nele (dá tempo de ler).</li>
+    <li>Ficam em regiões vivas: <code>role="status"</code> (educado) e, para erros, <code>role="alert"</code> — leitores de tela anunciam sem roubar o foco.</li>
+    <li>Texto sempre como texto (<code>textContent</code>): mensagem do servidor com HTML aparece literalmente. Quebras de linha são preservadas.</li>
+    <li>Uma confirmação por vez: uma segunda chamada enquanto o diálogo está aberto resolve <code>false</code>.</li>
+    <li>Sem <code>showModal</code> (navegadores muito antigos), o diálogo abre com <code>open</code> e o módulo mantém o foco entre os botões.</li>
+    <li>Tudo que é criado tem <code>data-form-generated</code> e classes <code>af-avisos</code>, <code>af-aviso</code>, <code>af-aviso--sucesso|erro|aviso|info</code>, <code>af-confirmar</code>, <code>af-confirmar--perigo</code> — personalize no seu CSS.</li>
+    <li>Textos padrão em <code>AlpineForm.messages</code>: <code>avisos.sucesso</code>, <code>avisos.erro</code>, <code>avisos.confirmar</code>, <code>avisos.cancelar</code>, <code>avisos.confirmar_envio</code>, <code>avisos.fechar</code>.</li>
+</ul>
+
+<h2 id="referencia" data-titulo="Referência">Referência</h2>
+<p>Atributos no form: <code>data-form-avisos</code> (<code>""</code> | <code>sucesso</code> | <code>erro</code>), <code>data-form-aviso-sucesso</code>, <code>data-form-confirmar</code> e variantes. No botão submit: <code>data-form-confirmar</code>, <code>-titulo</code>, <code>-ok</code>, <code>-perigo</code>.</p>
+<p>API: <code>AlpineForm.avisos.mostrar(texto, { tipo, duracao })</code> (devolve o id), <code>sucesso</code>, <code>erro</code>, <code>aviso</code>, <code>info</code>, <code>fechar(id)</code>, <code>limpar()</code>, <code>confirmar(texto, { titulo, confirmar, cancelar, perigo })</code> → <code>Promise&lt;boolean&gt;</code>. No Alpine: <code>$avisos</code> e <code>$confirmar(texto, opções)</code>. Evento no <code>document</code>: <code>avisos:mostrado</code> (<code>{ id, tipo, texto }</code>).</p>

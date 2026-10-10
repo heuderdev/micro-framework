@@ -209,3 +209,27 @@ form[aria-busy="true"] [type="submit"] {
 /* módulo alpine-form-opcoes: select carregando opções */
 select[data-form-opcoes-estado="carregando"] { cursor: progress; opacity: .7; }
 select[data-form-opcoes-estado="erro"] { border-color: #b91c1c; }
+
+/* módulo alpine-form-avisos: avisos (toasts) e confirmação */
+.af-avisos { position: fixed; z-index: 1080; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: .5rem; max-width: min(24rem, calc(100vw - 2rem)); pointer-events: none; }
+.af-avisos-lista { display: flex; flex-direction: column; gap: .5rem; }
+.af-aviso { pointer-events: auto; display: flex; align-items: flex-start; gap: .75rem; padding: .75rem 1rem; border-radius: .5rem; background: #1f2937; color: #fff; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); border-left: 4px solid #60a5fa; font-size: .95rem; line-height: 1.4; }
+.af-aviso--sucesso { border-left-color: #22c55e; }
+.af-aviso--erro { border-left-color: #ef4444; }
+.af-aviso--aviso { border-left-color: #f59e0b; }
+.af-aviso-texto { flex: 1; white-space: pre-line; }
+.af-aviso-fechar { background: none; border: 0; color: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; padding: 0 .25rem; opacity: .8; }
+.af-aviso-fechar:hover, .af-aviso-fechar:focus-visible { opacity: 1; }
+.af-confirmar { border: 0; border-radius: .75rem; padding: 1.25rem 1.5rem; max-width: min(28rem, calc(100vw - 2rem)); box-shadow: 0 20px 50px rgba(0, 0, 0, .25); }
+.af-confirmar[open]:not(:modal) { position: fixed; inset: 0; margin: auto; height: fit-content; z-index: 1090; }
+.af-confirmar::backdrop { background: rgba(15, 23, 42, .45); }
+.af-confirmar-titulo { margin: 0 0 .5rem; font-size: 1.15rem; }
+.af-confirmar-texto { margin: 0 0 1.25rem; white-space: pre-line; }
+.af-confirmar-acoes { display: flex; justify-content: flex-end; gap: .5rem; }
+.af-confirmar-acoes button { padding: .5rem 1rem; border-radius: .375rem; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; }
+.af-confirmar-ok { background: #2563eb !important; border-color: #2563eb !important; color: #fff; }
+.af-confirmar--perigo .af-confirmar-ok { background: #dc2626 !important; border-color: #dc2626 !important; }
+@media (prefers-reduced-motion: no-preference) {
+    .af-aviso { animation: af-aviso-entrar .18s ease-out; }
+    @keyframes af-aviso-entrar { from { opacity: 0; transform: translateY(.5rem); } to { opacity: 1; transform: none; } }
+}

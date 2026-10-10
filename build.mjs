@@ -23,6 +23,7 @@ const modules = [
     { name: 'alpine-form-lista', esm: 'src/lista/index.js', iife: 'src/lista/cdn.js' },
     { name: 'alpine-form-opcoes', esm: 'src/opcoes/index.js', iife: 'src/opcoes/cdn.js' },
     { name: 'alpine-form-preencher', esm: 'src/preencher/index.js', iife: 'src/preencher/cdn.js' },
+    { name: 'alpine-form-avisos', esm: 'src/avisos/index.js', iife: 'src/avisos/cdn.js' },
 ]
 
 rmSync('dist', { recursive: true, force: true })

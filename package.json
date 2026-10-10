@@ -16,6 +16,7 @@
     "./lista": "./dist/alpine-form-lista.esm.js",
     "./opcoes": "./dist/alpine-form-opcoes.esm.js",
     "./preencher": "./dist/alpine-form-preencher.esm.js",
+    "./avisos": "./dist/alpine-form-avisos.esm.js",
     "./css": "./css/alpine-form.css",
     "./src/*": "./src/*"
   },

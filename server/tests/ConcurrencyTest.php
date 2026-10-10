@@ -33,10 +33,10 @@ function run_children(int $count, array $args): array
         $err = stream_get_contents($pipes[2]);
         fclose($pipes[1]);
         fclose($pipes[2]);
-        proc_close($proc);
+        $codigo = proc_close($proc);
         $decoded = json_decode(trim($out), true);
         if (!is_array($decoded)) {
-            throw new RuntimeException('Processo filho falhou: ' . $out . $err);
+            throw new RuntimeException('Processo filho falhou (código de saída ' . $codigo . '): ' . $out . $err);
         }
         $results[] = $decoded;
     }
