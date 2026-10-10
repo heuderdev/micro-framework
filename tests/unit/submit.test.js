@@ -397,6 +397,17 @@ describe('reset e destroy', () => {
         expect(form.querySelector('.af-error').hidden).toBe(true)
     })
 
+    it('reset volta input hidden alterado por script ao valor inicial (o reset nativo não faz isso)', async () => {
+        const { form, api } = await mount(`<form x-data x-form novalidate><input type="hidden" name="id"><input type="hidden" name="token" value="abc"><input name="nome"></form>`)
+        api.setValue('id', '42')
+        api.setValue('token', 'xyz')
+        expect(api.getValues()).toMatchObject({ id: '42', token: 'xyz' })
+        api.reset()
+        expect(api.getValues()).toMatchObject({ id: '', token: 'abc' })
+        expect(form.querySelector('[name=id]').value).toBe('')
+        expect(api.dirty).toBe(false)
+    })
+
     it('reset nativo (botão) também limpa o estado', async () => {
         const { form, api } = await mount(`<form x-data x-form novalidate><input name="a" value="x" data-form-v="min:5"><button type="reset">Limpar</button></form>`)
         await api.validate()

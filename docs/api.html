@@ -72,7 +72,7 @@ if (r.ok) console.log(r.result.data)</code></pre></div>
 <p>Cancela validação/envio em andamento; em processamento, para de acompanhar. Devolve se havia algo a cancelar.</p>
 </div>
 <div class="metodo"><h3 id="reset"><code>reset()</code> · <code>resetValidation()</code></h3>
-<p><code>reset()</code>: volta os valores ao original do HTML, limpa arquivos, erros e resultado (dispara <code>form:reset</code>, cancelável). <code>resetValidation()</code>: só limpa erros e o estado "tocado", mantendo os valores.</p>
+<p><code>reset()</code>: volta os valores ao original do HTML (inclusive <code>input type="hidden"</code> alterado por script, como o id de edição — o reset nativo do navegador não faz isso), limpa arquivos, erros e resultado (dispara <code>form:reset</code>, cancelável). <code>resetValidation()</code>: só limpa erros e o estado "tocado", mantendo os valores.</p>
 </div>
 <div class="metodo"><h3 id="setValue"><code>setValue(nome, valor, opções)</code></h3>
 <p class="assinatura"><code>setValue(nome, valor, { as = 'display', touch = false, validate, silent = false }): valorExibido</code></p>

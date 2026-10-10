@@ -4353,6 +4353,9 @@ var FormController = class {
       field.state.localErrors = field.configError ? [this.message(field, "__config")] : [];
       field.state.serverErrors = [];
       field.state.remote = "idle";
+      if (field.kind === "hidden" && typeof field.initialDisplay === "string" && field.readDisplay() !== field.initialDisplay) {
+        field.setValue(field.initialDisplay, "display");
+      }
       this.syncFieldValue(field);
       this.composeErrors(field);
       this.renderField(field);

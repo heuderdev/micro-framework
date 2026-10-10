@@ -173,6 +173,10 @@
         this.aplicar(cache.get(url));
         return;
       }
+      if (this.desejado === null || this.desejado === "") {
+        const atual = this.field.getValue("display");
+        if (Array.isArray(atual) ? atual.length : atual) this.desejado = atual;
+      }
       this.limparOpcoes();
       this.definirEstado("carregando");
       this.atualizarDisabled(true);
@@ -232,7 +236,9 @@
       this.carregando = false;
       const anterior = this.field.getValue("display");
       const atual = Array.isArray(anterior) ? anterior : anterior ? [anterior] : [];
-      const queridos = this.desejado !== null && this.desejado !== "" ? [String(this.desejado)] : atual.map(String);
+      const desejado = this.desejado;
+      const temDesejado = Array.isArray(desejado) ? desejado.length > 0 : desejado !== null && desejado !== "";
+      const queridos = temDesejado ? [].concat(desejado).map(String) : atual.map(String);
       this.limparOpcoes();
       const { vazio } = this.config();
       const fragmento = document.createDocumentFragment();
@@ -341,7 +347,10 @@
       on("form:field-removed", () => this.sincronizar({ imediato: true }));
       on("form:change", (event) => this.aoMudar(event.detail?.name, event.detail?.trigger));
       on(OPCOES_EVENTOS.carregadas, (event) => this.aoMudar(event.detail?.name, "opcoes"));
-      on("form:reset", () => setTimeout(() => this.sincronizar({ imediato: true, reavaliar: true }), 0));
+      on("form:reset", () => setTimeout(() => {
+        this.sincronizar({ imediato: true });
+        for (const remoto of this.selects.values()) remoto.avaliar({ imediato: true });
+      }, 0));
     }
     /** Erro de configuração: como no núcleo, marca o campo, registra no estado (bloqueia o envio) e avisa. */
     falhaConfig(error, field) {

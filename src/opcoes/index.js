@@ -213,6 +213,11 @@ class SelectRemoto {
             this.aplicar(cache.get(url))
             return
         }
+        // o valor atual continua valendo se existir na lista nova (ex.: recarregar a mesma lista)
+        if (this.desejado === null || this.desejado === '') {
+            const atual = this.field.getValue('display')
+            if (Array.isArray(atual) ? atual.length : atual) this.desejado = atual
+        }
         // enquanto espera/carrega, a lista antiga some: não deixa escolher cidade da UF anterior
         this.limparOpcoes()
         this.definirEstado('carregando')
@@ -279,7 +284,9 @@ class SelectRemoto {
         const anterior = this.field.getValue('display')
         const atual = Array.isArray(anterior) ? anterior : anterior ? [anterior] : []
         // o que manter selecionado: valor desejado inicial (edição) ou o valor atual
-        const queridos = this.desejado !== null && this.desejado !== '' ? [String(this.desejado)] : atual.map(String)
+        const desejado = this.desejado
+        const temDesejado = Array.isArray(desejado) ? desejado.length > 0 : desejado !== null && desejado !== ''
+        const queridos = temDesejado ? [].concat(desejado).map(String) : atual.map(String)
         this.limparOpcoes()
         const { vazio } = this.config()
         const fragmento = document.createDocumentFragment()
@@ -395,7 +402,11 @@ class OpcoesExtension {
         on('form:field-removed', () => this.sincronizar({ imediato: true }))
         on('form:change', event => this.aoMudar(event.detail?.name, event.detail?.trigger))
         on(OPCOES_EVENTOS.carregadas, event => this.aoMudar(event.detail?.name, 'opcoes'))
-        on('form:reset', () => setTimeout(() => this.sincronizar({ imediato: true, reavaliar: true }), 0))
+        // depois do reset os valores voltam ao padrão: só reavalia as URLs (dependentes voltam a aguardar)
+        on('form:reset', () => setTimeout(() => {
+            this.sincronizar({ imediato: true })
+            for (const remoto of this.selects.values()) remoto.avaliar({ imediato: true })
+        }, 0))
     }
 
     /** Erro de configuração: como no núcleo, marca o campo, registra no estado (bloqueia o envio) e avisa. */

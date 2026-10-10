@@ -1,9 +1,9 @@
 [
   {
     "module": "alpine-form",
-    "min": 148264,
-    "gzip": 46226,
-    "esm": 239331
+    "min": 148393,
+    "gzip": 46261,
+    "esm": 239525
   },
   {
     "module": "alpine-form-masks",
@@ -43,9 +43,9 @@
   },
   {
     "module": "alpine-form-opcoes",
-    "min": 11897,
-    "gzip": 4259,
-    "esm": 19878
+    "min": 12100,
+    "gzip": 4317,
+    "esm": 20275
   },
   {
     "module": "alpine-form-preencher",
@@ -64,5 +64,11 @@
     "min": 14493,
     "gzip": 5000,
     "esm": 21526
+  },
+  {
+    "module": "alpine-form-completo",
+    "min": 261971,
+    "gzip": 79172,
+    "esm": 423050
   }
 ]

@@ -1844,6 +1844,11 @@ export class FormController {
             field.state.localErrors = field.configError ? [this.message(field, '__config')] : []
             field.state.serverErrors = []
             field.state.remote = 'idle'
+            /* o reset nativo não desfaz input hidden alterado por script (o value dele é o próprio atributo):
+               sem isto, um id de edição colocado com setValue sobreviveria ao reset */
+            if (field.kind === 'hidden' && typeof field.initialDisplay === 'string' && field.readDisplay() !== field.initialDisplay) {
+                field.setValue(field.initialDisplay, 'display')
+            }
             this.syncFieldValue(field)
             this.composeErrors(field)
             this.renderField(field)
