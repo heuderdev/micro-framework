@@ -572,3 +572,65 @@ describe('x-lista: exportação CSV (filtro e completo)', () => {
         expect(nomeDoArquivo(null)).toBeNull()
     })
 })
+
+describe('x-lista: exportação no modo automático', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals()
+        vi.restoreAllMocks()
+        document.body.innerHTML = ''
+    })
+
+    function preparar() {
+        const pedidos = []
+        vi.stubGlobal('fetch', vi.fn(async url => {
+            pedidos.push(String(url))
+            return new Response('a;b\r\n', { status: 200, headers: { 'content-type': 'text/csv' } })
+        }))
+        URL.createObjectURL = vi.fn(() => 'blob:x')
+        URL.revokeObjectURL = vi.fn()
+        const cliques = []
+        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+            cliques.push(this.getAttribute('href'))
+        })
+        return { pedidos, cliques }
+    }
+
+    it('filtro até o limite baixa pela página; acima do limite e o completo vão direto pelo navegador', async () => {
+        AlpineForm.transport('lista', servidor(), { replace: true })
+        const { raiz, lista } = await montar(`<section x-data x-lista data-lista-url="/api/clientes" data-lista-por-pagina="10"
+            data-lista-exportar-modo="auto" data-lista-exportar-limite="50"
+            data-lista-exportar-url="/api/exp" data-lista-exportar-completo-url="/api/exp-tudo">
+            <input name="uf" data-lista-filtro>${LINHAS}</section>`)
+        await esperar(() => lista.carregado)
+        const { pedidos, cliques } = preparar()
+        const modos = []
+        raiz.addEventListener('lista:exportada', e => modos.push(`${e.detail.tipo}:${e.detail.modo}`))
+
+        expect(lista.total).toBe(137)
+        expect(lista.modoExportacao('filtro')).toBe('direto')                 // 137 > 50
+        expect(await lista.exportar('filtro')).toBe(true)
+        expect(pedidos).toHaveLength(0)
+        expect(cliques.at(-1)).toBe('/api/exp')                                 // sem filtro nem ordem: URL limpa
+
+        await lista.definirFiltros({ uf: 'SP' })                              // 46 clientes de SP
+        expect(lista.total).toBeLessThanOrEqual(50)
+        expect(lista.modoExportacao('filtro')).toBe('baixar')
+        expect(await lista.exportar('filtro')).toBe(true)
+        expect(pedidos).toEqual(['/api/exp?uf=SP'])
+
+        expect(lista.modoExportacao('completo')).toBe('direto')               // sem contagem do total
+        await lista.exportar('completo')
+        expect(cliques.at(-1)).toBe('/api/exp-tudo')
+        expect(modos).toEqual(['filtro:direto', 'filtro:baixar', 'completo:direto'])
+    })
+
+    it('valida modo, limite e modo grande', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        for (const attrs of ['data-lista-exportar-modo="turbo"', 'data-lista-exportar-limite="0"', 'data-lista-exportar-grande="baixar"']) {
+            const { lista, raiz } = await montar(`<section x-data x-lista data-lista-url="/api/x" ${attrs}></section>`)
+            expect(lista, attrs).toBeNull()
+            expect(raiz.getAttribute('data-lista-estado')).toBe('config-error')
+            document.body.innerHTML = ''
+        }
+    })
+})

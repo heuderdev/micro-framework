@@ -126,8 +126,10 @@ test.describe('listagens: exportação CSV', () => {
         const linhasCompleto = readFileSync(await arquivoCompleto.path(), 'utf8').trim().split('\r\n')
         expect(linhasCompleto.length - 1).toBeGreaterThanOrEqual(137)
         expect(linhasCompleto.length).toBeGreaterThan(linhasFiltro.length)
-        expect(pedidos[1].pathname).toBe('/api/demo/clientes-csv-completo')
-        expect(pedidos[1].search).toBe('')
+        // modo auto: o completo (sem contagem) vai direto pelo navegador — é um download, não uma requisição da página
+        expect(new URL(arquivoCompleto.url()).pathname).toBe('/api/demo/clientes-csv-completo')
+        expect(new URL(arquivoCompleto.url()).search).toBe('')
+        expect(pedidos).toHaveLength(1)
         await expect(page.locator('[data-lista-exportar="filtro"]')).toBeEnabled()
         expect(problemas).toEqual([])
     })

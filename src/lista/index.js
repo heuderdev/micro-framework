@@ -31,6 +31,8 @@ const MENSAGENS = {
     'lista.exportar_erro': 'Não foi possível gerar o arquivo. Tente novamente.',
 }
 
+const MODOS_EXPORTACAO = ['baixar', 'direto', 'auto']
+const MODOS_GRANDES = ['direto']
 const PARAMETROS_PADRAO = { pagina: 'page', porPagina: 'per_page', ordem: 'sort', direcao: 'direction' }
 const TIPOS_SEM_DIGITACAO = new Set(['checkbox', 'radio', 'date', 'month', 'week', 'time', 'datetime-local', 'range', 'color', 'file'])
 
@@ -191,11 +193,16 @@ class Lista {
         if (!['recarregar', 'inicio'].includes(aoAtualizar)) throw new ConfigError(`data-lista-ao-atualizar="${aoAtualizar}" inválido. Use "recarregar" ou "inicio".`)
         // exportação (CSV): uma URL para "com os filtros atuais" e outra para "tudo, sem filtro nem paginação"
         const exportarModo = attr('exportar-modo') || 'baixar'
-        if (!['baixar', 'direto'].includes(exportarModo)) throw new ConfigError(`data-lista-exportar-modo="${exportarModo}" inválido. Use "baixar" ou "direto".`)
+        if (!MODOS_EXPORTACAO.includes(exportarModo)) throw new ConfigError(`data-lista-exportar-modo="${exportarModo}" inválido. Use ${MODOS_EXPORTACAO.map(m => `"${m}"`).join(', ')}.`)
+        // modo "auto": até o limite de linhas baixa pela página; acima (ou total desconhecido, como no completo) usa o modo "grande"
+        const exportarGrande = attr('exportar-grande') || 'direto'
+        if (!MODOS_GRANDES.includes(exportarGrande)) throw new ConfigError(`data-lista-exportar-grande="${exportarGrande}" inválido. Use ${MODOS_GRANDES.map(m => `"${m}"`).join(' ou ')}.`)
         this.config.exportar = {
             filtro: attr('exportar-url') ? String(attr('exportar-url')) : null,
             completo: attr('exportar-completo-url') ? String(attr('exportar-completo-url')) : null,
             modo: exportarModo,
+            grande: exportarGrande,
+            limite: lerInteiro(attr('exportar-limite'), 50000, ConfigError, 'data-lista-exportar-limite', 1, 100000000),
             timeout: lerDuracao(attr('exportar-timeout'), 120000, ConfigError, 'data-lista-exportar-timeout'),
         }
         for (const [tipo, endereco] of Object.entries({ filtro: this.config.exportar.filtro, completo: this.config.exportar.completo })) {
@@ -318,6 +325,7 @@ class Lista {
             urlCom: base => this.urlCom(base),
             exportar: tipo => this.exportar(tipo),
             urlExportacao: tipo => this.urlExportacao(tipo),
+            modoExportacao: tipo => this.modoExportacao(tipo),
         }
     }
 
@@ -646,15 +654,28 @@ class Lista {
         return url.pathname + url.search
     }
 
+    /**
+     * Como esta exportação vai acontecer. "auto": "filtro" com total conhecido até data-lista-exportar-limite
+     * baixa pela página (estado e erro na tela); acima disso, ou sem total (o "completo" não tem contagem),
+     * usa data-lista-exportar-grande.
+     */
+    modoExportacao(tipo) {
+        const { modo, grande, limite } = this.config.exportar
+        if (modo !== 'auto') return modo
+        const total = this.state.total
+        return tipo === 'filtro' && typeof total === 'number' && total <= limite ? 'baixar' : grande
+    }
+
     /** Baixa o arquivo. Resolve true quando o download foi entregue ao navegador. */
     async exportar(tipo = 'filtro') {
         const url = this.urlExportacao(tipo)
         if (this.destruida || this.state.exportando) return false
         this.state.erroExportacao = null
-        if (this.config.exportar.modo === 'direto') {
+        const modo = this.modoExportacao(tipo)
+        if (modo === 'direto') {
             // arquivos enormes: o navegador baixa direto do servidor (sem passar pela memória da página)
             this.baixarLink(url, null)
-            this.disparar('lista:exportada', { tipo, url, arquivo: null, bytes: null })
+            this.disparar('lista:exportada', { tipo, modo, url, arquivo: null, bytes: null })
             return true
         }
         const controle = new AbortController()
@@ -686,7 +707,7 @@ class Lista {
                 if (this.destruida) return false
                 const nome = nomeDoArquivo(resposta.headers.get('content-disposition')) || this.nomePadrao(tipo, tipoConteudo)
                 this.baixarBlob(arquivo, nome)
-                this.disparar('lista:exportada', { tipo, url, arquivo: nome, bytes: arquivo.size })
+                this.disparar('lista:exportada', { tipo, modo, url, arquivo: nome, bytes: arquivo.size })
             }
         } catch (error) {
             erro = { kind: controle.signal.aborted ? (this.destruida ? 'abort' : 'timeout') : 'network', status: null, message: this.mensagem('lista.exportar_erro') }

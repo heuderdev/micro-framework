@@ -32,7 +32,9 @@ layout_start('Listagens', 'Módulo opcional <code>alpine-form-lista</code>: pagi
          data-lista-ordem="nome"
          data-lista-url-sincronizar
          data-lista-exportar-url="/api/demo/clientes-csv"
-         data-lista-exportar-completo-url="/api/demo/clientes-csv-completo">
+         data-lista-exportar-completo-url="/api/demo/clientes-csv-completo"
+         data-lista-exportar-modo="auto"
+         data-lista-exportar-limite="60">
     <h2>Clientes</h2>
 
     <form class="row" data-lista-filtros role="search" aria-label="Filtrar clientes">
@@ -69,6 +71,7 @@ layout_start('Listagens', 'Módulo opcional <code>alpine-form-lista</code>: pagi
 
     <p data-lista-status class="hint"></p>
     <p class="hint" x-show="$lista.exportando" role="status">Gerando o arquivo…</p>
+    <p class="hint" x-show="$lista.carregado && $lista.modoExportacao('filtro') === 'direto'">Mais de 60 linhas no filtro: o download vai direto pelo navegador (modo <code>auto</code>).</p>
     <p class="erro-exportacao" x-show="$lista.erroExportacao" role="alert" x-text="$lista.erroExportacao && $lista.erroExportacao.message"></p>
     <p class="hint" x-show="$lista.quantidadeSelecionada > 0">
         <strong x-text="$lista.quantidadeSelecionada"></strong> selecionado(s)
@@ -129,7 +132,7 @@ layout_start('Listagens', 'Módulo opcional <code>alpine-form-lista</code>: pagi
 <li>Digite na busca: a requisição sai 300 ms depois que você para de digitar (mínimo de 2 letras), cancelando a anterior. Respostas antigas nunca sobrescrevem as novas.</li>
 <li>Filtros, página, ordenação e tamanho ficam na URL (<code>data-lista-url-sincronizar</code>): recarregar ou compartilhar o link reabre a mesma visão; Voltar/Avançar navegam entre páginas e ordenações.</li>
 <li>A seleção é mantida ao trocar de página; o checkbox do cabeçalho seleciona a página atual.</li>
-<li><strong>Filtro CSV</strong> chama <code>data-lista-exportar-url</code> com os filtros e a ordenação atuais (sem paginação); <strong>CSV completo</strong> chama <code>data-lista-exportar-completo-url</code> sem parâmetros (todas as linhas). O servidor gera o arquivo com <code>Csv::enviar()</code> dos helpers PHP.</li>
+<li><strong>Filtro CSV</strong> chama <code>data-lista-exportar-url</code> com os filtros e a ordenação atuais (sem paginação); <strong>CSV completo</strong> chama <code>data-lista-exportar-completo-url</code> sem parâmetros (todas as linhas). O servidor gera o arquivo com <code>Csv::enviar()</code> dos helpers PHP. Com <code>data-lista-exportar-modo="auto"</code> e limite de 60 linhas (para a demonstração), filtros pequenos baixam pela página e o resto vai direto pelo navegador.</li>
 <li>O endpoint de demonstração responde no formato do Laravel (<code>data</code> + <code>meta</code>); outros formatos são reconhecidos automaticamente (veja a documentação).</li>
 <li>Os cards usam <code>data-lista-modo="acumular"</code>: "Carregar mais" e o sentinela (rolagem infinita) acrescentam a próxima página.</li>
 </ul>'); ?>

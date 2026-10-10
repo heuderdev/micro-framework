@@ -282,8 +282,24 @@ function exportarClientes($query) {
 <h3 id="volume" data-titulo="Milhões de linhas">Milhões de linhas</h3>
 <div class="tabela"><table><thead><tr><th>Volume</th><th>Recomendação</th></tr></thead><tbody>
 <tr><td>Até ~50 mil linhas (alguns MB)</td><td>Modo padrão (<code>baixar</code>): estado "gerando" e erro na tela.</td></tr>
-<tr><td>Centenas de milhares a alguns milhões</td><td><code>data-lista-exportar-modo="direto"</code> (o navegador baixa em fluxo, sem memória da página) + servidor com <code>Csv::linhasDoBanco()</code> e <code>gzip</code>.</td></tr>
+<tr><td>Centenas de milhares a alguns milhões</td><td><code>data-lista-exportar-modo="direto"</code> (o navegador baixa em fluxo, sem memória da página) + servidor com <code>Csv::linhasDoBanco()</code> e <code>gzip</code>. Ou <a href="#exportar-auto"><code>data-lista-exportar-modo="auto"</code></a>, que decide pelo total.</td></tr>
 </tbody></table></div>
+<h3 id="exportar-auto" data-titulo="Modo automático">Modo automático</h3>
+<div class="codigo"><pre><code data-lang="html">&lt;section id=&quot;clientes&quot; x-data x-lista data-lista-url=&quot;/api/clientes&quot;
+         data-lista-exportar-url=&quot;/api/clientes/exportar&quot;
+         data-lista-exportar-completo-url=&quot;/api/clientes/exportar-tudo&quot;
+         data-lista-exportar-modo=&quot;auto&quot;
+         data-lista-exportar-limite=&quot;50000&quot;&gt;
+    &lt;button type=&quot;button&quot; data-lista-exportar=&quot;filtro&quot;&gt;Filtro CSV&lt;/button&gt;
+    &lt;button type=&quot;button&quot; data-lista-exportar=&quot;completo&quot;&gt;CSV completo&lt;/button&gt;
+    &lt;small x-show=&quot;$lista.carregado &amp;&amp; $lista.modoExportacao('filtro') === 'direto'&quot;&gt;Arquivo grande: o download começa direto pelo navegador.&lt;/small&gt;
+&lt;/section&gt;</code></pre></div>
+<ul>
+    <li><strong>Filtro CSV</strong>: a lista já sabe quantas linhas o filtro tem (<code>$lista.total</code>). Até <code>data-lista-exportar-limite</code> (padrão 50.000) baixa pela página, com "gerando…" e erro amigável; acima disso — ou se a API não informa o total — usa o modo de arquivo grande.</li>
+    <li><strong>CSV completo</strong>: o total da tabela inteira não é conhecido na tela, então usa sempre o modo de arquivo grande.</li>
+    <li>Modo de arquivo grande: <code>data-lista-exportar-grande="direto"</code> (padrão).</li>
+    <li><code>$lista.modoExportacao('filtro')</code> diz qual será usado (para avisos na tela); o evento <code>lista:exportada</code> informa o <code>modo</code> escolhido.</li>
+</ul>
 <p>Medido em <code>php php/tests/carga.php</code> (PHP 8.4, MySQL 8, Windows): 2 milhões de linhas em fluxo com pico de 0,3 MB de memória no PHP; 1 milhão de linhas do MySQL em ~7 s com 0,3 MB usando <code>Csv::linhasDoBanco()</code> — contra <strong>87 MB</strong> com o <code>$pdo-&gt;query()</code> comum, que carrega o resultado inteiro; download HTTP de 2 milhões de linhas com gzip: 9 MB trafegados em vez de 46 MB. O Excel abre no máximo 1.048.576 linhas por planilha (<code>Csv::LIMITE_EXCEL</code>; opção <code>maxLinhas</code>).</p>
 <div class="nota aviso"><p>O endpoint de exportação precisa da <strong>mesma autorização</strong> da listagem (e, para o completo, normalmente uma permissão a mais): quem chama a URL direto não passa pela tela. Use a mesma função de filtro da listagem para o CSV bater com o que a pessoa vê, e proteja células contra injeção de fórmulas (o <code>Csv</code> dos <a href="php.html#csv">Helpers PHP</a> já faz). Em ambiente regulado, registre quem exportou e o quê.</p></div>
 
@@ -317,7 +333,8 @@ AlpineForm.lista.adaptador('erp', json =&gt; ({
 <tr><td><code>data-lista-timeout</code></td><td>15s</td><td>Tempo máximo da requisição.</td></tr>
 <tr><td><code>data-lista-grupo</code> · <code>data-lista-ao-atualizar</code> · <code>data-lista-destacar</code></td><td>— · recarregar · —</td><td>Atualização por formulário.</td></tr>
 <tr><td><code>data-lista-exportar-url</code> · <code>data-lista-exportar-completo-url</code></td><td>—</td><td>Endpoints do CSV com filtro e completo.</td></tr>
-<tr><td><code>data-lista-exportar-modo</code> · <code>data-lista-exportar-timeout</code></td><td>baixar · 2min</td><td><code>direto</code> para arquivos enormes.</td></tr>
+<tr><td><code>data-lista-exportar-modo</code> · <code>data-lista-exportar-timeout</code></td><td>baixar · 2min</td><td><code>baixar</code>, <code>direto</code> (arquivos enormes) ou <code>auto</code>.</td></tr>
+<tr><td><code>data-lista-exportar-limite</code> · <code>data-lista-exportar-grande</code></td><td>50000 · direto</td><td>Modo <code>auto</code>: até quantas linhas baixa pela página, e o que usar acima disso.</td></tr>
 </tbody></table></div>
 <div class="tabela"><table><caption>Atributos de elementos dentro da lista</caption><thead><tr><th>Atributo</th><th>Função</th></tr></thead><tbody>
 <tr><td><code>data-lista-filtros</code> (form) · <code>data-lista-filtro</code> (campo) · <code>data-lista-minimo</code> · <code>data-lista-ignorar</code> · <code>data-lista-aplicar-ao-enviar</code></td><td>Filtros</td></tr>
@@ -332,7 +349,7 @@ AlpineForm.lista.adaptador('erp', json =&gt; ({
 </tbody></table></div>
 <div class="tabela"><table><caption>$lista</caption><thead><tr><th>Propriedades</th><th>Métodos</th></tr></thead><tbody>
 <tr><td><code>itens</code>, <code>carregando</code>, <code>carregado</code>, <code>erro</code>, <code>vazio</code>, <code>pagina</code>, <code>porPagina</code>, <code>total</code>, <code>ultimaPagina</code>, <code>temProxima</code>, <code>temAnterior</code>, <code>de</code>, <code>ate</code>, <code>paginas</code>, <code>resumo</code>, <code>ordem</code>, <code>direcao</code>, <code>filtros</code>, <code>parametros</code>, <code>queryString</code>, <code>selecionados</code>, <code>quantidadeSelecionada</code>, <code>todosSelecionados</code>, <code>algunsSelecionados</code>, <code>destaque</code></td>
-<td><code>irPara(n)</code>, <code>proxima()</code>, <code>anterior()</code>, <code>ordenar(campo, dir?)</code>, <code>direcaoDe(campo)</code>, <code>filtrar(nome, valor)</code>, <code>definirFiltros(obj)</code>, <code>limparFiltros()</code>, <code>definirPorPagina(n)</code>, <code>recarregar()</code>, <code>maisItens()</code>, <code>alternar(id)</code>, <code>alternarTodos()</code>, <code>limparSelecao()</code>, <code>selecionado(id)</code>, <code>itensSelecionados()</code>, <code>urlCom(base)</code>, <code>exportar(tipo)</code>, <code>urlExportacao(tipo)</code>; estado <code>exportando</code>, <code>erroExportacao</code></td></tr>
+<td><code>irPara(n)</code>, <code>proxima()</code>, <code>anterior()</code>, <code>ordenar(campo, dir?)</code>, <code>direcaoDe(campo)</code>, <code>filtrar(nome, valor)</code>, <code>definirFiltros(obj)</code>, <code>limparFiltros()</code>, <code>definirPorPagina(n)</code>, <code>recarregar()</code>, <code>maisItens()</code>, <code>alternar(id)</code>, <code>alternarTodos()</code>, <code>limparSelecao()</code>, <code>selecionado(id)</code>, <code>itensSelecionados()</code>, <code>urlCom(base)</code>, <code>exportar(tipo)</code>, <code>urlExportacao(tipo)</code>, <code>modoExportacao(tipo)</code>; estado <code>exportando</code>, <code>erroExportacao</code></td></tr>
 </tbody></table></div>
 <p>Global: <code>AlpineForm.lista.get(idOuElemento)</code>, <code>AlpineForm.lista.atualizar(alvos)</code>, <code>AlpineForm.lista.adaptador(nome, fn)</code>. Eventos no elemento: <code>lista:carregada</code>, <code>lista:erro</code>, <code>lista:selecao</code>, <code>lista:atualizada</code>, <code>lista:exportada</code>, <code>lista:exportacao-erro</code>. Mensagens personalizáveis em <code>AlpineForm.messages</code> (<code>lista.carregando</code>, <code>lista.vazio</code>, <code>lista.resumo</code>, <code>lista.erro</code>…).</p>
 <div class="nota"><p>CSP estrita: o módulo não avalia código; com a versão CSP do Alpine use propriedades (<code>x-show="$lista.vazio"</code>) e os atributos <code>data-lista-*</code> em vez de chamadas com argumentos.</p></div>

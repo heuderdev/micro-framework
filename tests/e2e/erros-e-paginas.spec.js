@@ -14,7 +14,9 @@ test.describe('todas as páginas de exemplo', () => {
             await page.goto(`/examples/${name}.php`)
             await page.waitForFunction(() => {
                 const forms = Array.from(document.querySelectorAll('form[x-form]'))
-                return document.readyState === 'complete' && (!forms.length || (window.AlpineForm && forms.every(f => window.AlpineForm.get(f)?.ready)))
+                const listas = Array.from(document.querySelectorAll('[x-lista]'))
+                const listasProntas = listas.every(l => { const s = window.AlpineForm?.lista?.get(l); return s && s.carregado && !s.carregando })
+                return document.readyState === 'complete' && listasProntas && (!forms.length || (window.AlpineForm && forms.every(f => window.AlpineForm.get(f)?.ready)))
             })
             /* nenhum ciclo de re-renderização: o DOM não muda sem interação */
             const mutations = await page.evaluate(() => new Promise(resolve => {
