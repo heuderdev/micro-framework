@@ -13,10 +13,13 @@ var MENSAGENS = {
   "lista.pagina": "P\xE1gina :pagina",
   "lista.navegacao": "Pagina\xE7\xE3o",
   "lista.selecionados": ":total selecionado(s)",
-  "lista.exportar_erro": "N\xE3o foi poss\xEDvel gerar o arquivo. Tente novamente."
+  "lista.exportar_erro": "N\xE3o foi poss\xEDvel gerar o arquivo. Tente novamente.",
+  "lista.exportar_job_contrato": "O servidor n\xE3o iniciou a exporta\xE7\xE3o no formato esperado.",
+  "lista.exportar_job_falhou": "A gera\xE7\xE3o do arquivo falhou.",
+  "lista.exportar_job_tempo": "A gera\xE7\xE3o do arquivo est\xE1 demorando mais que o esperado. Tente de novo mais tarde."
 };
-var MODOS_EXPORTACAO = ["baixar", "direto", "auto"];
-var MODOS_GRANDES = ["direto"];
+var MODOS_EXPORTACAO = ["baixar", "direto", "auto", "job"];
+var MODOS_GRANDES = ["direto", "job"];
 var PARAMETROS_PADRAO = { pagina: "page", porPagina: "per_page", ordem: "sort", direcao: "direction" };
 var TIPOS_SEM_DIGITACAO = /* @__PURE__ */ new Set(["checkbox", "radio", "date", "month", "week", "time", "datetime-local", "range", "color", "file"]);
 var listas = /* @__PURE__ */ new WeakMap();
@@ -157,8 +160,11 @@ var Lista = class {
       modo: exportarModo,
       grande: exportarGrande,
       limite: lerInteiro(attr("exportar-limite"), 5e4, ConfigError, "data-lista-exportar-limite", 1, 1e8),
-      timeout: lerDuracao(attr("exportar-timeout"), 12e4, ConfigError, "data-lista-exportar-timeout")
+      timeout: lerDuracao(attr("exportar-timeout"), 12e4, ConfigError, "data-lista-exportar-timeout"),
+      jobTimeout: lerDuracao(attr("exportar-job-timeout"), 18e5, ConfigError, "data-lista-exportar-job-timeout"),
+      jobIntervalo: lerDuracao(attr("exportar-job-intervalo"), 1500, ConfigError, "data-lista-exportar-job-intervalo")
     };
+    this.jobExportacao = null;
     for (const [tipo, endereco] of Object.entries({ filtro: this.config.exportar.filtro, completo: this.config.exportar.completo })) {
       if (endereco && new URL(endereco, globalThis.location?.href).origin !== globalThis.location?.origin) {
         throw new ConfigError(`data-lista-exportar${tipo === "completo" ? "-completo" : ""}-url aponta para outra origem. Use um endpoint do pr\xF3prio site.`);
@@ -220,6 +226,7 @@ var Lista = class {
       destaque: null,
       exportando: null,
       erroExportacao: null,
+      progressoExportacao: null,
       get vazio() {
         return this.carregado && !this.carregando && !this.erro && this.itens.length === 0;
       },
@@ -274,7 +281,8 @@ var Lista = class {
       urlCom: (base) => this.urlCom(base),
       exportar: (tipo) => this.exportar(tipo),
       urlExportacao: (tipo) => this.urlExportacao(tipo),
-      modoExportacao: (tipo) => this.modoExportacao(tipo)
+      modoExportacao: (tipo) => this.modoExportacao(tipo),
+      cancelarExportacao: () => this.cancelarExportacao()
     };
   }
   mensagem(chave, vars = {}) {
@@ -443,7 +451,7 @@ var Lista = class {
     return this.carregar({ historico: "substituir", acumular: true });
   }
   aoClicar(evento) {
-    const alvo = evento.target.closest?.("[data-lista-ordenar], [data-lista-pagina], [data-lista-anterior], [data-lista-proxima], [data-lista-mais], [data-lista-recarregar], [data-lista-limpar], [data-lista-exportar]");
+    const alvo = evento.target.closest?.("[data-lista-ordenar], [data-lista-pagina], [data-lista-anterior], [data-lista-proxima], [data-lista-mais], [data-lista-recarregar], [data-lista-limpar], [data-lista-exportar], [data-lista-exportar-cancelar]");
     if (!alvo || this.donoDe(alvo) !== this) return;
     if (alvo.hasAttribute("data-lista-ordenar")) {
       evento.preventDefault();
@@ -466,6 +474,9 @@ var Lista = class {
     } else if (alvo.hasAttribute("data-lista-limpar")) {
       evento.preventDefault();
       this.limparFiltros();
+    } else if (alvo.hasAttribute("data-lista-exportar-cancelar")) {
+      evento.preventDefault();
+      this.cancelarExportacao();
     } else if (alvo.hasAttribute("data-lista-exportar")) {
       evento.preventDefault();
       this.exportar(alvo.getAttribute("data-lista-exportar") || "filtro").catch((error) => {
@@ -580,6 +591,7 @@ var Lista = class {
     if (this.destruida || this.state.exportando) return false;
     this.state.erroExportacao = null;
     const modo = this.modoExportacao(tipo);
+    if (modo === "job") return this.exportarPorJob(tipo, url);
     if (modo === "direto") {
       this.baixarLink(url, null);
       this.disparar("lista:exportada", { tipo, modo, url, arquivo: null, bytes: null });
@@ -632,6 +644,116 @@ var Lista = class {
       return false;
     }
     return !erro;
+  }
+  /**
+   * Exportação em segundo plano: POST no mesmo endpoint (com o token CSRF); o servidor responde 202 com
+   * { job: { id, status_url, cancel_url } } e gera o arquivo numa fila. A lista acompanha o status (o mesmo
+   * contrato do processamento de formulários) e, quando o job termina com result.url, baixa pelo navegador.
+   * Se o servidor responder 2xx com { url } (arquivo pronto na hora), baixa direto.
+   */
+  async exportarPorJob(tipo, url) {
+    const AF = this.AlpineForm;
+    const controle = new AbortController();
+    this.jobExportacao = { controle, poller: null, cancelUrl: null, tipo };
+    this.state.exportando = tipo;
+    this.state.progressoExportacao = { status: "enviando", progress: null, message: null };
+    this.renderizarDom();
+    const cabecalhos = { ...this.cabecalhos(url), ...this.cabecalhoCsrf(url) };
+    let erro = null;
+    let resultado = null;
+    try {
+      const raw = await this.transporte()({ url: absoluta(url), method: "POST", headers: cabecalhos, body: null, credentials: "same-origin", timeout: this.config.timeout, signal: controle.signal });
+      const corpo = AF.internals.parseBody(raw);
+      const json = corpo.type === "json" && isObjeto(corpo.json) ? corpo.json : null;
+      if (raw.status < 200 || raw.status >= 300 || !json) {
+        const doServidor = json ? json.message || json.mensagem : null;
+        throw Object.assign(new Error(typeof doServidor === "string" && doServidor || this.mensagem(raw.status >= 200 && raw.status < 300 ? "lista.exportar_job_contrato" : "lista.exportar_erro")), { kind: raw.status >= 400 ? "http" : "contract", status: raw.status });
+      }
+      const pronto = urlDoArquivo(isObjeto(json.data) ? json.data : json);
+      const dadosJob = isObjeto(json.job) ? json.job : null;
+      if (raw.status !== 202 && pronto) {
+        resultado = { url: pronto, arquivo: nomeDoResultado(isObjeto(json.data) ? json.data : json), bytes: null };
+      } else {
+        const id = dadosJob ? dadosJob.id ?? dadosJob.job_id : json.id ?? json.job_id;
+        const statusUrl = dadosJob ? dadosJob.status_url ?? dadosJob.statusUrl : json.status_url ?? json.statusUrl;
+        if (id === void 0 || id === null || typeof statusUrl !== "string" || !mesmaOrigem(statusUrl)) {
+          throw Object.assign(new Error(this.mensagem("lista.exportar_job_contrato")), { kind: "contract", status: raw.status });
+        }
+        const cancelUrl = dadosJob ? dadosJob.cancel_url ?? dadosJob.cancelUrl : null;
+        this.jobExportacao.cancelUrl = typeof cancelUrl === "string" && mesmaOrigem(cancelUrl) ? cancelUrl : null;
+        this.state.progressoExportacao = { status: "queued", progress: null, message: typeof json.message === "string" ? json.message : null };
+        this.renderizarDom();
+        const poller = new AF.internals.JobPoller({
+          job: { id: String(id) },
+          url: absoluta(statusUrl),
+          transport: this.transporte(),
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+          timeout: this.config.exportar.jobTimeout,
+          interval: this.config.exportar.jobIntervalo,
+          maxInterval: Math.max(this.config.exportar.jobIntervalo, 1e4),
+          onUpdate: (atual) => {
+            if (this.destruida) return;
+            this.state.progressoExportacao = { status: atual.status, progress: atual.progress, message: atual.message };
+            this.disparar("lista:exportacao-progresso", { tipo, ...this.state.progressoExportacao });
+          }
+        });
+        this.jobExportacao.poller = poller;
+        const final = await poller.run();
+        if (final.status !== "succeeded") {
+          const motivo = final.status === "canceled" ? "canceled" : "job-failed";
+          const texto = isObjeto(final.error) && typeof final.error.message === "string" && final.error.message || final.message || this.mensagem("lista.exportar_job_falhou");
+          throw Object.assign(new Error(texto), { kind: motivo, status: null });
+        }
+        const arquivoUrl = urlDoArquivo(final.result);
+        if (!arquivoUrl) throw Object.assign(new Error(this.mensagem("lista.exportar_job_contrato")), { kind: "contract", status: null });
+        resultado = { url: arquivoUrl, arquivo: nomeDoResultado(final.result), bytes: isObjeto(final.result) && typeof final.result.bytes === "number" ? final.result.bytes : null };
+      }
+    } catch (error) {
+      const abortado = error?.name === "AbortError" || error?.kind === "abort";
+      erro = abortado ? { kind: "canceled", status: null, message: null } : { kind: error?.kind || (error instanceof TypeError ? "network" : "unexpected"), status: error?.status ?? null, message: error?.kind === "job-timeout" ? this.mensagem("lista.exportar_job_tempo") : error?.kind === "network" || error?.kind === "timeout" ? this.mensagem("lista.exportar_erro") : error?.message || this.mensagem("lista.exportar_erro") };
+    }
+    this.jobExportacao = null;
+    if (this.destruida) return false;
+    this.state.exportando = null;
+    this.state.progressoExportacao = null;
+    this.renderizarDom();
+    if (erro) {
+      if (erro.kind === "canceled") {
+        this.disparar("lista:exportacao-cancelada", { tipo, url });
+        return false;
+      }
+      this.state.erroExportacao = erro;
+      if (this.podeLogar()) console.error("[AlpineForm] lista: exporta\xE7\xE3o", tipo, erro.message);
+      this.disparar("lista:exportacao-erro", { tipo, url, erro: { ...erro } });
+      return false;
+    }
+    this.baixarLink(resultado.url, resultado.arquivo);
+    this.disparar("lista:exportada", { tipo, modo: "job", url, arquivo: resultado.arquivo, bytes: resultado.bytes });
+    return true;
+  }
+  /** Para de acompanhar a exportação e pede ao servidor para cancelar o job (se ele informou cancel_url). */
+  async cancelarExportacao() {
+    const atual = this.jobExportacao;
+    if (!atual) return false;
+    const { cancelUrl } = atual;
+    atual.poller?.stop();
+    atual.controle.abort();
+    if (cancelUrl) {
+      try {
+        await this.transporte()({ url: absoluta(cancelUrl), method: "DELETE", headers: { ...this.cabecalhos(cancelUrl), ...this.cabecalhoCsrf(cancelUrl) }, body: null, credentials: "same-origin", timeout: 15e3 });
+      } catch {
+      }
+    }
+    return true;
+  }
+  /** Token CSRF (meta da página) só para a mesma origem, como no envio de formulários. */
+  cabecalhoCsrf(url) {
+    if (!mesmaOrigem(url)) return {};
+    const csrf = this.AlpineForm.internals.globalOption?.("csrf") || { meta: "csrf-token", header: "X-CSRF-TOKEN" };
+    if (!csrf || !csrf.meta || !csrf.header) return {};
+    const meta = Array.from(document.querySelectorAll("meta[name]")).find((m) => m.getAttribute("name") === csrf.meta);
+    const token = meta?.getAttribute("content");
+    return token ? { [csrf.header]: token } : {};
   }
   nomePadrao(tipo, tipoConteudo) {
     const data = /* @__PURE__ */ new Date();
@@ -860,6 +982,10 @@ var Lista = class {
     }
     for (const select of this.elementos("[data-lista-tamanho]")) if (select.value !== String(s.porPagina)) select.value = String(s.porPagina);
     desabilitar("[data-lista-exportar]", !!s.exportando);
+    for (const botao of this.elementos("[data-lista-exportar-cancelar]")) {
+      const ocultar = !this.jobExportacao;
+      if (botao.hidden !== ocultar) botao.hidden = ocultar;
+    }
     for (const botao of this.elementos("[data-lista-exportar]")) {
       const ocupado = s.exportando !== null && (botao.getAttribute("data-lista-exportar") || "filtro") === s.exportando;
       if (ocupado && botao.getAttribute("aria-busy") !== "true") botao.setAttribute("aria-busy", "true");
@@ -950,6 +1076,8 @@ var Lista = class {
     this.destruida = true;
     this.requisicao?.abort();
     this.exportacao?.abort();
+    this.jobExportacao?.poller?.stop();
+    this.jobExportacao?.controle.abort();
     clearTimeout(this.timerFiltro);
     clearTimeout(this.timerAtualizar);
     this.observadorSentinela?.disconnect();
@@ -965,6 +1093,26 @@ var Lista = class {
     ativas.delete(this);
   }
 };
+function absoluta(url) {
+  return new URL(url, globalThis.location?.href).href;
+}
+function mesmaOrigem(url) {
+  try {
+    return new URL(url, globalThis.location?.href).origin === globalThis.location?.origin;
+  } catch {
+    return false;
+  }
+}
+function urlDoArquivo(dados) {
+  if (!isObjeto(dados)) return null;
+  const url = [dados.url, dados.download_url, dados.downloadUrl, dados.arquivo_url].find((v) => typeof v === "string" && v);
+  return url && mesmaOrigem(url) ? url : null;
+}
+function nomeDoResultado(dados) {
+  if (!isObjeto(dados)) return null;
+  const nome = [dados.arquivo, dados.nome, dados.filename].find((v) => typeof v === "string" && v);
+  return nome ? nomeDoArquivo(`attachment; filename="${nome.replace(/"/g, "")}"`) : null;
+}
 function nomeDoArquivo(cabecalho) {
   if (!cabecalho) return null;
   let nome = null;

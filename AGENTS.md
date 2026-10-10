@@ -53,7 +53,7 @@ npm run serve          # exemplos em http://127.0.0.1:8080/examples/
 npm run docs:serve     # documentação em http://localhost:1900
 ```
 
-Estado esperado: unitários 258/258, PHP 28/28 + helpers 25/25, E2E 69/69, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
+Estado esperado: unitários 263/263, PHP 34/34 + helpers 25/25, E2E 71/71, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
 
 ## Qual guia ler para cada tarefa
 

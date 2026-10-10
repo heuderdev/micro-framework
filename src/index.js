@@ -1,5 +1,6 @@
 import * as registry from './core/registry.js'
 import { configure, resetGlobalConfig, OPTION_SPECS, globalOption } from './core/config.js'
+import { JobPoller } from './jobs/poller.js'
 import { FormController, getController, controllerForElement } from './core/controller.js'
 import { services, setMaskProvider, setChunkService } from './core/services.js'
 import { EVENTS } from './core/events.js'
@@ -122,7 +123,7 @@ export const AlpineForm = {
         return controller.state
     },
     diagnose: diagnoseUninitialized,
-    internals: { setMaskProvider, setChunkService, services, getController, parseRules, tokenize, parseBody, normalizeErrors, withRetry, backoffDelay, DefaultUiAdapter, DEFAULT_CLASSES, globalOption },
+    internals: { setMaskProvider, setChunkService, services, getController, parseRules, tokenize, parseBody, normalizeErrors, withRetry, backoffDelay, DefaultUiAdapter, DEFAULT_CLASSES, globalOption, JobPoller },
     utils: { parseSize, formatBytes, compareDecimal, toFixedScale },
     events: EVENTS,
     messages: DEFAULT_MESSAGES,

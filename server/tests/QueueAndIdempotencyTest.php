@@ -31,6 +31,15 @@ test('jobs: cancelamento de job enfileirado é imediato; em processamento é sol
     assert_throws(409, fn () => $queue->requestCancel('dono', $b['id']));
 });
 
+test('jobs: worker dedicado só reivindica os tipos que atende', function () {
+    $queue = new JobQueue(temp_storage());
+    $importacao = $queue->create('dono', 'import_csv', []);
+    $exportacao = $queue->create('dono', 'export_csv', []);
+    assert_same($exportacao['id'], $queue->claimNext('w-export', ['export_csv'])['id']);
+    assert_same(null, $queue->claimNext('w-export', ['export_csv']));
+    assert_same($importacao['id'], $queue->claimNext('w-geral')['id']);
+});
+
 test('jobs: outro dono não enxerga o job', function () {
     $queue = new JobQueue(temp_storage());
     $job = $queue->create('dono', 'x', []);

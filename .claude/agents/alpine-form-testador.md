@@ -10,9 +10,9 @@ Ordem de execução (pare e diagnostique na primeira falha):
 
 ```bash
 npm run build                 # src/ mudou? então dist/ precisa ser regenerado antes da E2E
-npm test                      # unitários — esperado 258+ passando
-npm run test:php              # backend — esperado 28/28 + helpers 25/25
-npm run test:e2e              # Chrome real + PHP em 127.0.0.1:8099 — esperado 69+
+npm test                      # unitários — esperado 263+ passando
+npm run test:php              # backend — esperado 34/34 + helpers 25/25
+npm run test:e2e              # Chrome real + PHP em 127.0.0.1:8099 — esperado 71+
 npm run docs:check            # exemplos da documentação contra a biblioteca
 npm run docs:browser          # exemplos HTML no Chrome (precisa do servidor em 8099)
 ```

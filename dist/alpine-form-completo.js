@@ -492,6 +492,430 @@
     return formConfig[key];
   }
 
+  // src/lib/paths.js
+  var FORBIDDEN_SEGMENTS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
+  var BRACKET_NAME = /^([^[\]]+)((?:\[[^[\]]*\])*)$/;
+  function splitName(name, mode = "brackets") {
+    if (mode === "flat") return [name];
+    const match = BRACKET_NAME.exec(name);
+    let segments;
+    if (!match) {
+      segments = [name];
+    } else {
+      segments = [match[1]];
+      const brackets = match[2].match(/\[[^[\]]*\]/g) || [];
+      for (const part of brackets) segments.push(part.slice(1, -1));
+    }
+    if (mode === "dots") {
+      segments = segments.flatMap((segment, index) => segment === "" && index > 0 ? [""] : segment.split("."));
+    }
+    return segments;
+  }
+  function nameToKey(name) {
+    const segments = splitName(name, "brackets");
+    if (segments.length > 1 && segments[segments.length - 1] === "") segments.pop();
+    return segments.join(".");
+  }
+  function normalizeErrorKey(key) {
+    if (!/[[\]]/.test(key)) return key;
+    return nameToKey(key);
+  }
+  function assertSafeSegments(segments, name) {
+    for (const segment of segments) {
+      if (FORBIDDEN_SEGMENTS.has(segment)) {
+        throw new SerializationError(`O campo "${name}" usa o segmento proibido "${segment}" e n\xE3o pode ser convertido em objeto.`, { name, segment });
+      }
+    }
+  }
+  function isIndex(segment) {
+    return /^(0|[1-9]\d{0,8})$/.test(segment);
+  }
+  function setPath(target, segments, value, name) {
+    assertSafeSegments(segments, name);
+    let node = target;
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const last = i === segments.length - 1;
+      const nextSegment = segments[i + 1];
+      const wantsArray = !last && (nextSegment === "" || isIndex(nextSegment));
+      if (Array.isArray(node)) {
+        if (segment !== "" && !isIndex(segment)) {
+          throw new SerializationError(`Conflito de estrutura em "${name}": "${segment}" n\xE3o \xE9 \xEDndice de lista.`, { name });
+        }
+        const index = segment === "" ? node.length : Number(segment);
+        if (last) {
+          node[index] = value;
+          return;
+        }
+        if (node[index] == null) node[index] = wantsArray ? [] : /* @__PURE__ */ Object.create(null);
+        node = node[index];
+      } else {
+        if (segment === "") throw new SerializationError(`Nome inv\xE1lido "${name}": "[]" s\xF3 \xE9 permitido ap\xF3s um nome.`, { name });
+        if (last) {
+          if (Object.prototype.hasOwnProperty.call(node, segment)) {
+            const existing = node[segment];
+            node[segment] = Array.isArray(existing) ? [...existing, value] : [existing, value];
+          } else {
+            node[segment] = value;
+          }
+          return;
+        }
+        if (node[segment] == null) node[segment] = wantsArray ? [] : /* @__PURE__ */ Object.create(null);
+        else if (typeof node[segment] !== "object") {
+          throw new SerializationError(`Conflito de estrutura em "${name}": "${segment}" j\xE1 possui um valor simples.`, { name });
+        }
+        node = node[segment];
+      }
+    }
+  }
+  function toPlain(value) {
+    if (Array.isArray(value)) {
+      const out = [];
+      for (let i = 0; i < value.length; i++) out.push(i in value ? toPlain(value[i]) : null);
+      return out;
+    }
+    if (value && typeof value === "object" && Object.getPrototypeOf(value) === null) {
+      const out = {};
+      for (const key of Object.keys(value)) {
+        Object.defineProperty(out, key, { value: toPlain(value[key]), enumerable: true, writable: true, configurable: true });
+      }
+      return out;
+    }
+    return value;
+  }
+
+  // src/transport/response.js
+  var UNSAFE_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
+  function parseBody(raw) {
+    const text2 = raw.text ?? "";
+    const contentType = (raw.headers?.get("content-type") || "").toLowerCase();
+    if (raw.status === 204 || text2.trim() === "") return { type: "empty", json: null, text: "", contentType };
+    const looksJson = contentType.includes("json") || /^\s*[{[]/.test(text2);
+    if (looksJson) {
+      try {
+        return { type: "json", json: JSON.parse(text2), text: text2, contentType };
+      } catch (error) {
+        return { type: "invalid-json", json: null, text: text2, contentType, error: error.message };
+      }
+    }
+    if (contentType.includes("html") || /^\s*</.test(text2)) return { type: "html", json: null, text: text2, contentType };
+    return { type: "text", json: null, text: text2, contentType };
+  }
+  function normalizeErrors(source) {
+    const errors = {};
+    const general = [];
+    if (Array.isArray(source)) {
+      for (const item of source) if (typeof item === "string" && item) general.push(item);
+      return { errors, general };
+    }
+    if (!isPlainObject(source)) return { errors, general };
+    for (const [rawKey, value] of Object.entries(source)) {
+      const messages = (Array.isArray(value) ? value : [value]).filter((m) => typeof m === "string" && m.length > 0);
+      if (!messages.length) continue;
+      if (rawKey === "" || rawKey === "_" || rawKey === "_general" || rawKey === "*") {
+        general.push(...messages);
+        continue;
+      }
+      const key = normalizeErrorKey(rawKey);
+      if (key.split(".").some((segment) => UNSAFE_KEYS.has(segment))) {
+        general.push(...messages);
+        continue;
+      }
+      errors[key] = [...errors[key] || [], ...messages];
+    }
+    return { errors, general };
+  }
+  function retryAfterSeconds(raw) {
+    const header = raw.headers?.get("retry-after");
+    if (!header) return null;
+    if (/^\d+$/.test(header.trim())) return Number(header.trim());
+    const date = Date.parse(header);
+    return Number.isFinite(date) ? Math.max(0, Math.round((date - Date.now()) / 1e3)) : null;
+  }
+  function statusKind(status) {
+    if (status === 401) return "auth";
+    if (status === 403) return "forbidden";
+    if (status === 419) return "csrf";
+    if (status === 413) return "too_large";
+    if (status === 422) return "validation";
+    if (status === 429) return "rate_limited";
+    if (status >= 500) return "server";
+    if (status >= 400) return "http";
+    return null;
+  }
+  function jobFrom(json, status) {
+    if (!json || typeof json !== "object") return null;
+    const job = isPlainObject(json.job) ? json.job : json;
+    const id = job.id ?? job.job_id ?? job.jobId ?? json.job_id ?? json.jobId;
+    if (id == null || status !== 202 && !json.job) return null;
+    return {
+      id: String(id),
+      statusUrl: job.status_url ?? job.statusUrl ?? null,
+      cancelUrl: job.cancel_url ?? job.cancelUrl ?? null
+    };
+  }
+  function defaultResponseAdapter(raw) {
+    const body = parseBody(raw);
+    const status = raw.status;
+    const httpOk = status >= 200 && status < 300;
+    const requestId = raw.headers?.get("x-request-id") || null;
+    const base = {
+      ok: false,
+      status,
+      kind: null,
+      message: null,
+      errors: {},
+      generalErrors: [],
+      data: null,
+      redirect: null,
+      requestId,
+      job: null,
+      retryAfter: retryAfterSeconds(raw),
+      diagnostic: { contentType: body.contentType, redirected: !!raw.redirected, url: raw.url, bodyType: body.type }
+    };
+    if (body.type === "html") {
+      const looksLikeLogin = /<input[^>]+type\s*=\s*["']?password/i.test(body.text) || /login|entrar|acesso/i.test(raw.url || "");
+      return {
+        ...base,
+        kind: "html",
+        diagnostic: { ...base.diagnostic, looksLikeLogin, snippet: truncate(body.text.replace(/\s+/g, " "), 160) }
+      };
+    }
+    if (body.type === "invalid-json" || body.type === "text") {
+      return {
+        ...base,
+        kind: statusKind(status) || "parse",
+        diagnostic: { ...base.diagnostic, parseError: body.error || "Resposta n\xE3o \xE9 JSON.", snippet: truncate(body.text, 160) }
+      };
+    }
+    if (body.type === "empty") {
+      return { ...base, ok: httpOk, kind: httpOk ? "success" : statusKind(status) };
+    }
+    const json = body.json;
+    const isObject = isPlainObject(json);
+    const { errors, general } = normalizeErrors(isObject ? json.errors : null);
+    const message = isObject ? typeof json.message === "string" ? json.message : typeof json.mensagem === "string" ? json.mensagem : null : null;
+    const logical = isObject && typeof json.success === "boolean" ? json.success : httpOk;
+    const job = httpOk ? jobFrom(json, status) : null;
+    let kind;
+    if (!httpOk) kind = statusKind(status);
+    else if (job) kind = "accepted";
+    else if (!logical) kind = Object.keys(errors).length ? "validation" : "logical";
+    else kind = "success";
+    return {
+      ...base,
+      ok: httpOk && logical,
+      kind,
+      message,
+      errors,
+      generalErrors: general,
+      data: isObject && "data" in json ? json.data : json,
+      redirect: isObject ? json.redirect ?? json.redirect_url ?? null : null,
+      requestId: isObject && (json.request_id ?? json.requestId) || requestId,
+      job
+    };
+  }
+  function laravelResponseAdapter(raw, ctx) {
+    const result = defaultResponseAdapter(raw, ctx);
+    if (result.kind === "validation" && Object.keys(result.errors).length) result.message = null;
+    return result;
+  }
+  function joomlaResponseAdapter(raw, ctx) {
+    const result = defaultResponseAdapter(raw, ctx);
+    const body = parseBody(raw);
+    const json = body.type === "json" && isPlainObject(body.json) ? body.json : null;
+    if (!json) return result;
+    if (isPlainObject(json.messages)) {
+      for (const level of ["error", "warning"]) {
+        const list = json.messages[level];
+        if (Array.isArray(list)) result.generalErrors.push(...list.filter((m) => typeof m === "string"));
+      }
+    }
+    if (isPlainObject(json.data) && json.data.errors) {
+      const { errors, general } = normalizeErrors(json.data.errors);
+      Object.assign(result.errors, errors);
+      result.generalErrors.push(...general);
+      if (!result.ok && Object.keys(errors).length) result.kind = result.kind === "logical" ? "validation" : result.kind;
+    }
+    return result;
+  }
+
+  // src/transport/retry.js
+  function backoffDelay(attempt, { baseDelay = 500, maxDelay = 15e3, random = Math.random } = {}) {
+    const ceiling = Math.min(maxDelay, baseDelay * 2 ** attempt);
+    return Math.round(ceiling / 2 + random() * (ceiling / 2));
+  }
+  var RETRYABLE_STATUS = /* @__PURE__ */ new Set([408, 425, 429, 500, 502, 503, 504]);
+  function isRetryableError(error) {
+    if (isAbort(error)) return false;
+    return error?.kind === "network" || error?.kind === "timeout";
+  }
+  async function withRetry(operation, { retries = 3, baseDelay = 500, maxDelay = 15e3, signal, shouldRetry, onRetry, random } = {}) {
+    let attempt = 0;
+    for (; ; ) {
+      try {
+        const result = await operation(attempt);
+        const decision = shouldRetry?.(null, result, attempt);
+        if (decision && attempt < retries) {
+          const wait = typeof decision === "number" ? decision : backoffDelay(attempt, { baseDelay, maxDelay, random });
+          onRetry?.({ attempt, wait, result });
+          await sleep(wait, signal);
+          attempt += 1;
+          continue;
+        }
+        return result;
+      } catch (error) {
+        const decision = shouldRetry ? shouldRetry(error, null, attempt) : isRetryableError(error);
+        if (!decision || attempt >= retries) throw error;
+        const wait = typeof decision === "number" ? decision : backoffDelay(attempt, { baseDelay, maxDelay, random });
+        onRetry?.({ attempt, wait, error });
+        await sleep(wait, signal);
+        attempt += 1;
+      }
+    }
+  }
+
+  // src/lib/dom.js
+  var proto = () => HTMLFormElement.prototype;
+  function formId(form) {
+    return Element.prototype.getAttribute.call(form, "id") || "";
+  }
+  function formElements(form) {
+    return Array.from(Object.getOwnPropertyDescriptor(proto(), "elements").get.call(form));
+  }
+  function formReset(form) {
+    proto().reset.call(form);
+  }
+  function formSubmit(form) {
+    proto().submit.call(form);
+  }
+  function formRequestSubmit(form, submitter) {
+    if (typeof proto().requestSubmit !== "function") {
+      formSubmit(form);
+      return;
+    }
+    if (submitter) proto().requestSubmit.call(form, submitter);
+    else proto().requestSubmit.call(form);
+  }
+
+  // src/jobs/poller.js
+  var JOB_STATUSES = ["queued", "processing", "succeeded", "failed", "canceled"];
+  var TERMINAL = /* @__PURE__ */ new Set(["succeeded", "failed", "canceled"]);
+  var JobPoller = class {
+    constructor({ job, url, transport, headers = {}, credentials = "same-origin", interval = 1500, maxInterval = 1e4, timeout = 6e5, maxNetworkFailures = 5, onUpdate = () => {
+    }, now: now2 = () => Date.now() }) {
+      this.job = job;
+      this.url = url;
+      this.transport = transport;
+      this.headers = headers;
+      this.credentials = credentials;
+      this.interval = interval;
+      this.maxInterval = maxInterval;
+      this.timeout = timeout;
+      this.maxNetworkFailures = maxNetworkFailures;
+      this.onUpdate = onUpdate;
+      this.now = now2;
+      this.controller = new AbortController();
+      this.inFlight = false;
+    }
+    stop() {
+      this.controller.abort(new AbortError("Observa\xE7\xE3o do processamento encerrada."));
+    }
+    normalize(json) {
+      const status = String(json?.status ?? "").toLowerCase();
+      if (!JOB_STATUSES.includes(status)) {
+        throw new OperationalError(`Status de processamento desconhecido: "${json?.status}".`, { kind: "job-contract" });
+      }
+      const progress = typeof json.progress === "number" && json.progress >= 0 && json.progress <= 100 ? json.progress : null;
+      return {
+        id: this.job.id,
+        status,
+        progress,
+        message: typeof json.message === "string" ? json.message : typeof json.mensagem === "string" ? json.mensagem : null,
+        result: json.result ?? null,
+        error: json.error ?? null
+      };
+    }
+    async poll() {
+      const signal = this.controller.signal;
+      this.inFlight = true;
+      try {
+        const raw = await this.transport({ url: this.url, method: "GET", headers: { Accept: "application/json", ...this.headers }, credentials: this.credentials, timeout: Math.min(3e4, this.timeout), signal });
+        const retryAfter = Number(raw.headers?.get("retry-after"));
+        if (raw.status === 404 || raw.status === 410) throw new OperationalError("Processamento n\xE3o encontrado ou expirado no servidor.", { kind: "job-missing", status: raw.status });
+        if (raw.status === 429 || raw.status >= 500) return { transient: true, retryAfter: Number.isFinite(retryAfter) ? retryAfter : null };
+        if (raw.status < 200 || raw.status >= 300) throw new OperationalError(`Consulta de status falhou (HTTP ${raw.status}).`, { kind: "job-http", status: raw.status });
+        const body = parseBody(raw);
+        if (body.type !== "json") throw new OperationalError("Resposta de status n\xE3o \xE9 JSON.", { kind: "job-contract" });
+        return { update: this.normalize(body.json), retryAfter: Number.isFinite(retryAfter) ? retryAfter : null };
+      } finally {
+        this.inFlight = false;
+      }
+    }
+    async run() {
+      const signal = this.controller.signal;
+      const started = this.now();
+      let delay = this.interval;
+      let failures = 0;
+      let last = null;
+      for (; ; ) {
+        if (this.now() - started > this.timeout) {
+          throw new OperationalError("Tempo de observa\xE7\xE3o do processamento excedido.", { kind: "job-timeout", last });
+        }
+        await sleep(delay, signal);
+        let outcome;
+        try {
+          outcome = await this.poll();
+        } catch (error) {
+          if (isAbort(error) || signal.aborted) throw new AbortError("Observa\xE7\xE3o do processamento encerrada.");
+          if (error.kind === "network" || error.kind === "timeout") {
+            failures += 1;
+            if (failures > this.maxNetworkFailures) throw error;
+            delay = backoffDelay(failures, { baseDelay: this.interval, maxDelay: this.maxInterval });
+            continue;
+          }
+          throw error;
+        }
+        failures = 0;
+        if (outcome.transient) {
+          delay = outcome.retryAfter != null ? outcome.retryAfter * 1e3 : Math.min(this.maxInterval, delay * 2);
+          continue;
+        }
+        const changed = !last || last.status !== outcome.update.status || last.progress !== outcome.update.progress;
+        last = outcome.update;
+        this.onUpdate(last);
+        if (TERMINAL.has(last.status)) return last;
+        delay = outcome.retryAfter != null ? outcome.retryAfter * 1e3 : changed ? this.interval : Math.min(this.maxInterval, Math.round(delay * 1.5));
+      }
+    }
+  };
+  function jobStorageKey(form) {
+    const id = formId(form) || form.getAttribute("action") || "form";
+    return `alpineform:job:${id}`;
+  }
+  function saveJob(form, job) {
+    try {
+      sessionStorage.setItem(jobStorageKey(form), JSON.stringify({ id: job.id, statusUrl: job.statusUrl || null, savedAt: Date.now() }));
+    } catch {
+    }
+  }
+  function loadJob(form) {
+    try {
+      const raw = sessionStorage.getItem(jobStorageKey(form));
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return data && typeof data.id === "string" ? data : null;
+    } catch {
+      return null;
+    }
+  }
+  function clearJob(form) {
+    try {
+      sessionStorage.removeItem(jobStorageKey(form));
+    } catch {
+    }
+  }
+
   // src/lib/decimal.js
   var CANONICAL_RE = /^([+-])?(\d+)(?:\.(\d+))?$/;
   function parseDecimal(value) {
@@ -1453,289 +1877,6 @@
     }
   };
 
-  // src/lib/paths.js
-  var FORBIDDEN_SEGMENTS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
-  var BRACKET_NAME = /^([^[\]]+)((?:\[[^[\]]*\])*)$/;
-  function splitName(name, mode = "brackets") {
-    if (mode === "flat") return [name];
-    const match = BRACKET_NAME.exec(name);
-    let segments;
-    if (!match) {
-      segments = [name];
-    } else {
-      segments = [match[1]];
-      const brackets = match[2].match(/\[[^[\]]*\]/g) || [];
-      for (const part of brackets) segments.push(part.slice(1, -1));
-    }
-    if (mode === "dots") {
-      segments = segments.flatMap((segment, index) => segment === "" && index > 0 ? [""] : segment.split("."));
-    }
-    return segments;
-  }
-  function nameToKey(name) {
-    const segments = splitName(name, "brackets");
-    if (segments.length > 1 && segments[segments.length - 1] === "") segments.pop();
-    return segments.join(".");
-  }
-  function normalizeErrorKey(key) {
-    if (!/[[\]]/.test(key)) return key;
-    return nameToKey(key);
-  }
-  function assertSafeSegments(segments, name) {
-    for (const segment of segments) {
-      if (FORBIDDEN_SEGMENTS.has(segment)) {
-        throw new SerializationError(`O campo "${name}" usa o segmento proibido "${segment}" e n\xE3o pode ser convertido em objeto.`, { name, segment });
-      }
-    }
-  }
-  function isIndex(segment) {
-    return /^(0|[1-9]\d{0,8})$/.test(segment);
-  }
-  function setPath(target, segments, value, name) {
-    assertSafeSegments(segments, name);
-    let node = target;
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      const last = i === segments.length - 1;
-      const nextSegment = segments[i + 1];
-      const wantsArray = !last && (nextSegment === "" || isIndex(nextSegment));
-      if (Array.isArray(node)) {
-        if (segment !== "" && !isIndex(segment)) {
-          throw new SerializationError(`Conflito de estrutura em "${name}": "${segment}" n\xE3o \xE9 \xEDndice de lista.`, { name });
-        }
-        const index = segment === "" ? node.length : Number(segment);
-        if (last) {
-          node[index] = value;
-          return;
-        }
-        if (node[index] == null) node[index] = wantsArray ? [] : /* @__PURE__ */ Object.create(null);
-        node = node[index];
-      } else {
-        if (segment === "") throw new SerializationError(`Nome inv\xE1lido "${name}": "[]" s\xF3 \xE9 permitido ap\xF3s um nome.`, { name });
-        if (last) {
-          if (Object.prototype.hasOwnProperty.call(node, segment)) {
-            const existing = node[segment];
-            node[segment] = Array.isArray(existing) ? [...existing, value] : [existing, value];
-          } else {
-            node[segment] = value;
-          }
-          return;
-        }
-        if (node[segment] == null) node[segment] = wantsArray ? [] : /* @__PURE__ */ Object.create(null);
-        else if (typeof node[segment] !== "object") {
-          throw new SerializationError(`Conflito de estrutura em "${name}": "${segment}" j\xE1 possui um valor simples.`, { name });
-        }
-        node = node[segment];
-      }
-    }
-  }
-  function toPlain(value) {
-    if (Array.isArray(value)) {
-      const out = [];
-      for (let i = 0; i < value.length; i++) out.push(i in value ? toPlain(value[i]) : null);
-      return out;
-    }
-    if (value && typeof value === "object" && Object.getPrototypeOf(value) === null) {
-      const out = {};
-      for (const key of Object.keys(value)) {
-        Object.defineProperty(out, key, { value: toPlain(value[key]), enumerable: true, writable: true, configurable: true });
-      }
-      return out;
-    }
-    return value;
-  }
-
-  // src/transport/response.js
-  var UNSAFE_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
-  function parseBody(raw) {
-    const text2 = raw.text ?? "";
-    const contentType = (raw.headers?.get("content-type") || "").toLowerCase();
-    if (raw.status === 204 || text2.trim() === "") return { type: "empty", json: null, text: "", contentType };
-    const looksJson = contentType.includes("json") || /^\s*[{[]/.test(text2);
-    if (looksJson) {
-      try {
-        return { type: "json", json: JSON.parse(text2), text: text2, contentType };
-      } catch (error) {
-        return { type: "invalid-json", json: null, text: text2, contentType, error: error.message };
-      }
-    }
-    if (contentType.includes("html") || /^\s*</.test(text2)) return { type: "html", json: null, text: text2, contentType };
-    return { type: "text", json: null, text: text2, contentType };
-  }
-  function normalizeErrors(source) {
-    const errors = {};
-    const general = [];
-    if (Array.isArray(source)) {
-      for (const item of source) if (typeof item === "string" && item) general.push(item);
-      return { errors, general };
-    }
-    if (!isPlainObject(source)) return { errors, general };
-    for (const [rawKey, value] of Object.entries(source)) {
-      const messages = (Array.isArray(value) ? value : [value]).filter((m) => typeof m === "string" && m.length > 0);
-      if (!messages.length) continue;
-      if (rawKey === "" || rawKey === "_" || rawKey === "_general" || rawKey === "*") {
-        general.push(...messages);
-        continue;
-      }
-      const key = normalizeErrorKey(rawKey);
-      if (key.split(".").some((segment) => UNSAFE_KEYS.has(segment))) {
-        general.push(...messages);
-        continue;
-      }
-      errors[key] = [...errors[key] || [], ...messages];
-    }
-    return { errors, general };
-  }
-  function retryAfterSeconds(raw) {
-    const header = raw.headers?.get("retry-after");
-    if (!header) return null;
-    if (/^\d+$/.test(header.trim())) return Number(header.trim());
-    const date = Date.parse(header);
-    return Number.isFinite(date) ? Math.max(0, Math.round((date - Date.now()) / 1e3)) : null;
-  }
-  function statusKind(status) {
-    if (status === 401) return "auth";
-    if (status === 403) return "forbidden";
-    if (status === 419) return "csrf";
-    if (status === 413) return "too_large";
-    if (status === 422) return "validation";
-    if (status === 429) return "rate_limited";
-    if (status >= 500) return "server";
-    if (status >= 400) return "http";
-    return null;
-  }
-  function jobFrom(json, status) {
-    if (!json || typeof json !== "object") return null;
-    const job = isPlainObject(json.job) ? json.job : json;
-    const id = job.id ?? job.job_id ?? job.jobId ?? json.job_id ?? json.jobId;
-    if (id == null || status !== 202 && !json.job) return null;
-    return {
-      id: String(id),
-      statusUrl: job.status_url ?? job.statusUrl ?? null,
-      cancelUrl: job.cancel_url ?? job.cancelUrl ?? null
-    };
-  }
-  function defaultResponseAdapter(raw) {
-    const body = parseBody(raw);
-    const status = raw.status;
-    const httpOk = status >= 200 && status < 300;
-    const requestId = raw.headers?.get("x-request-id") || null;
-    const base = {
-      ok: false,
-      status,
-      kind: null,
-      message: null,
-      errors: {},
-      generalErrors: [],
-      data: null,
-      redirect: null,
-      requestId,
-      job: null,
-      retryAfter: retryAfterSeconds(raw),
-      diagnostic: { contentType: body.contentType, redirected: !!raw.redirected, url: raw.url, bodyType: body.type }
-    };
-    if (body.type === "html") {
-      const looksLikeLogin = /<input[^>]+type\s*=\s*["']?password/i.test(body.text) || /login|entrar|acesso/i.test(raw.url || "");
-      return {
-        ...base,
-        kind: "html",
-        diagnostic: { ...base.diagnostic, looksLikeLogin, snippet: truncate(body.text.replace(/\s+/g, " "), 160) }
-      };
-    }
-    if (body.type === "invalid-json" || body.type === "text") {
-      return {
-        ...base,
-        kind: statusKind(status) || "parse",
-        diagnostic: { ...base.diagnostic, parseError: body.error || "Resposta n\xE3o \xE9 JSON.", snippet: truncate(body.text, 160) }
-      };
-    }
-    if (body.type === "empty") {
-      return { ...base, ok: httpOk, kind: httpOk ? "success" : statusKind(status) };
-    }
-    const json = body.json;
-    const isObject = isPlainObject(json);
-    const { errors, general } = normalizeErrors(isObject ? json.errors : null);
-    const message = isObject ? typeof json.message === "string" ? json.message : typeof json.mensagem === "string" ? json.mensagem : null : null;
-    const logical = isObject && typeof json.success === "boolean" ? json.success : httpOk;
-    const job = httpOk ? jobFrom(json, status) : null;
-    let kind;
-    if (!httpOk) kind = statusKind(status);
-    else if (job) kind = "accepted";
-    else if (!logical) kind = Object.keys(errors).length ? "validation" : "logical";
-    else kind = "success";
-    return {
-      ...base,
-      ok: httpOk && logical,
-      kind,
-      message,
-      errors,
-      generalErrors: general,
-      data: isObject && "data" in json ? json.data : json,
-      redirect: isObject ? json.redirect ?? json.redirect_url ?? null : null,
-      requestId: isObject && (json.request_id ?? json.requestId) || requestId,
-      job
-    };
-  }
-  function laravelResponseAdapter(raw, ctx) {
-    const result = defaultResponseAdapter(raw, ctx);
-    if (result.kind === "validation" && Object.keys(result.errors).length) result.message = null;
-    return result;
-  }
-  function joomlaResponseAdapter(raw, ctx) {
-    const result = defaultResponseAdapter(raw, ctx);
-    const body = parseBody(raw);
-    const json = body.type === "json" && isPlainObject(body.json) ? body.json : null;
-    if (!json) return result;
-    if (isPlainObject(json.messages)) {
-      for (const level of ["error", "warning"]) {
-        const list = json.messages[level];
-        if (Array.isArray(list)) result.generalErrors.push(...list.filter((m) => typeof m === "string"));
-      }
-    }
-    if (isPlainObject(json.data) && json.data.errors) {
-      const { errors, general } = normalizeErrors(json.data.errors);
-      Object.assign(result.errors, errors);
-      result.generalErrors.push(...general);
-      if (!result.ok && Object.keys(errors).length) result.kind = result.kind === "logical" ? "validation" : result.kind;
-    }
-    return result;
-  }
-
-  // src/transport/retry.js
-  function backoffDelay(attempt, { baseDelay = 500, maxDelay = 15e3, random = Math.random } = {}) {
-    const ceiling = Math.min(maxDelay, baseDelay * 2 ** attempt);
-    return Math.round(ceiling / 2 + random() * (ceiling / 2));
-  }
-  var RETRYABLE_STATUS = /* @__PURE__ */ new Set([408, 425, 429, 500, 502, 503, 504]);
-  function isRetryableError(error) {
-    if (isAbort(error)) return false;
-    return error?.kind === "network" || error?.kind === "timeout";
-  }
-  async function withRetry(operation, { retries = 3, baseDelay = 500, maxDelay = 15e3, signal, shouldRetry, onRetry, random } = {}) {
-    let attempt = 0;
-    for (; ; ) {
-      try {
-        const result = await operation(attempt);
-        const decision = shouldRetry?.(null, result, attempt);
-        if (decision && attempt < retries) {
-          const wait = typeof decision === "number" ? decision : backoffDelay(attempt, { baseDelay, maxDelay, random });
-          onRetry?.({ attempt, wait, result });
-          await sleep(wait, signal);
-          attempt += 1;
-          continue;
-        }
-        return result;
-      } catch (error) {
-        const decision = shouldRetry ? shouldRetry(error, null, attempt) : isRetryableError(error);
-        if (!decision || attempt >= retries) throw error;
-        const wait = typeof decision === "number" ? decision : backoffDelay(attempt, { baseDelay, maxDelay, random });
-        onRetry?.({ attempt, wait, error });
-        await sleep(wait, signal);
-        attempt += 1;
-      }
-    }
-  }
-
   // src/transport/xhr.js
   function absoluteUrl(url) {
     try {
@@ -2229,29 +2370,6 @@
     return target.dispatchEvent(event);
   }
 
-  // src/lib/dom.js
-  var proto = () => HTMLFormElement.prototype;
-  function formId(form) {
-    return Element.prototype.getAttribute.call(form, "id") || "";
-  }
-  function formElements(form) {
-    return Array.from(Object.getOwnPropertyDescriptor(proto(), "elements").get.call(form));
-  }
-  function formReset(form) {
-    proto().reset.call(form);
-  }
-  function formSubmit(form) {
-    proto().submit.call(form);
-  }
-  function formRequestSubmit(form, submitter) {
-    if (typeof proto().requestSubmit !== "function") {
-      formSubmit(form);
-      return;
-    }
-    if (submitter) proto().requestSubmit.call(form, submitter);
-    else proto().requestSubmit.call(form);
-  }
-
   // src/core/serializer.js
   var SKIP_INPUT_TYPES = /* @__PURE__ */ new Set(["submit", "button", "reset", "image"]);
   function collectEntries(controller, { submitter = null, as = "submit", replacements = /* @__PURE__ */ new Map() } = {}) {
@@ -2411,124 +2529,6 @@
   };
   function emptyProgress() {
     return { loaded: 0, total: null, percent: null, indeterminate: true, lengthComputable: false, speed: null, eta: null, elapsed: 0, uploaded: false };
-  }
-
-  // src/jobs/poller.js
-  var JOB_STATUSES = ["queued", "processing", "succeeded", "failed", "canceled"];
-  var TERMINAL = /* @__PURE__ */ new Set(["succeeded", "failed", "canceled"]);
-  var JobPoller = class {
-    constructor({ job, url, transport, headers = {}, credentials = "same-origin", interval = 1500, maxInterval = 1e4, timeout = 6e5, maxNetworkFailures = 5, onUpdate = () => {
-    }, now: now2 = () => Date.now() }) {
-      this.job = job;
-      this.url = url;
-      this.transport = transport;
-      this.headers = headers;
-      this.credentials = credentials;
-      this.interval = interval;
-      this.maxInterval = maxInterval;
-      this.timeout = timeout;
-      this.maxNetworkFailures = maxNetworkFailures;
-      this.onUpdate = onUpdate;
-      this.now = now2;
-      this.controller = new AbortController();
-      this.inFlight = false;
-    }
-    stop() {
-      this.controller.abort(new AbortError("Observa\xE7\xE3o do processamento encerrada."));
-    }
-    normalize(json) {
-      const status = String(json?.status ?? "").toLowerCase();
-      if (!JOB_STATUSES.includes(status)) {
-        throw new OperationalError(`Status de processamento desconhecido: "${json?.status}".`, { kind: "job-contract" });
-      }
-      const progress = typeof json.progress === "number" && json.progress >= 0 && json.progress <= 100 ? json.progress : null;
-      return {
-        id: this.job.id,
-        status,
-        progress,
-        message: typeof json.message === "string" ? json.message : typeof json.mensagem === "string" ? json.mensagem : null,
-        result: json.result ?? null,
-        error: json.error ?? null
-      };
-    }
-    async poll() {
-      const signal = this.controller.signal;
-      this.inFlight = true;
-      try {
-        const raw = await this.transport({ url: this.url, method: "GET", headers: { Accept: "application/json", ...this.headers }, credentials: this.credentials, timeout: Math.min(3e4, this.timeout), signal });
-        const retryAfter = Number(raw.headers?.get("retry-after"));
-        if (raw.status === 404 || raw.status === 410) throw new OperationalError("Processamento n\xE3o encontrado ou expirado no servidor.", { kind: "job-missing", status: raw.status });
-        if (raw.status === 429 || raw.status >= 500) return { transient: true, retryAfter: Number.isFinite(retryAfter) ? retryAfter : null };
-        if (raw.status < 200 || raw.status >= 300) throw new OperationalError(`Consulta de status falhou (HTTP ${raw.status}).`, { kind: "job-http", status: raw.status });
-        const body = parseBody(raw);
-        if (body.type !== "json") throw new OperationalError("Resposta de status n\xE3o \xE9 JSON.", { kind: "job-contract" });
-        return { update: this.normalize(body.json), retryAfter: Number.isFinite(retryAfter) ? retryAfter : null };
-      } finally {
-        this.inFlight = false;
-      }
-    }
-    async run() {
-      const signal = this.controller.signal;
-      const started = this.now();
-      let delay = this.interval;
-      let failures = 0;
-      let last = null;
-      for (; ; ) {
-        if (this.now() - started > this.timeout) {
-          throw new OperationalError("Tempo de observa\xE7\xE3o do processamento excedido.", { kind: "job-timeout", last });
-        }
-        await sleep(delay, signal);
-        let outcome;
-        try {
-          outcome = await this.poll();
-        } catch (error) {
-          if (isAbort(error) || signal.aborted) throw new AbortError("Observa\xE7\xE3o do processamento encerrada.");
-          if (error.kind === "network" || error.kind === "timeout") {
-            failures += 1;
-            if (failures > this.maxNetworkFailures) throw error;
-            delay = backoffDelay(failures, { baseDelay: this.interval, maxDelay: this.maxInterval });
-            continue;
-          }
-          throw error;
-        }
-        failures = 0;
-        if (outcome.transient) {
-          delay = outcome.retryAfter != null ? outcome.retryAfter * 1e3 : Math.min(this.maxInterval, delay * 2);
-          continue;
-        }
-        const changed = !last || last.status !== outcome.update.status || last.progress !== outcome.update.progress;
-        last = outcome.update;
-        this.onUpdate(last);
-        if (TERMINAL.has(last.status)) return last;
-        delay = outcome.retryAfter != null ? outcome.retryAfter * 1e3 : changed ? this.interval : Math.min(this.maxInterval, Math.round(delay * 1.5));
-      }
-    }
-  };
-  function jobStorageKey(form) {
-    const id = formId(form) || form.getAttribute("action") || "form";
-    return `alpineform:job:${id}`;
-  }
-  function saveJob(form, job) {
-    try {
-      sessionStorage.setItem(jobStorageKey(form), JSON.stringify({ id: job.id, statusUrl: job.statusUrl || null, savedAt: Date.now() }));
-    } catch {
-    }
-  }
-  function loadJob(form) {
-    try {
-      const raw = sessionStorage.getItem(jobStorageKey(form));
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      return data && typeof data.id === "string" ? data : null;
-    } catch {
-      return null;
-    }
-  }
-  function clearJob(form) {
-    try {
-      sessionStorage.removeItem(jobStorageKey(form));
-    } catch {
-    }
   }
 
   // src/ui/progress-ui.js
@@ -5592,7 +5592,7 @@
       return controller.state;
     },
     diagnose: diagnoseUninitialized,
-    internals: { setMaskProvider, setChunkService, services, getController, parseRules, tokenize, parseBody, normalizeErrors, withRetry, backoffDelay, DefaultUiAdapter, DEFAULT_CLASSES, globalOption },
+    internals: { setMaskProvider, setChunkService, services, getController, parseRules, tokenize, parseBody, normalizeErrors, withRetry, backoffDelay, DefaultUiAdapter, DEFAULT_CLASSES, globalOption, JobPoller },
     utils: { parseSize, formatBytes, compareDecimal, toFixedScale },
     events: EVENTS,
     messages: DEFAULT_MESSAGES,
@@ -7294,10 +7294,13 @@
     "lista.pagina": "P\xE1gina :pagina",
     "lista.navegacao": "Pagina\xE7\xE3o",
     "lista.selecionados": ":total selecionado(s)",
-    "lista.exportar_erro": "N\xE3o foi poss\xEDvel gerar o arquivo. Tente novamente."
+    "lista.exportar_erro": "N\xE3o foi poss\xEDvel gerar o arquivo. Tente novamente.",
+    "lista.exportar_job_contrato": "O servidor n\xE3o iniciou a exporta\xE7\xE3o no formato esperado.",
+    "lista.exportar_job_falhou": "A gera\xE7\xE3o do arquivo falhou.",
+    "lista.exportar_job_tempo": "A gera\xE7\xE3o do arquivo est\xE1 demorando mais que o esperado. Tente de novo mais tarde."
   };
-  var MODOS_EXPORTACAO = ["baixar", "direto", "auto"];
-  var MODOS_GRANDES = ["direto"];
+  var MODOS_EXPORTACAO = ["baixar", "direto", "auto", "job"];
+  var MODOS_GRANDES = ["direto", "job"];
   var PARAMETROS_PADRAO = { pagina: "page", porPagina: "per_page", ordem: "sort", direcao: "direction" };
   var TIPOS_SEM_DIGITACAO = /* @__PURE__ */ new Set(["checkbox", "radio", "date", "month", "week", "time", "datetime-local", "range", "color", "file"]);
   var listas = /* @__PURE__ */ new WeakMap();
@@ -7438,8 +7441,11 @@
         modo: exportarModo,
         grande: exportarGrande,
         limite: lerInteiro(attr("exportar-limite"), 5e4, ConfigError2, "data-lista-exportar-limite", 1, 1e8),
-        timeout: lerDuracao(attr("exportar-timeout"), 12e4, ConfigError2, "data-lista-exportar-timeout")
+        timeout: lerDuracao(attr("exportar-timeout"), 12e4, ConfigError2, "data-lista-exportar-timeout"),
+        jobTimeout: lerDuracao(attr("exportar-job-timeout"), 18e5, ConfigError2, "data-lista-exportar-job-timeout"),
+        jobIntervalo: lerDuracao(attr("exportar-job-intervalo"), 1500, ConfigError2, "data-lista-exportar-job-intervalo")
       };
+      this.jobExportacao = null;
       for (const [tipo, endereco] of Object.entries({ filtro: this.config.exportar.filtro, completo: this.config.exportar.completo })) {
         if (endereco && new URL(endereco, globalThis.location?.href).origin !== globalThis.location?.origin) {
           throw new ConfigError2(`data-lista-exportar${tipo === "completo" ? "-completo" : ""}-url aponta para outra origem. Use um endpoint do pr\xF3prio site.`);
@@ -7501,6 +7507,7 @@
         destaque: null,
         exportando: null,
         erroExportacao: null,
+        progressoExportacao: null,
         get vazio() {
           return this.carregado && !this.carregando && !this.erro && this.itens.length === 0;
         },
@@ -7555,7 +7562,8 @@
         urlCom: (base) => this.urlCom(base),
         exportar: (tipo) => this.exportar(tipo),
         urlExportacao: (tipo) => this.urlExportacao(tipo),
-        modoExportacao: (tipo) => this.modoExportacao(tipo)
+        modoExportacao: (tipo) => this.modoExportacao(tipo),
+        cancelarExportacao: () => this.cancelarExportacao()
       };
     }
     mensagem(chave, vars = {}) {
@@ -7724,7 +7732,7 @@
       return this.carregar({ historico: "substituir", acumular: true });
     }
     aoClicar(evento) {
-      const alvo = evento.target.closest?.("[data-lista-ordenar], [data-lista-pagina], [data-lista-anterior], [data-lista-proxima], [data-lista-mais], [data-lista-recarregar], [data-lista-limpar], [data-lista-exportar]");
+      const alvo = evento.target.closest?.("[data-lista-ordenar], [data-lista-pagina], [data-lista-anterior], [data-lista-proxima], [data-lista-mais], [data-lista-recarregar], [data-lista-limpar], [data-lista-exportar], [data-lista-exportar-cancelar]");
       if (!alvo || this.donoDe(alvo) !== this) return;
       if (alvo.hasAttribute("data-lista-ordenar")) {
         evento.preventDefault();
@@ -7747,6 +7755,9 @@
       } else if (alvo.hasAttribute("data-lista-limpar")) {
         evento.preventDefault();
         this.limparFiltros();
+      } else if (alvo.hasAttribute("data-lista-exportar-cancelar")) {
+        evento.preventDefault();
+        this.cancelarExportacao();
       } else if (alvo.hasAttribute("data-lista-exportar")) {
         evento.preventDefault();
         this.exportar(alvo.getAttribute("data-lista-exportar") || "filtro").catch((error) => {
@@ -7861,6 +7872,7 @@
       if (this.destruida || this.state.exportando) return false;
       this.state.erroExportacao = null;
       const modo = this.modoExportacao(tipo);
+      if (modo === "job") return this.exportarPorJob(tipo, url);
       if (modo === "direto") {
         this.baixarLink(url, null);
         this.disparar("lista:exportada", { tipo, modo, url, arquivo: null, bytes: null });
@@ -7913,6 +7925,116 @@
         return false;
       }
       return !erro;
+    }
+    /**
+     * Exportação em segundo plano: POST no mesmo endpoint (com o token CSRF); o servidor responde 202 com
+     * { job: { id, status_url, cancel_url } } e gera o arquivo numa fila. A lista acompanha o status (o mesmo
+     * contrato do processamento de formulários) e, quando o job termina com result.url, baixa pelo navegador.
+     * Se o servidor responder 2xx com { url } (arquivo pronto na hora), baixa direto.
+     */
+    async exportarPorJob(tipo, url) {
+      const AF = this.AlpineForm;
+      const controle = new AbortController();
+      this.jobExportacao = { controle, poller: null, cancelUrl: null, tipo };
+      this.state.exportando = tipo;
+      this.state.progressoExportacao = { status: "enviando", progress: null, message: null };
+      this.renderizarDom();
+      const cabecalhos = { ...this.cabecalhos(url), ...this.cabecalhoCsrf(url) };
+      let erro = null;
+      let resultado = null;
+      try {
+        const raw = await this.transporte()({ url: absoluta(url), method: "POST", headers: cabecalhos, body: null, credentials: "same-origin", timeout: this.config.timeout, signal: controle.signal });
+        const corpo = AF.internals.parseBody(raw);
+        const json = corpo.type === "json" && isObjeto(corpo.json) ? corpo.json : null;
+        if (raw.status < 200 || raw.status >= 300 || !json) {
+          const doServidor = json ? json.message || json.mensagem : null;
+          throw Object.assign(new Error(typeof doServidor === "string" && doServidor || this.mensagem(raw.status >= 200 && raw.status < 300 ? "lista.exportar_job_contrato" : "lista.exportar_erro")), { kind: raw.status >= 400 ? "http" : "contract", status: raw.status });
+        }
+        const pronto = urlDoArquivo(isObjeto(json.data) ? json.data : json);
+        const dadosJob = isObjeto(json.job) ? json.job : null;
+        if (raw.status !== 202 && pronto) {
+          resultado = { url: pronto, arquivo: nomeDoResultado(isObjeto(json.data) ? json.data : json), bytes: null };
+        } else {
+          const id = dadosJob ? dadosJob.id ?? dadosJob.job_id : json.id ?? json.job_id;
+          const statusUrl = dadosJob ? dadosJob.status_url ?? dadosJob.statusUrl : json.status_url ?? json.statusUrl;
+          if (id === void 0 || id === null || typeof statusUrl !== "string" || !mesmaOrigem(statusUrl)) {
+            throw Object.assign(new Error(this.mensagem("lista.exportar_job_contrato")), { kind: "contract", status: raw.status });
+          }
+          const cancelUrl = dadosJob ? dadosJob.cancel_url ?? dadosJob.cancelUrl : null;
+          this.jobExportacao.cancelUrl = typeof cancelUrl === "string" && mesmaOrigem(cancelUrl) ? cancelUrl : null;
+          this.state.progressoExportacao = { status: "queued", progress: null, message: typeof json.message === "string" ? json.message : null };
+          this.renderizarDom();
+          const poller = new AF.internals.JobPoller({
+            job: { id: String(id) },
+            url: absoluta(statusUrl),
+            transport: this.transporte(),
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            timeout: this.config.exportar.jobTimeout,
+            interval: this.config.exportar.jobIntervalo,
+            maxInterval: Math.max(this.config.exportar.jobIntervalo, 1e4),
+            onUpdate: (atual) => {
+              if (this.destruida) return;
+              this.state.progressoExportacao = { status: atual.status, progress: atual.progress, message: atual.message };
+              this.disparar("lista:exportacao-progresso", { tipo, ...this.state.progressoExportacao });
+            }
+          });
+          this.jobExportacao.poller = poller;
+          const final = await poller.run();
+          if (final.status !== "succeeded") {
+            const motivo = final.status === "canceled" ? "canceled" : "job-failed";
+            const texto = isObjeto(final.error) && typeof final.error.message === "string" && final.error.message || final.message || this.mensagem("lista.exportar_job_falhou");
+            throw Object.assign(new Error(texto), { kind: motivo, status: null });
+          }
+          const arquivoUrl = urlDoArquivo(final.result);
+          if (!arquivoUrl) throw Object.assign(new Error(this.mensagem("lista.exportar_job_contrato")), { kind: "contract", status: null });
+          resultado = { url: arquivoUrl, arquivo: nomeDoResultado(final.result), bytes: isObjeto(final.result) && typeof final.result.bytes === "number" ? final.result.bytes : null };
+        }
+      } catch (error) {
+        const abortado = error?.name === "AbortError" || error?.kind === "abort";
+        erro = abortado ? { kind: "canceled", status: null, message: null } : { kind: error?.kind || (error instanceof TypeError ? "network" : "unexpected"), status: error?.status ?? null, message: error?.kind === "job-timeout" ? this.mensagem("lista.exportar_job_tempo") : error?.kind === "network" || error?.kind === "timeout" ? this.mensagem("lista.exportar_erro") : error?.message || this.mensagem("lista.exportar_erro") };
+      }
+      this.jobExportacao = null;
+      if (this.destruida) return false;
+      this.state.exportando = null;
+      this.state.progressoExportacao = null;
+      this.renderizarDom();
+      if (erro) {
+        if (erro.kind === "canceled") {
+          this.disparar("lista:exportacao-cancelada", { tipo, url });
+          return false;
+        }
+        this.state.erroExportacao = erro;
+        if (this.podeLogar()) console.error("[AlpineForm] lista: exporta\xE7\xE3o", tipo, erro.message);
+        this.disparar("lista:exportacao-erro", { tipo, url, erro: { ...erro } });
+        return false;
+      }
+      this.baixarLink(resultado.url, resultado.arquivo);
+      this.disparar("lista:exportada", { tipo, modo: "job", url, arquivo: resultado.arquivo, bytes: resultado.bytes });
+      return true;
+    }
+    /** Para de acompanhar a exportação e pede ao servidor para cancelar o job (se ele informou cancel_url). */
+    async cancelarExportacao() {
+      const atual = this.jobExportacao;
+      if (!atual) return false;
+      const { cancelUrl } = atual;
+      atual.poller?.stop();
+      atual.controle.abort();
+      if (cancelUrl) {
+        try {
+          await this.transporte()({ url: absoluta(cancelUrl), method: "DELETE", headers: { ...this.cabecalhos(cancelUrl), ...this.cabecalhoCsrf(cancelUrl) }, body: null, credentials: "same-origin", timeout: 15e3 });
+        } catch {
+        }
+      }
+      return true;
+    }
+    /** Token CSRF (meta da página) só para a mesma origem, como no envio de formulários. */
+    cabecalhoCsrf(url) {
+      if (!mesmaOrigem(url)) return {};
+      const csrf = this.AlpineForm.internals.globalOption?.("csrf") || { meta: "csrf-token", header: "X-CSRF-TOKEN" };
+      if (!csrf || !csrf.meta || !csrf.header) return {};
+      const meta = Array.from(document.querySelectorAll("meta[name]")).find((m) => m.getAttribute("name") === csrf.meta);
+      const token = meta?.getAttribute("content");
+      return token ? { [csrf.header]: token } : {};
     }
     nomePadrao(tipo, tipoConteudo) {
       const data = /* @__PURE__ */ new Date();
@@ -8141,6 +8263,10 @@
       }
       for (const select of this.elementos("[data-lista-tamanho]")) if (select.value !== String(s.porPagina)) select.value = String(s.porPagina);
       desabilitar("[data-lista-exportar]", !!s.exportando);
+      for (const botao of this.elementos("[data-lista-exportar-cancelar]")) {
+        const ocultar = !this.jobExportacao;
+        if (botao.hidden !== ocultar) botao.hidden = ocultar;
+      }
       for (const botao of this.elementos("[data-lista-exportar]")) {
         const ocupado = s.exportando !== null && (botao.getAttribute("data-lista-exportar") || "filtro") === s.exportando;
         if (ocupado && botao.getAttribute("aria-busy") !== "true") botao.setAttribute("aria-busy", "true");
@@ -8231,6 +8357,8 @@
       this.destruida = true;
       this.requisicao?.abort();
       this.exportacao?.abort();
+      this.jobExportacao?.poller?.stop();
+      this.jobExportacao?.controle.abort();
       clearTimeout(this.timerFiltro);
       clearTimeout(this.timerAtualizar);
       this.observadorSentinela?.disconnect();
@@ -8246,6 +8374,26 @@
       ativas.delete(this);
     }
   };
+  function absoluta(url) {
+    return new URL(url, globalThis.location?.href).href;
+  }
+  function mesmaOrigem(url) {
+    try {
+      return new URL(url, globalThis.location?.href).origin === globalThis.location?.origin;
+    } catch {
+      return false;
+    }
+  }
+  function urlDoArquivo(dados) {
+    if (!isObjeto(dados)) return null;
+    const url = [dados.url, dados.download_url, dados.downloadUrl, dados.arquivo_url].find((v) => typeof v === "string" && v);
+    return url && mesmaOrigem(url) ? url : null;
+  }
+  function nomeDoResultado(dados) {
+    if (!isObjeto(dados)) return null;
+    const nome = [dados.arquivo, dados.nome, dados.filename].find((v) => typeof v === "string" && v);
+    return nome ? nomeDoArquivo(`attachment; filename="${nome.replace(/"/g, "")}"`) : null;
+  }
   function nomeDoArquivo(cabecalho) {
     if (!cabecalho) return null;
     let nome = null;
@@ -8479,11 +8627,11 @@
         return encodeURIComponent(valor);
       });
       if (faltando) return null;
-      const absoluta = new URL(url, document.baseURI);
-      if (absoluta.origin !== location.origin) {
-        throw new ConfigError2(`data-form-opcoes do campo "${this.field.name}" aponta para outra origem (${absoluta.origin}). Use um endpoint do pr\xF3prio site (proxy no servidor).`);
+      const absoluta2 = new URL(url, document.baseURI);
+      if (absoluta2.origin !== location.origin) {
+        throw new ConfigError2(`data-form-opcoes do campo "${this.field.name}" aponta para outra origem (${absoluta2.origin}). Use um endpoint do pr\xF3prio site (proxy no servidor).`);
       }
-      return absoluta.href;
+      return absoluta2.href;
     }
     /** Algo mudou no formulário: recalcula a URL e carrega se ela mudou. */
     avaliar({ imediato = false, forcar = false } = {}) {
@@ -8923,12 +9071,12 @@
         if (v === null || v === void 0 || Array.isArray(v)) v = "";
         return encodeURIComponent(String(v));
       });
-      const absoluta = new URL(url, document.baseURI);
-      const mesma = absoluta.origin === location.origin;
-      if (!mesma && !cfg.servico && !origensPermitidas.has(absoluta.origin)) {
-        throw new ConfigError2(`data-form-preencher do campo "${this.field.name}" aponta para outra origem (${absoluta.origin}). Use um endpoint do pr\xF3prio site ou libere com AlpineForm.preencher.permitirOrigem('${absoluta.origin}').`);
+      const absoluta2 = new URL(url, document.baseURI);
+      const mesma = absoluta2.origin === location.origin;
+      if (!mesma && !cfg.servico && !origensPermitidas.has(absoluta2.origin)) {
+        throw new ConfigError2(`data-form-preencher do campo "${this.field.name}" aponta para outra origem (${absoluta2.origin}). Use um endpoint do pr\xF3prio site ou libere com AlpineForm.preencher.permitirOrigem('${absoluta2.origin}').`);
       }
-      return { url: absoluta.href, mesma };
+      return { url: absoluta2.href, mesma };
     }
     /** O campo mudou: agenda a busca se o valor estiver completo e válido. */
     aoMudar(gatilho) {
@@ -9526,8 +9674,8 @@
         if (pedacos[0].split(".").some((p) => PROIBIDAS.has(p))) throw new ConfigError2(`data-form-autocompletar-campos do campo "${nome}" usa uma chave proibida: "${pedacos[0]}".`);
         mapa.push([pedacos[0], pedacos[1] ?? pedacos[0]]);
       }
-      const absoluta = new URL(url.replace("{termo}", "x"), document.baseURI);
-      if (absoluta.origin !== location.origin) throw new ConfigError2(`data-form-autocompletar do campo "${nome}" aponta para outra origem (${absoluta.origin}). Use um endpoint do pr\xF3prio site.`);
+      const absoluta2 = new URL(url.replace("{termo}", "x"), document.baseURI);
+      if (absoluta2.origin !== location.origin) throw new ConfigError2(`data-form-autocompletar do campo "${nome}" aponta para outra origem (${absoluta2.origin}). Use um endpoint do pr\xF3prio site.`);
       return {
         url,
         nome,

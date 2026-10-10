@@ -8,19 +8,23 @@ declare(strict_types=1);
  *   php server/bin/worker.php            # processa continuamente (Ctrl+C para sair)
  *   php server/bin/worker.php --once     # processa o que houver na fila e sai
  *   php server/bin/worker.php --idle=500 # intervalo de espera sem jobs, em ms
+ *   php server/bin/worker.php --tipos=export_csv   # só estes tipos (ex.: um worker dedicado a exportações)
  *
  * Tarefa de exemplo "import_csv": lê o CSV em fluxo (sem carregar inteiro), conta linhas, soma a
  * coluna "valor" (se existir) com aritmética decimal em string e calcula SHA-256 incremental.
  * O progresso é a fração de BYTES lidos, informada pelo próprio processamento (não estimada).
+ * Tarefa "export_csv" (data-lista-exportar-modo="job"): gera o CSV comprimido em fluxo — ver Exportacao.
  * "delayMs" no payload desacelera a tarefa apenas para tornar o progresso visível na demonstração.
  */
 
+use AlpineForm\Server\Exportacao;
 use AlpineForm\Server\JobQueue;
 use AlpineForm\Server\Validator;
 
 require dirname(__DIR__) . '/bootstrap.php';
 
-$options = getopt('', ['once', 'idle::']);
+$options = getopt('', ['once', 'idle::', 'tipos::']);
+$tipos = isset($options['tipos']) && $options['tipos'] !== '' ? array_values(array_filter(array_map('trim', explode(',', (string) $options['tipos'])))) : null;
 $once = isset($options['once']);
 $idleMs = isset($options['idle']) ? max(50, (int) $options['idle']) : 500;
 $workerId = gethostname() . ':' . getmypid();
@@ -129,7 +133,7 @@ if (function_exists('pcntl_signal')) {
 
 fwrite(STDOUT, "[worker {$workerId}] iniciado" . ($once ? ' (--once)' : '') . PHP_EOL);
 while ($running) {
-    $job = $queue->claimNext($workerId);
+    $job = $queue->claimNext($workerId, $tipos);
     if ($job === null) {
         if ($once) {
             break;
@@ -141,6 +145,8 @@ while ($running) {
     try {
         if ($job['type'] === 'import_csv') {
             process_import($queue, $job);
+        } elseif ($job['type'] === Exportacao::TIPO) {
+            Exportacao::gerar($queue, $job, alpineform_config()['storage']);
         } else {
             $queue->update($job['id'], ['status' => 'failed', 'error' => 'Tipo de job desconhecido.']);
         }

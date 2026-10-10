@@ -113,6 +113,24 @@ layout_start('Listagens', 'Módulo opcional <code>alpine-form-lista</code>: pagi
     <nav data-lista-paginacao></nav>
 </section>
 
+<h2>Exportação em segundo plano (milhões de linhas)</h2>
+<section id="relatorio" class="card" x-data x-lista data-lista-url="/api/demo/clientes" data-lista-por-pagina="5"
+         data-lista-exportar-modo="job"
+         data-lista-exportar-url="/api/demo/clientes-csv?linhas=200000"
+         data-lista-exportar-completo-url="/api/demo/clientes-csv-completo?linhas=1000000">
+    <p class="hint">O servidor gera o arquivo numa fila (worker) e a tela acompanha o progresso; quando termina, o download começa sozinho. Para a demonstração, o endpoint acrescenta clientes fictícios: 200 mil no filtro e 1 milhão no completo. <strong>Precisa do worker rodando:</strong> <code>php server/bin/worker.php</code>.</p>
+    <div class="actions">
+        <button type="button" data-lista-exportar="filtro">Filtro CSV (200 mil)</button>
+        <button type="button" data-lista-exportar="completo">CSV completo (1 milhão)</button>
+        <button type="button" data-lista-exportar-cancelar>Cancelar exportação</button>
+    </div>
+    <div x-show="$lista.exportando" role="status">
+        <progress max="100" x-bind:value="$lista.progressoExportacao && $lista.progressoExportacao.progress !== null ? $lista.progressoExportacao.progress : null"></progress>
+        <span id="relatorio-progresso" x-text="$lista.progressoExportacao && ($lista.progressoExportacao.message || $lista.progressoExportacao.status)"></span>
+    </div>
+    <p class="erro-exportacao" x-show="$lista.erroExportacao" role="alert" x-text="$lista.erroExportacao && $lista.erroExportacao.message"></p>
+</section>
+
 <h2>Cards com "carregar mais" e rolagem infinita</h2>
 <section id="cards" class="card" x-data x-lista data-lista-url="/api/demo/clientes?ms=300" data-lista-modo="acumular" data-lista-por-pagina="12" data-lista-ordem="criado_em" data-lista-direcao="desc">
     <div class="grade-cards">

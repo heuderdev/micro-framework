@@ -634,3 +634,146 @@ describe('x-lista: exportação no modo automático', () => {
         }
     })
 })
+
+describe('x-lista: exportação em segundo plano (job)', () => {
+    afterEach(() => {
+        vi.restoreAllMocks()
+        document.head.querySelector('meta[name="csrf-token"]')?.remove()
+        document.body.innerHTML = ''
+        if (AlpineForm.registry.has('transport', 'lista')) AlpineForm.registry.unregister('transport', 'lista')
+    })
+
+    /** Servidor da lista + exportação por job: POST → 202; GET status avança a cada consulta; DELETE cancela. */
+    function servidorComJob({ etapas = ['queued', 'processing', 'succeeded'], post = null } = {}) {
+        const lista = servidor()
+        const pedidos = []
+        let consulta = 0
+        const transporte = async request => {
+            const url = new URL(request.url)
+            if (url.pathname.startsWith('/api/exp')) {
+                pedidos.push({ metodo: request.method, url: url.pathname + url.search, headers: request.headers })
+                if (post) return post(request)
+                return jsonResponse(202, { success: true, message: 'Exportação na fila.', job: { id: 'j1', status_url: '/api/jobs/j1', cancel_url: '/api/jobs/j1' } })
+            }
+            if (url.pathname === '/api/jobs/j1') {
+                pedidos.push({ metodo: request.method, url: url.pathname, headers: request.headers })
+                if (request.method === 'DELETE') return jsonResponse(202, { id: 'j1', status: 'canceled' })
+                const status = etapas[Math.min(consulta++, etapas.length - 1)]
+                return jsonResponse(200, {
+                    id: 'j1', status, progress: status === 'processing' ? 40 : status === 'succeeded' ? 100 : null, message: `etapa ${status}`,
+                    result: status === 'succeeded' ? { url: '/api/exports/j1/arquivo', arquivo: 'clientes-completo.csv', bytes: 1234 } : null,
+                    error: status === 'failed' ? { message: 'Disco cheio no servidor.' } : null,
+                })
+            }
+            return lista(request)
+        }
+        AlpineForm.transport('lista', transporte, { replace: true })
+        return pedidos
+    }
+
+    const cliquesDeDownload = () => {
+        const cliques = []
+        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+            cliques.push({ href: this.getAttribute('href'), download: this.getAttribute('download') })
+        })
+        return cliques
+    }
+
+    const HTML_JOB = `<section x-data x-lista data-lista-url="/api/clientes" data-lista-ordem="nome" data-lista-exportar-modo="job" data-lista-exportar-job-intervalo="10ms"
+        data-lista-exportar-url="/api/exp" data-lista-exportar-completo-url="/api/exp-tudo">
+        <input name="uf" data-lista-filtro>
+        <button type="button" data-lista-exportar="filtro">Filtro CSV</button>
+        <button type="button" data-lista-exportar="completo">CSV completo</button>
+        <button type="button" data-lista-exportar-cancelar>Cancelar</button>${LINHAS}</section>`
+
+    it('POST com CSRF → 202 → acompanha o progresso → baixa o arquivo pronto pelo link do resultado', async () => {
+        const meta = document.createElement('meta')
+        meta.name = 'csrf-token'
+        meta.content = 'tok-123'
+        document.head.appendChild(meta)
+        const pedidos = servidorComJob()
+        const { raiz, lista } = await montar(HTML_JOB)
+        await esperar(() => lista.carregado)
+        await lista.definirFiltros({ uf: 'SP' })
+        const cliques = cliquesDeDownload()
+        const progresso = []
+        raiz.addEventListener('lista:exportacao-progresso', e => progresso.push(`${e.detail.status}:${e.detail.progress}`))
+        const fim = []
+        raiz.addEventListener('lista:exportada', e => fim.push(e.detail))
+        const cancelar = raiz.querySelector('[data-lista-exportar-cancelar]')
+        expect(cancelar.hidden).toBe(true)
+
+        const promessa = lista.exportar('filtro')
+        await esperar(() => lista.progressoExportacao?.status === 'queued' || progresso.length > 0)
+        expect(lista.exportando).toBe('filtro')
+        expect(cancelar.hidden).toBe(false)
+        expect(await promessa).toBe(true)
+
+        expect(pedidos[0]).toMatchObject({ metodo: 'POST', url: '/api/exp?sort=nome&direction=asc&uf=SP' })
+        expect(pedidos[0].headers['X-CSRF-TOKEN']).toBe('tok-123')
+        expect(pedidos.filter(p => p.url === '/api/jobs/j1').every(p => p.metodo === 'GET')).toBe(true)
+        expect(progresso).toEqual(['queued:null', 'processing:40', 'succeeded:100'])
+        expect(cliques).toEqual([{ href: '/api/exports/j1/arquivo', download: 'clientes-completo.csv' }])
+        expect(fim[0]).toMatchObject({ tipo: 'filtro', modo: 'job', arquivo: 'clientes-completo.csv', bytes: 1234 })
+        expect([lista.exportando, lista.progressoExportacao, cancelar.hidden]).toEqual([null, null, true])
+    })
+
+    it('job que falha mostra a mensagem do servidor e não baixa nada', async () => {
+        servidorComJob({ etapas: ['processing', 'failed'] })
+        const { lista } = await montar(HTML_JOB.replace('<section x-data', '<section data-form-log="none" x-data'))
+        await esperar(() => lista.carregado)
+        const cliques = cliquesDeDownload()
+        expect(await lista.exportar('completo')).toBe(false)
+        expect(lista.erroExportacao).toMatchObject({ kind: 'job-failed', message: 'Disco cheio no servidor.' })
+        expect(cliques).toHaveLength(0)
+    })
+
+    it('cancelar para de acompanhar e pede o cancelamento ao servidor (DELETE no cancel_url)', async () => {
+        const pedidos = servidorComJob({ etapas: ['processing'] })
+        const { raiz, lista } = await montar(HTML_JOB)
+        await esperar(() => lista.carregado)
+        const cancelados = []
+        raiz.addEventListener('lista:exportacao-cancelada', e => cancelados.push(e.detail.tipo))
+        const promessa = lista.exportar('completo')
+        await esperar(() => lista.progressoExportacao?.status === 'processing')
+        raiz.querySelector('[data-lista-exportar-cancelar]').click()
+        expect(await promessa).toBe(false)
+        await esperar(() => pedidos.some(p => p.metodo === 'DELETE'))
+        expect(pedidos[0]).toMatchObject({ metodo: 'POST', url: '/api/exp-tudo' })
+        expect(cancelados).toEqual(['completo'])
+        expect([lista.exportando, lista.erroExportacao]).toEqual([null, null])
+    })
+
+    it('resposta fora do contrato, status_url de outra origem e arquivo pronto na hora', async () => {
+        const respostas = [
+            jsonResponse(202, { success: true }),
+            jsonResponse(202, { job: { id: 'x', status_url: 'https://outro.exemplo/jobs/x' } }),
+            jsonResponse(403, { success: false, message: 'Exportação não permitida para o seu perfil.' }),
+            jsonResponse(200, { success: true, data: { url: '/api/exports/pronto.csv', arquivo: 'pronto.csv' } }),
+        ]
+        servidorComJob({ post: () => respostas.shift() })
+        const { lista } = await montar(HTML_JOB.replace('<section x-data', '<section data-form-log="none" x-data'))
+        await esperar(() => lista.carregado)
+        const cliques = cliquesDeDownload()
+        expect(await lista.exportar('completo')).toBe(false)
+        expect(lista.erroExportacao.kind).toBe('contract')
+        expect(await lista.exportar('completo')).toBe(false)
+        expect(lista.erroExportacao.kind).toBe('contract')
+        expect(await lista.exportar('completo')).toBe(false)
+        expect(lista.erroExportacao).toMatchObject({ kind: 'http', status: 403, message: 'Exportação não permitida para o seu perfil.' })
+        expect(await lista.exportar('completo')).toBe(true)
+        expect(cliques).toEqual([{ href: '/api/exports/pronto.csv', download: 'pronto.csv' }])
+    })
+
+    it('modo auto com data-lista-exportar-grande="job": filtro pequeno baixa pela página, completo vai por job', async () => {
+        const pedidos = servidorComJob()
+        const { lista } = await montar(HTML_JOB.replace('data-lista-exportar-modo="job"', 'data-lista-exportar-modo="auto" data-lista-exportar-grande="job" data-lista-exportar-limite="50"'))
+        await esperar(() => lista.carregado)
+        await lista.definirFiltros({ uf: 'SP' })
+        expect(lista.modoExportacao('filtro')).toBe('baixar')
+        expect(lista.modoExportacao('completo')).toBe('job')
+        cliquesDeDownload()
+        expect(await lista.exportar('completo')).toBe(true)
+        expect(pedidos[0].metodo).toBe('POST')
+    })
+})

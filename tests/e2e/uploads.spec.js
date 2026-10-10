@@ -138,7 +138,7 @@ test.describe('chunks com backend PHP real', () => {
 test.describe('processamento assíncrono (fila + worker reais)', () => {
     let worker
     test.beforeAll(() => {
-        worker = spawn('php', ['server/bin/worker.php', '--idle=100'], { stdio: 'ignore' })
+        worker = spawn('php', ['server/bin/worker.php', '--idle=100', '--tipos=import_csv'], { stdio: 'ignore' })
     })
     test.afterAll(() => {
         worker?.kill()

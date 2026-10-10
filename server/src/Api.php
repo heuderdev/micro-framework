@@ -90,6 +90,9 @@ final class Api
                 return [200, $this->chunks()->complete($owner, $m[1], $manifest), []];
             }],
             ['GET', '#^/api/demo/(cep|cnpj)/([0-9]{1,14})$#', fn ($m) => self::consultaDemo($m[1], $m[2], $request->query)],
+            // exportação em segundo plano (data-lista-exportar-modo="job"): POST cria o job; o arquivo só vai para o dono
+            ['POST', '#^/api/demo/clientes-csv(-completo)?$#', fn ($m) => $this->exportarEmSegundoPlano(($m[1] ?? '') !== '' ? 'completo' : 'filtro', $request, $owner)],
+            ['GET', '#^/api/exports/([a-f0-9]{32})/arquivo$#', fn ($m) => Exportacao::baixar($this->jobs(), $this->storage, $owner, $m[1], $request)],
             ['ANY', '#^/api/demo/([a-z0-9-]+)$#', fn ($m) => $this->demo($m[1], $request)],
         ];
         foreach ($routes as [$verb, $pattern, $handler]) {
@@ -611,6 +614,18 @@ final class Api
         Session::set('clientes_extra', array_slice($extras, -50));
         Session::release();
         return $this->ok($cliente, 'Cliente cadastrado.');
+    }
+
+    /** @return array{0: int, 1: array<string, mixed>, 2: array<string, string>} */
+    private function exportarEmSegundoPlano(string $tipo, Request $request, string $owner): array
+    {
+        $payload = Exportacao::payload($tipo, $request->query, (array) Session::get('clientes_extra', []), (array) Session::get('clientes_ajustes', []));
+        $job = $this->jobs()->create($owner, Exportacao::TIPO, $payload);
+        return [202, [
+            'success' => true,
+            'message' => 'Exportação na fila.',
+            'job' => ['id' => $job['id'], 'status_url' => '/api/jobs/' . $job['id'], 'cancel_url' => '/api/jobs/' . $job['id']],
+        ], []];
     }
 
     /** CRUD de demonstração: sem id cadastra; com id guarda a edição na sessão. */

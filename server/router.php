@@ -45,6 +45,18 @@ if (str_starts_with($path, '/api/')) {
     if ($body === null) {
         return true;
     }
+    if (is_resource($body)) {
+        // arquivo grande (exportação): envia em blocos, sem carregar inteiro na memória
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        while (!feof($body)) {
+            echo fread($body, 65536);
+            flush();
+        }
+        fclose($body);
+        return true;
+    }
     if (is_string($body)) {
         if (!isset($headers['Content-Type'])) {
             header('Content-Type: text/plain; charset=utf-8');

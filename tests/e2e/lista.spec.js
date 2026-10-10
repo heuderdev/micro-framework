@@ -1,5 +1,6 @@
 import { test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { expect } from './helpers.js'
 
 const estado = (page, id) => page.evaluate(i => {
@@ -109,7 +110,7 @@ test.describe('listagens: exportação CSV', () => {
         await expect.poll(() => estado(page, 'clientes').then(s => s.carregando)).toBe(false)
         const totalFiltrado = (await estado(page, 'clientes')).total
 
-        const [arquivoFiltro] = await Promise.all([page.waitForEvent('download'), page.click('[data-lista-exportar="filtro"]')])
+        const [arquivoFiltro] = await Promise.all([page.waitForEvent('download'), page.click('#clientes [data-lista-exportar="filtro"]')])
         expect(arquivoFiltro.suggestedFilename()).toMatch(/^clientes-filtrado-\d{4}-\d{2}-\d{2}\.csv$/)
         const csvFiltro = readFileSync(await arquivoFiltro.path(), 'utf8')
         expect(csvFiltro.charCodeAt(0)).toBe(0xfeff)                                    // BOM: acentos certos no Excel
@@ -121,7 +122,7 @@ test.describe('listagens: exportação CSV', () => {
         expect(pedidos[0].searchParams.get('uf')).toBe('SP')
         expect(pedidos[0].searchParams.has('page')).toBe(false)
 
-        const [arquivoCompleto] = await Promise.all([page.waitForEvent('download'), page.click('[data-lista-exportar="completo"]')])
+        const [arquivoCompleto] = await Promise.all([page.waitForEvent('download'), page.click('#clientes [data-lista-exportar="completo"]')])
         expect(arquivoCompleto.suggestedFilename()).toMatch(/^clientes-completo-/)
         const linhasCompleto = readFileSync(await arquivoCompleto.path(), 'utf8').trim().split('\r\n')
         expect(linhasCompleto.length - 1).toBeGreaterThanOrEqual(137)
@@ -130,7 +131,69 @@ test.describe('listagens: exportação CSV', () => {
         expect(new URL(arquivoCompleto.url()).pathname).toBe('/api/demo/clientes-csv-completo')
         expect(new URL(arquivoCompleto.url()).search).toBe('')
         expect(pedidos).toHaveLength(1)
-        await expect(page.locator('[data-lista-exportar="filtro"]')).toBeEnabled()
+        await expect(page.locator('#clientes [data-lista-exportar="filtro"]')).toBeEnabled()
         expect(problemas).toEqual([])
+    })
+})
+
+test.describe('listagens: exportação em segundo plano (fila + worker reais)', () => {
+    let worker
+    test.beforeAll(() => {
+        // só exportações: não disputa os jobs de importação do spec de uploads (que roda em paralelo)
+        worker = spawn('php', ['server/bin/worker.php', '--idle=100', '--tipos=export_csv'], { stdio: 'ignore' })
+    })
+    test.afterAll(() => {
+        worker?.kill()
+    })
+
+    test('"Filtro CSV" por job: progresso do worker na tela e download do arquivo completo', async ({ page }) => {
+        test.setTimeout(120000)
+        await abrir(page)
+        await page.waitForFunction(() => window.AlpineForm.lista.get('relatorio')?.carregado)
+        const mensagens = new Set()
+        await page.exposeFunction('registrarProgresso', m => mensagens.add(m))
+        await page.evaluate(() => document.getElementById('relatorio').addEventListener('lista:exportacao-progresso', e => window.registrarProgresso(`${e.detail.status}:${e.detail.progress}`)))
+        const [arquivo] = await Promise.all([
+            page.waitForEvent('download', { timeout: 90000 }),
+            page.click('#relatorio [data-lista-exportar="filtro"]'),
+        ])
+        expect(arquivo.suggestedFilename()).toMatch(/^clientes-filtrado-\d{4}-\d{2}-\d{2}\.csv$/)
+        const linhas = readFileSync(await arquivo.path(), 'utf8').trim().split('\r\n')
+        expect(linhas[0]).toBe('Código;Nome;E-mail;UF;Situação;Saldo;Cadastro')
+        expect(linhas.length - 1).toBeGreaterThanOrEqual(200137)
+        expect(linhas.at(-1)).toContain('Cliente fictício 200000')
+        expect([...mensagens].some(m => m.startsWith('succeeded'))).toBe(true)
+        await expect(page.locator('#relatorio [data-lista-exportar-cancelar]')).toBeHidden()
+        await expect(page.locator('#relatorio [data-lista-exportar="filtro"]')).toBeEnabled()
+    })
+
+    test('cancelar interrompe o job no servidor e libera os botões', async ({ page }) => {
+        await abrir(page)
+        await page.waitForFunction(() => window.AlpineForm.lista.get('relatorio')?.carregado)
+        // exportação lenta de propósito (ms) para dar tempo de cancelar
+        await page.evaluate(() => document.getElementById('relatorio').setAttribute('data-lista-exportar-completo-url', '/api/demo/clientes-csv-completo?linhas=1000000&ms=200'))
+        const jobs = []
+        page.on('request', r => {
+            if (/\/api\/jobs\/[a-f0-9]{32}$/.test(r.url())) jobs.push(r.method())
+        })
+        page.on('download', () => jobs.push('DOWNLOAD'))
+        const lista = () => page.evaluate(() => {
+            const s = window.AlpineForm.lista.get('relatorio')
+            return { exportando: s.exportando, status: s.progressoExportacao?.status ?? null }
+        })
+        // a URL foi trocada depois de montar a lista: recria a lista para ler o atributo novo
+        await page.evaluate(() => {
+            const el = document.getElementById('relatorio')
+            window.Alpine.destroyTree(el)
+            window.Alpine.initTree(el)
+        })
+        await page.waitForFunction(() => window.AlpineForm.lista.get('relatorio')?.carregado)
+        await page.click('#relatorio [data-lista-exportar="completo"]')
+        await expect.poll(() => lista().then(s => s.status)).toBe('processing')
+        await page.click('#relatorio [data-lista-exportar-cancelar]')
+        await expect.poll(() => lista().then(s => s.exportando)).toBe(null)
+        await expect.poll(() => jobs.includes('DELETE')).toBe(true)
+        expect(jobs).not.toContain('DOWNLOAD')
+        await expect(page.locator('#relatorio [data-lista-exportar="completo"]')).toBeEnabled()
     })
 })

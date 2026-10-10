@@ -101,14 +101,20 @@ final class JobQueue
         });
     }
 
-    /** Reivindica o próximo job da fila de forma exclusiva entre workers concorrentes. @return array<string, mixed>|null */
-    public function claimNext(string $workerId): ?array
+    /**
+     * Reivindica o próximo job da fila de forma exclusiva entre workers concorrentes.
+     * $types restringe aos tipos que este worker atende (ex.: um worker só para exportações pesadas).
+     *
+     * @param list<string>|null $types
+     * @return array<string, mixed>|null
+     */
+    public function claimNext(string $workerId, ?array $types = null): ?array
     {
         $files = glob($this->root . '/jobs/*.json') ?: [];
         $jobs = [];
         foreach ($files as $file) {
             $job = Fs::readJson($file);
-            if ($job !== null && $job['status'] === 'queued') {
+            if ($job !== null && $job['status'] === 'queued' && ($types === null || in_array($job['type'], $types, true))) {
                 $jobs[] = $job;
             }
         }
