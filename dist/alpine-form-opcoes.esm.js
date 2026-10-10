@@ -297,6 +297,23 @@ var SelectRemoto = class {
       this.desabilitadoPorMim = false;
     }
   }
+  /**
+   * Seleciona um valor agora, se a lista atual já o tem, ou assim que a próxima lista chegar
+   * (útil quando outro código preenche a dependência e o valor ao mesmo tempo, ex.: CEP → UF e cidade).
+   */
+  selecionar(valor) {
+    const v = valor === null || valor === void 0 ? "" : String(valor);
+    const pronto = this.select.getAttribute("data-form-opcoes-estado") === "pronto";
+    if (pronto) {
+      if (v === "" || !Array.from(this.select.options).some((o) => o.value === v)) return false;
+      this.desejado = null;
+      this.controller.setValue(this.field, v);
+      return true;
+    }
+    if (v === "") return false;
+    this.desejado = v;
+    return true;
+  }
   destroy() {
     clearTimeout(this.timer);
     this.abort?.abort();
@@ -386,6 +403,12 @@ var OpcoesExtension = class {
       if (!nome || remoto.field.name === nome) remoto.avaliar({ imediato: true, forcar: true });
     }
   }
+  selecionar(nome, valor) {
+    for (const remoto of this.selects.values()) {
+      if (remoto.field.name === nome) return remoto.selecionar(valor);
+    }
+    return false;
+  }
   estado(nome) {
     for (const remoto of this.selects.values()) {
       if (remoto.field.name === nome) return { carregando: remoto.carregando, erro: remoto.erro, url: remoto.urlAtual };
@@ -418,6 +441,15 @@ function opcoesPlugin(AlpineForm) {
     /** { carregando, erro, url } de um select remoto. */
     estado(formOuId, nome) {
       return extensoes.get(resolver(formOuId))?.estado(nome) ?? null;
+    },
+    /** Seleciona um valor agora ou quando a lista do select chegar; false se a lista já carregada não o tem. */
+    selecionar(formOuId, nome, valor) {
+      return extensoes.get(resolver(formOuId))?.selecionar(nome, valor) ?? false;
+    },
+    /** O campo é um select controlado por este módulo? */
+    controla(formOuId, nome) {
+      const ext = extensoes.get(resolver(formOuId));
+      return !!ext && ext.estado(nome) !== null;
     },
     limparCache() {
       cache.clear();

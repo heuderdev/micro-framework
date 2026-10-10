@@ -89,7 +89,7 @@ Route::get('/api/cidades', fn (Request $r) =>
     <li><strong>Vários campos:</strong> <code>data-form-opcoes="/api/turmas?curso={curso}&amp;turno={turno}"</code> — só busca quando todos estiverem preenchidos.</li>
     <li><strong>Campo de texto</strong> (código, CEP): espera a digitação parar (<code>data-form-opcoes-debounce</code>, padrão 250 ms). Selects, radios e checkboxes buscam na hora.</li>
     <li><strong>Nomes com colchetes:</strong> <code>{endereco[uf]}</code> ou <code>{endereco.uf}</code>.</li>
-    <li><strong>Campo com máscara:</strong> vai o valor de envio (CPF sem pontos, moeda como <code>1234.50</code>).</li>
+    <li><strong>Campo com máscara:</strong> vai o valor de envio — o mesmo que o servidor recebe no submit (veja <code>data-form-submit-value</code> em <a href="mascaras.html">Máscaras</a>).</li>
     <li><strong>Sem dependência:</strong> <code>data-form-opcoes="/api/bancos"</code> só carrega a lista uma vez ao abrir.</li>
 </ul>
 
@@ -159,5 +159,5 @@ select[data-form-opcoes-estado="erro"] { border-color: #b91c1c; }
 <tr><td><code>data-form-opcoes-cache</code></td><td>true</td><td><code>false</code> busca sempre.</td></tr>
 <tr><td><code>data-form-opcoes-manter-habilitado</code></td><td>false</td><td>Não desabilita enquanto espera/carrega.</td></tr>
 </tbody></table></div>
-<p>Global: <code>AlpineForm.opcoes.recarregar(formOuId, nome?)</code>, <code>AlpineForm.opcoes.estado(formOuId, nome)</code> (<code>{ carregando, erro, url }</code>), <code>AlpineForm.opcoes.limparCache()</code>. Mensagem: <code>AlpineForm.messages['opcoes.erro']</code>.</p>
+<p>Global: <code>AlpineForm.opcoes.recarregar(formOuId, nome?)</code>, <code>AlpineForm.opcoes.estado(formOuId, nome)</code> (<code>{ carregando, erro, url }</code>), <code>AlpineForm.opcoes.selecionar(formOuId, nome, valor)</code> (seleciona agora ou quando a lista chegar — usado pelo <a href="preencher.html#selects">autopreenchimento</a>), <code>AlpineForm.opcoes.controla(formOuId, nome)</code>, <code>AlpineForm.opcoes.limparCache()</code>. Mensagem: <code>AlpineForm.messages['opcoes.erro']</code>.</p>
 <p>Erros de configuração bloqueiam o envio e aparecem no console: <code>{campo}</code> inexistente, URL de outra origem (use um endpoint do próprio site como proxy), atributo fora de <code>&lt;select&gt;</code>, duração inválida, select que depende dele mesmo.</p>

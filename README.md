@@ -19,7 +19,7 @@ O que a biblioteca faz:
 - envio por XHR com **progresso real** de upload; distinção entre *enviado 100%*, *aguardando resposta* e *concluído*; cancelamento, timeout, `Idempotency-Key`;
 - associação de erros do servidor aos campos (inclusive `itens.0.nome`, `jform[title]`, arquivo individual) e resumo de erros sem campo; adaptadores Laravel e Joomla;
 - arquivos: lista interna como fonte de verdade, remoção, duplicados, preview com revogação de object URLs, dimensões de imagem, arquivos existentes em edição;
-- módulos opcionais: **máscaras** (motor próprio com cursor/seleção/colagem/IME), **chunks** (upload em partes com pausa, retomada, SHA-256 e backend real), **inspetores** (CSV por amostragem, JSON, PDF/XLSX, mídia), **rascunho** (guarda o que foi digitado e devolve ao reabrir a página), **listagens** (`x-lista`: paginação, ordenação, filtros com espera, URL compartilhável, seleção em lote, rolagem infinita e atualização após cadastro com `data-form-lista`), **selects dependentes** (`data-form-opcoes="/api/cidades?uf={uf}"`) e **Bootstrap 5**;
+- módulos opcionais: **máscaras** (motor próprio com cursor/seleção/colagem/IME), **chunks** (upload em partes com pausa, retomada, SHA-256 e backend real), **inspetores** (CSV por amostragem, JSON, PDF/XLSX, mídia), **rascunho** (guarda o que foi digitado e devolve ao reabrir a página), **listagens** (`x-lista`: paginação, ordenação, filtros com espera, URL compartilhável, seleção em lote, rolagem infinita e atualização após cadastro com `data-form-lista`), **selects dependentes** (`data-form-opcoes="/api/cidades?uf={uf}"`), **autopreenchimento** (CEP → endereço, CNPJ → empresa, sem apagar o que foi digitado) e **Bootstrap 5**;
 - processamento assíncrono após upload (HTTP 202 + polling sem sobreposição).
 
 ## Instalação e ordem de carregamento
@@ -34,6 +34,7 @@ Sem bundler (IIFE): o núcleo primeiro, depois os módulos opcionais, e **o Alpi
 <script src="/dist/alpine-form-rascunho.min.js"></script>  <!-- opcional -->
 <script src="/dist/alpine-form-lista.min.js"></script>     <!-- opcional -->
 <script src="/dist/alpine-form-opcoes.min.js"></script>    <!-- opcional -->
+<script src="/dist/alpine-form-preencher.min.js"></script> <!-- opcional -->
 <script defer src="/caminho/alpine.min.js"></script>
 <link rel="stylesheet" href="/css/alpine-form.css">        <!-- opcional -->
 ```
@@ -48,8 +49,9 @@ import chunks from 'alpine-form/chunks'
 import rascunho from 'alpine-form/rascunho'
 import lista from 'alpine-form/lista'
 import opcoes from 'alpine-form/opcoes'
+import preencher from 'alpine-form/preencher'
 
-AlpineForm.use(masks).use(chunks).use(rascunho).use(lista).use(opcoes)
+AlpineForm.use(masks).use(chunks).use(rascunho).use(lista).use(opcoes).use(preencher)
 Alpine.plugin(AlpineFormPlugin)
 Alpine.start()
 ```
@@ -83,7 +85,7 @@ x-form (diretiva Alpine) ──► FormController (um por <form>, estado reativo
    │                            ├─ FileManager ...... lista interna de arquivos, previews, existentes
    │                            ├─ UI adapter ....... erros, ARIA, resumo, lista de arquivos (default | bootstrap)
    │                            └─ ProgressUi ....... data-form-progress-*, data-form-status, botões
-   └─ registry ◄── plugins opcionais: masks, chunks, inspectors, bootstrap, rascunho, lista, opcoes (somente API pública)
+   └─ registry ◄── plugins opcionais: masks, chunks, inspectors, bootstrap, rascunho, lista, opcoes, preencher (somente API pública)
 ```
 
 O núcleo não depende dos módulos opcionais: um atributo de módulo não carregado (`data-form-mask`, `data-form-chunked`…) é **erro de configuração explícito**, nunca ignorado.
@@ -104,6 +106,7 @@ src/
   inspectors/                 módulo opcional de inspeção de arquivos
   rascunho/                   módulo opcional de rascunho automático (localStorage/sessionStorage)
   opcoes/                     módulo opcional de selects dependentes (opções da API, cadeias UF → cidade)
+  preencher/                  módulo opcional de autopreenchimento (CEP → endereço, CNPJ → empresa)
   lista/                      módulo opcional de listagens (x-lista: paginação, filtros, ordenação, seleção)
   lib/                        utilidades (decimal exato, datas, tamanhos, caminhos, DOM, cartões, BR)
 css/alpine-form.css           CSS mínimo opcional
@@ -128,19 +131,19 @@ php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 
 | Comando | O que executa | Tipo |
 |---|---|---|
-| `npm test` | 223 testes Vitest/jsdom com Alpine real | integração; **rede simulada** por transportes registrados |
+| `npm test` | 234 testes Vitest/jsdom com Alpine real | integração; **rede simulada** por transportes registrados |
 | `npm run test:php` | 28 testes do backend (chunks, concorrência com processos reais, fila, idempotência, validação) + 15 dos helpers PHP | backend real, sem HTTP |
-| `npm run test:e2e` | 57 testes Playwright (inclui CSP estrita e Trusted Types) no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
+| `npm run test:e2e` | 60 testes Playwright (inclui CSP estrita e Trusted Types) no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
 | `npm run test:all` | build + os três acima | |
 | `npm run docs:check` | gera `docs/*.html` a partir de `docs-src/` e confere atributos, regras, máscaras, métodos e links de todos os exemplos contra a biblioteca | estático |
 | `npm run docs:serve` | gera e serve a documentação em `http://localhost:1900` (técnica em `/tecnica`); no Windows também `docs-servidor.bat` | servidor |
 | `npm run docs:browser` | carrega cada exemplo HTML da documentação no Chrome (servidor em 127.0.0.1:8099) | navegador real |
 
-Último resultado executado (2026-10-10): unitários 223/223, PHP 28/28 + helpers 15/15 (PHP 8.4.2; helpers também em 7.1 e 8.5), E2E 57/57 (Chrome).
+Último resultado executado (2026-10-10): unitários 234/234, PHP 28/28 + helpers 15/15 (PHP 8.4.2; helpers também em 7.1 e 8.5), E2E 60/60 (Chrome).
 
 O Playwright usa `channel: 'chrome'` (Chrome instalado). Para usar o Chromium do Playwright: `npx playwright install chromium` e `PW_CHANNEL= npm run test:e2e`.
 
-Tamanho (minificado / gzip): núcleo 144,8 / 45,1 KiB; máscaras 21,8 / 7,8; chunks 19,7 / 6,8; inspetores 9,1 / 3,7; Bootstrap 1,6 / 0,8; rascunho 3,5 / 1,5; listagens 27,3 / 8,5; opções 11,1 / 4,0.
+Tamanho (minificado / gzip): núcleo 144,8 / 45,1 KiB; máscaras 21,8 / 7,8; chunks 19,7 / 6,8; inspetores 9,1 / 3,7; Bootstrap 1,6 / 0,8; rascunho 3,5 / 1,5; listagens 27,3 / 8,5; opções 11,6 / 4,2; autopreenchimento 10,9 / 3,9.
 
 ## Documentação em Docker (porta 1900)
 

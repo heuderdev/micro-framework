@@ -88,6 +88,7 @@ final class Api
                 $manifest = is_string($body['manifest'] ?? null) ? $body['manifest'] : null;
                 return [200, $this->chunks()->complete($owner, $m[1], $manifest), []];
             }],
+            ['GET', '#^/api/demo/(cep|cnpj)/([0-9]{1,14})$#', fn ($m) => self::consultaDemo($m[1], $m[2], $request->query)],
             ['ANY', '#^/api/demo/([a-z0-9-]+)$#', fn ($m) => $this->demo($m[1], $request)],
         ];
         foreach ($routes as [$verb, $pattern, $handler]) {
@@ -491,6 +492,33 @@ final class Api
             return ['data' => array_map(static fn (array $c): array => ['id' => $c[0], 'nome' => $c[1], 'regiao' => $c[2]], $cidades[$uf] ?? [])];
         }
         return $bairros[(int) ($query['cidade'] ?? 0)] ?? [];
+    }
+
+    /**
+     * Consultas para o autopreenchimento (módulo alpine-form-preencher): CEP → endereço e CNPJ → empresa.
+     * Dados fictícios; desconhecido → 404 { success: false }. ?ms=… atrasa a resposta.
+     *
+     * @param array<string, mixed> $query
+     * @return array{0: int, 1: array<string, mixed>, 2: array<string, string>}
+     */
+    public static function consultaDemo(string $tipo, string $numero, array $query): array
+    {
+        usleep(max(0, min(5000, (int) ($query['ms'] ?? 0))) * 1000);
+        $ceps = [
+            '01001000' => ['cep' => '01001-000', 'logradouro' => 'Praça da Sé', 'bairro' => 'Sé', 'cidade' => 'São Paulo', 'uf' => 'SP', 'ibge' => '3550308'],
+            '13010111' => ['cep' => '13010-111', 'logradouro' => 'Rua Barão de Jaguara', 'bairro' => 'Centro', 'cidade' => 'Campinas', 'uf' => 'SP', 'ibge' => '3509502'],
+            '20040020' => ['cep' => '20040-020', 'logradouro' => 'Rua da Assembleia', 'bairro' => 'Centro', 'cidade' => 'Rio de Janeiro', 'uf' => 'RJ', 'ibge' => '3304557'],
+            '24020000' => ['cep' => '24020-000', 'logradouro' => 'Rua da Conceição', 'bairro' => 'Ingá', 'cidade' => 'Niterói', 'uf' => 'RJ', 'ibge' => '3303302'],
+            '30130010' => ['cep' => '30130-010', 'logradouro' => 'Praça Sete de Setembro', 'bairro' => 'Savassi', 'cidade' => 'Belo Horizonte', 'uf' => 'MG', 'ibge' => '3106200'],
+        ];
+        $empresas = [
+            '11222333000181' => ['razao_social' => 'Empresa Exemplo Comércio Ltda', 'nome_fantasia' => 'Exemplo', 'situacao' => 'ATIVA', 'endereco' => ['cep' => '01001000', 'logradouro' => 'Praça da Sé', 'numero' => '100', 'uf' => 'SP']],
+        ];
+        $dados = $tipo === 'cep' ? ($ceps[$numero] ?? null) : ($empresas[$numero] ?? null);
+        if ($dados === null) {
+            return [404, ['success' => false, 'message' => $tipo === 'cep' ? 'CEP não encontrado.' : 'CNPJ não encontrado.'], []];
+        }
+        return [200, ['success' => true, 'data' => $dados], []];
     }
 
     /** Cadastro de demonstração: guarda o cliente na sessão para aparecer em /api/demo/clientes. */

@@ -28,6 +28,8 @@ const lista = await import(new URL('src/lista/index.js', ROOT))
 AlpineForm.use(lista.default)
 const opcoes = await import(new URL('src/opcoes/index.js', ROOT))
 AlpineForm.use(opcoes.default)
+const preencher = await import(new URL('src/preencher/index.js', ROOT))
+AlpineForm.use(preencher.default)
 
 function walk(dir) {
     return readdirSync(new URL(dir, ROOT), { withFileTypes: true }).flatMap(entry => {

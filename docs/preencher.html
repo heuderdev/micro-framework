@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopreenchimento · AlpineForm</title>
+<meta name="description" content="Quando um campo fica completo e válido — CEP, CNPJ, matrícula, código do produto — busca os dados na API e preenche os outros campos, sem apagar o que a pessoa digitou. Requer alpine-form-preencher.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Formulários › Autopreenchimento</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="opcoes.html" data-busca="select dependente cascata uf cidade bairro opções remotas api carregar combo categoria produto">Selects dependentes</a><a href="preencher.html" class="ativo" aria-current="page" data-busca="cep endereço cnpj razão social preencher automaticamente viacep brasilapi buscar dados consulta">Autopreenchimento</a><a href="rascunho.html" data-busca="rascunho localstorage sessionstorage salvar recuperar restaurar perder dados recarregar">Rascunho automático</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Listagens</div><a href="lista.html" data-busca="tabela lista paginação paginar ordenar ordenação filtros busca pesquisa debounce url seleção lote carregar mais rolagem infinita data-form-lista atualizar recarregar laravel paginate">Listagens (x-lista)</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="seguranca.html" data-busca="csp unsafe-eval trusted types banco regulado log console storage localstorage privacidade lgpd pci">Segurança</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><a href="php.html" data-busca="php helpers resposta entrada validador consulta csrf paginação ordenação lista branca sql joomla 3 php 7 pdo">Helpers PHP</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Autopreenchimento</h1>
+<p class="lead">Quando um campo fica completo e válido — CEP, CNPJ, matrícula, código do produto — busca os dados na API e preenche os outros campos, sem apagar o que a pessoa digitou. Requer alpine-form-preencher.</p>
+<div id="nesta-pagina"></div>
+<h2 id="instalacao" data-titulo="Instalação">Instalação</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;script src=&quot;/js/alpine-form/alpine-form.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-masks.min.js&quot;&gt;&lt;/script&gt;      &lt;!-- para a máscara do CEP/CNPJ --&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-preencher.min.js&quot;&gt;&lt;/script&gt;  &lt;!-- depois do núcleo --&gt;
+&lt;script defer src=&quot;/js/alpine.min.js&quot;&gt;&lt;/script&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">ESM</div><pre><code data-lang="js">import preencher from 'alpine-form/preencher'
+AlpineForm.use(preencher)</code></pre></div>
+<p>Exemplo executável: <code>examples/preencher.php</code>.</p>
+
+<h2 id="cep" data-titulo="CEP → endereço">CEP → endereço</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form x-data x-form action=&quot;/api/clientes&quot; method=&quot;post&quot; novalidate&gt;
+    &lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|cep&quot;
+           data-form-preencher=&quot;/api/cep/{cep}&quot;
+           data-form-preencher-minimo=&quot;8&quot;
+           data-form-preencher-campos=&quot;logradouro, bairro, localidade:cidade, uf&quot;&gt;
+    &lt;input name=&quot;logradouro&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;input name=&quot;numero&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;input name=&quot;bairro&quot;&gt;
+    &lt;input name=&quot;cidade&quot;&gt;
+    &lt;input name=&quot;uf&quot;&gt;
+    &lt;button type=&quot;submit&quot;&gt;Salvar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<ol class="passos">
+    <li>A pessoa digita o CEP. Com 8 dígitos (<code>data-form-preencher-minimo</code>, contado no valor bruto: sem traço), o módulo espera a digitação parar (400 ms) e valida o próprio campo. CEP inválido não gera requisição.</li>
+    <li>Faz <code>GET /api/cep/01001000</code> (<code>{cep}</code> = valor bruto do campo, codificado).</li>
+    <li>Da resposta, copia <code>logradouro</code> → <code>logradouro</code>, <code>bairro</code> → <code>bairro</code>, <code>localidade</code> → <code>cidade</code>, <code>uf</code> → <code>uf</code>.</li>
+    <li>Digitou outro CEP no meio da busca: a anterior é cancelada; resposta antiga nunca é aplicada.</li>
+</ol>
+
+<h2 id="campos" data-titulo="Mapeando os campos">Mapeando os campos</h2>
+<div class="tabela"><table><thead><tr><th>Em <code>data-form-preencher-campos</code></th><th>Significa</th></tr></thead><tbody>
+<tr><td><code>bairro</code></td><td>Chave <code>bairro</code> da resposta → campo <code>bairro</code>.</td></tr>
+<tr><td><code>localidade:cidade</code></td><td>Chave <code>localidade</code> → campo <code>cidade</code>.</td></tr>
+<tr><td><code>endereco.cep:cep</code></td><td>Chave aninhada (<code>{ "endereco": { "cep": "…" } }</code>).</td></tr>
+<tr><td><code>uf:endereco[uf]</code></td><td>Campo com nome de colchetes (ou <code>endereco.uf</code>).</td></tr>
+</tbody></table></div>
+<p>A resposta pode ser o objeto direto, <code>{ "success": true, "data": { … } }</code> (contrato AlpineForm / Joomla) ou <code>{ "data": { … } }</code> (Laravel Resource). Valores que não são texto/número (objetos, listas, <code>null</code>) são ignorados.</p>
+
+<h2 id="digitado" data-titulo="O que a pessoa digitou é preservado">O que a pessoa digitou é preservado</h2>
+<ul>
+    <li>Só preenche campo <strong>vazio</strong> ou que ainda tem o valor que o <strong>próprio módulo</strong> colocou. Se a pessoa escreveu o bairro e depois digitou o CEP, o bairro fica.</li>
+    <li>Trocou o CEP: os campos que vieram do CEP anterior são atualizados; os digitados, não.</li>
+    <li>Para sempre substituir: <code>data-form-preencher-sobrescrever</code>.</li>
+    <li>Nunca preenche senha, campo <code>data-form-sensitive</code>, arquivo ou campo desabilitado.</li>
+    <li>Campos já validados são revalidados com o valor novo (erros somem quando o preenchimento os resolve).</li>
+</ul>
+
+<h2 id="nao-encontrado" data-titulo="Não encontrado e falhas">Não encontrado e falhas</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;cep&quot;
+       data-form-preencher=&quot;/api/cep/{cep}&quot; data-form-preencher-minimo=&quot;8&quot;
+       data-form-preencher-campos=&quot;logradouro, bairro, cidade, uf&quot;
+       data-form-preencher-nao-encontrado=&quot;CEP não encontrado. Preencha o endereço manualmente.&quot;&gt;</code></pre></div>
+<ul>
+    <li><strong>Não encontrado</strong> — HTTP 404/400/422, <code>success: false</code> ou <code>{ "erro": true }</code>: a mensagem aparece no próprio campo (como erro do servidor, some quando o valor muda) e nada é apagado. Evento <code>form:preencher-erro</code> com <code>motivo: 'nao-encontrado'</code>.</li>
+    <li><strong>Falha</strong> — rede, 5xx, resposta que não é JSON: nada muda no formulário (a pessoa preenche à mão), o erro vai ao console e o evento traz <code>motivo: 'falha'</code>. Tentar de novo com o mesmo valor é permitido.</li>
+    <li>O campo de origem recebe <code>data-form-preencher-estado</code> (<code>carregando</code>, <code>pronto</code>, <code>nao-encontrado</code>, <code>erro</code>) e <code>aria-busy</code> durante a busca:</li>
+</ul>
+<div class="codigo"><pre><code data-lang="css">input[data-form-preencher-estado=&quot;carregando&quot;] {
+    background: url(/img/spinner.svg) no-repeat right .5rem center / 1rem;
+}</code></pre></div>
+
+<h2 id="selects" data-titulo="Com selects dependentes">Com selects dependentes (UF e cidade)</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;cep&quot; data-form-preencher=&quot;/api/cep/{cep}&quot; data-form-preencher-minimo=&quot;8&quot;
+       data-form-preencher-campos=&quot;logradouro, uf, ibge:cidade&quot;&gt;
+&lt;input name=&quot;logradouro&quot;&gt;
+&lt;select name=&quot;uf&quot; data-form-opcoes=&quot;/api/ufs&quot;&gt;&lt;option value=&quot;&quot;&gt;UF&lt;/option&gt;&lt;/select&gt;
+&lt;select name=&quot;cidade&quot; data-form-opcoes=&quot;/api/cidades?uf={uf}&quot;&gt;&lt;option value=&quot;&quot;&gt;Cidade&lt;/option&gt;&lt;/select&gt;</code></pre></div>
+<p>Com o módulo <a href="opcoes.html">alpine-form-opcoes</a> carregado, o módulo escolhe a UF, a lista de cidades carrega e a cidade é selecionada quando a lista chega. Liste a dependência (<code>uf</code>) antes do campo que depende dela (<code>ibge:cidade</code>). Use um código estável (IBGE, id) como valor das cidades — o nome pode vir com grafia diferente.</p>
+
+<h2 id="cnpj" data-titulo="CNPJ → empresa e outros">CNPJ → empresa e outros casos</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cnpj&quot; data-form-mask=&quot;cnpj&quot; data-form-v=&quot;required|cnpj&quot;
+       data-form-preencher=&quot;/api/empresas/{cnpj}&quot; data-form-preencher-minimo=&quot;14&quot;
+       data-form-preencher-campos=&quot;razao_social, nome_fantasia, endereco.cep:cep, endereco.numero:numero&quot;&gt;
+
+&lt;input name=&quot;matricula&quot; data-form-preencher=&quot;/api/funcionarios/{matricula}&quot; data-form-preencher-minimo=&quot;6&quot;
+       data-form-preencher-campos=&quot;nome, setor, ramal&quot;&gt;
+
+&lt;input name=&quot;sku&quot; data-form-preencher=&quot;/api/produtos/{sku}?tabela={tabela}&quot; data-form-preencher-minimo=&quot;5&quot;
+       data-form-preencher-campos=&quot;descricao, preco:preco_unitario&quot;&gt;
+&lt;select name=&quot;tabela&quot;&gt;&lt;option value=&quot;varejo&quot;&gt;Varejo&lt;/option&gt;&lt;option value=&quot;atacado&quot;&gt;Atacado&lt;/option&gt;&lt;/select&gt;</code></pre></div>
+<p>A URL pode citar outros campos (<code>{tabela}</code>). A busca dispara quando o campo com <code>data-form-preencher</code> muda; para buscar também quando outro campo mudar, chame <code>AlpineForm.preencher.buscar(form, 'sku')</code> (ex.: <code>@change</code> no select).</p>
+
+<h2 id="servicos" data-titulo="Serviços prontos e outras origens">Serviços prontos e outras origens</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-preencher=&quot;viacep&quot;
+       data-form-preencher-campos=&quot;logradouro, bairro, localidade:cidade, uf&quot;&gt;
+
+&lt;input name=&quot;cnpj&quot; data-form-mask=&quot;cnpj&quot; data-form-preencher=&quot;brasilapi-cnpj&quot;
+       data-form-preencher-campos=&quot;razao_social, nome_fantasia, cep, logradouro, numero, municipio:cidade, uf&quot;&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Serviço</th><th>URL</th><th>Mínimo</th></tr></thead><tbody>
+<tr><td><code>viacep</code></td><td><code>https://viacep.com.br/ws/{cep}/json/</code> (<code>{"erro": true}</code> = não encontrado)</td><td>8</td></tr>
+<tr><td><code>brasilapi-cep</code></td><td><code>https://brasilapi.com.br/api/cep/v1/{cep}</code></td><td>8</td></tr>
+<tr><td><code>brasilapi-cnpj</code></td><td><code>https://brasilapi.com.br/api/cnpj/v1/{cnpj}</code></td><td>14</td></tr>
+</tbody></table></div>
+<div class="codigo"><div class="titulo-codigo">Seu próprio serviço / outra origem</div><pre><code data-lang="js">AlpineForm.preencher.servico('cep-interno', {
+    url: '/api/v2/enderecos/cep/{campo}',          // {campo} = valor do próprio campo
+    minimo: 8,
+    naoEncontrado: json =&gt; json.status === 'NAO_ENCONTRADO',
+})
+AlpineForm.preencher.permitirOrigem('https://api.parceiro.com.br')   // libera URL de outra origem</code></pre></div>
+<div class="nota aviso"><p>Para outras origens o módulo não envia cookies nem cabeçalhos próprios, mas o valor (CEP, CNPJ) sai para o serviço externo, e a disponibilidade dele passa a afetar o seu formulário. Em ambiente regulado, consulte por um endpoint do próprio sistema (que pode usar cache e registrar a consulta). URLs de outra origem sem <code>permitirOrigem</code> são erro de configuração.</p></div>
+
+<h2 id="servidor" data-titulo="O endpoint no servidor">O endpoint no servidor</h2>
+<div class="codigo"><div class="titulo-codigo">PHP (Helpers PHP)</div><pre><code data-lang="php">&lt;?php
+require_once __DIR__ . '/../lib/alpine-form.php';
+use AlpineForm\Helpers\Resposta;
+
+$cep = preg_replace('/\D+/', '', $_GET['cep'] ?? '');
+if (strlen($cep) !== 8) {
+    Resposta::enviar(Resposta::erro('CEP inválido.', 422));
+}
+$endereco = buscarEnderecoNoCache($cep) ?? consultarServicoDeCep($cep);   // seu cache + provedor
+if (!$endereco) {
+    Resposta::enviar(Resposta::erro('CEP não encontrado.', 404));
+}
+Resposta::enviar(Resposta::sucesso($endereco));   // { success: true, data: { logradouro, bairro, ... } }</code></pre></div>
+
+<h2 id="referencia" data-titulo="Referência">Referência</h2>
+<div class="tabela"><table><thead><tr><th>Atributo (no campo de origem)</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-preencher</code></td><td>obrigatório</td><td>URL com <code>{campo}</code> ou serviço (<code>viacep</code>, <code>brasilapi-cep</code>, <code>brasilapi-cnpj</code>, registrados).</td></tr>
+<tr><td><code>data-form-preencher-campos</code></td><td>obrigatório</td><td><code>chave:campo</code> separados por vírgula.</td></tr>
+<tr><td><code>data-form-preencher-minimo</code></td><td>1 (serviços: 8 ou 14)</td><td>Caracteres do valor bruto para buscar.</td></tr>
+<tr><td><code>data-form-preencher-debounce</code></td><td>400ms</td><td>Espera depois da digitação.</td></tr>
+<tr><td><code>data-form-preencher-sobrescrever</code></td><td>false</td><td>Substitui também o que a pessoa digitou.</td></tr>
+<tr><td><code>data-form-preencher-nao-encontrado</code></td><td>mensagem padrão</td><td>Erro mostrado no campo quando não há dados.</td></tr>
+</tbody></table></div>
+<p>Global: <code>AlpineForm.preencher.buscar(formOuId, nome)</code> (Promise com <code>true</code> quando preencheu), <code>servico(nome, { url, minimo, naoEncontrado })</code>, <code>permitirOrigem(origem)</code>. Eventos no form: <code>form:preenchido</code> (<code>{ name, campos }</code>) e <code>form:preencher-erro</code> (<code>{ name, status, motivo }</code>). Mensagem padrão: <code>AlpineForm.messages['preencher.nao_encontrado']</code>.</p>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="opcoes.html"><small>← Anterior</small>Selects dependentes</a><a class="proxima" href="rascunho.html"><small>Próxima →</small>Rascunho automático</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

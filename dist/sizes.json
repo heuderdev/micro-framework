@@ -43,8 +43,14 @@
   },
   {
     "module": "alpine-form-opcoes",
-    "min": 11402,
-    "gzip": 4139,
-    "esm": 18569
+    "min": 11897,
+    "gzip": 4259,
+    "esm": 19878
+  },
+  {
+    "module": "alpine-form-preencher",
+    "min": 11135,
+    "gzip": 4038,
+    "esm": 17535
   }
 ]
