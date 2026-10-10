@@ -7,6 +7,8 @@ if (PHP_VERSION_ID < 80100) {
     exit('O backend de referência do AlpineForm exige PHP 8.1 ou superior. Para Joomla 3/PHP 7.0, veja docs/joomla3-php70.md.');
 }
 
+require_once dirname(__DIR__) . '/php/alpine-form.php';   // helpers PHP (Consulta, Resposta, Validador...)
+
 spl_autoload_register(static function (string $class): void {
     $prefix = 'AlpineForm\\Server\\';
     if (strncmp($class, $prefix, strlen($prefix)) !== 0) {

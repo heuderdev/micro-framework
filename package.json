@@ -20,7 +20,8 @@
   "files": [
     "dist",
     "src",
-    "css"
+    "css",
+    "php/alpine-form.php"
   ],
   "engines": {
     "node": ">=18"
@@ -33,7 +34,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:php": "php server/tests/run.php",
+    "test:php": "php server/tests/run.php && php php/tests/run.php",
     "serve": "php -S 127.0.0.1:8080 server/router.php",
     "test:all": "npm run build && npm test && npm run test:php && npm run test:e2e",
     "docs": "node scripts/build-docs.mjs",

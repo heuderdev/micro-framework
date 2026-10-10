@@ -26,6 +26,7 @@ Este arquivo é a fonte única de instruções para qualquer IA (Claude, Codex, 
 | `src/masks/`, `src/chunks/`, `src/inspectors/`, `src/rascunho/`, `src/lista/` | Módulos opcionais (empacotados separadamente) |
 | `dist/` | Saída do build (**gerada**; commitada; não editar à mão) |
 | `css/alpine-form.css` | CSS opcional |
+| `php/alpine-form.php` | Helpers PHP para projetos (PHP **7.0+**, sem `strict_types`, sem sintaxe 7.1+): `Resposta`, `Entrada`, `Validador`, `Consulta`, `Csrf`; testes em `php/tests/run.php` |
 | `server/` | Backend PHP de referência (contratos de resposta, chunks, fila/worker, idempotência) e seus testes |
 | `examples/*.php` | Páginas executáveis (incl. `csp.php`, CSP estrita) |
 | `tests/unit/` | Vitest + jsdom + Alpine real; rede simulada por transportes registrados |
@@ -51,7 +52,7 @@ npm run serve          # exemplos em http://127.0.0.1:8080/examples/
 npm run docs:serve     # documentação em http://localhost:1900
 ```
 
-Estado esperado: unitários 210/210, PHP 28/28, E2E 54/54, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
+Estado esperado: unitários 210/210, PHP 28/28 + helpers 15/15, E2E 54/54, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
 
 ## Qual guia ler para cada tarefa
 

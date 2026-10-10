@@ -104,6 +104,7 @@ src/
   lista/                      módulo opcional de listagens (x-lista: paginação, filtros, ordenação, seleção)
   lib/                        utilidades (decimal exato, datas, tamanhos, caminhos, DOM, cartões, BR)
 css/alpine-form.css           CSS mínimo opcional
+php/alpine-form.php           helpers PHP 7.0+ (Resposta, Entrada, Validador, Consulta, Csrf) e php/tests/
 dist/                         saída do build (ESM, IIFE, IIFE minificado)
 server/                       backend PHP de referência (router, API, chunks, fila, worker, testes)
 examples/                     páginas executáveis (PHP embutido)
@@ -125,14 +126,14 @@ php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 | Comando | O que executa | Tipo |
 |---|---|---|
 | `npm test` | 210 testes Vitest/jsdom com Alpine real | integração; **rede simulada** por transportes registrados |
-| `npm run test:php` | 28 testes do backend (chunks, concorrência com processos reais, fila, idempotência, validação) | backend real, sem HTTP |
+| `npm run test:php` | 28 testes do backend (chunks, concorrência com processos reais, fila, idempotência, validação) + 15 dos helpers PHP | backend real, sem HTTP |
 | `npm run test:e2e` | 54 testes Playwright (inclui CSP estrita e Trusted Types) no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
 | `npm run test:all` | build + os três acima | |
 | `npm run docs:check` | gera `docs/*.html` a partir de `docs-src/` e confere atributos, regras, máscaras, métodos e links de todos os exemplos contra a biblioteca | estático |
 | `npm run docs:serve` | gera e serve a documentação em `http://localhost:1900` (técnica em `/tecnica`); no Windows também `docs-servidor.bat` | servidor |
 | `npm run docs:browser` | carrega cada exemplo HTML da documentação no Chrome (servidor em 127.0.0.1:8099) | navegador real |
 
-Último resultado executado (2026-10-10): unitários 210/210, PHP 28/28 (PHP 8.4.2), E2E 54/54 (Chrome).
+Último resultado executado (2026-10-10): unitários 210/210, PHP 28/28 + helpers 15/15 (PHP 8.4.2; helpers também em 7.1 e 8.5), E2E 54/54 (Chrome).
 
 O Playwright usa `channel: 'chrome'` (Chrome instalado). Para usar o Chromium do Playwright: `npx playwright install chromium` e `PW_CHANNEL= npm run test:e2e`.
 

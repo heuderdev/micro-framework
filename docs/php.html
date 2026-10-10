@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helpers PHP · AlpineForm</title>
+<meta name="description" content="Um arquivo PHP sem dependências (PHP 7.0 a 8.x, inclusive Joomla 3) que tira a repetição do backend: respostas no contrato do AlpineForm, leitura do corpo em qualquer codificação, validação com mensagens em português e parâmetros de listagem seguros para o x-lista.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Integração › Helpers PHP</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="rascunho.html" data-busca="rascunho localstorage sessionstorage salvar recuperar restaurar perder dados recarregar">Rascunho automático</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Listagens</div><a href="lista.html" data-busca="tabela lista paginação paginar ordenar ordenação filtros busca pesquisa debounce url seleção lote carregar mais rolagem infinita data-form-lista atualizar recarregar laravel paginate">Listagens (x-lista)</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="seguranca.html" data-busca="csp unsafe-eval trusted types banco regulado log console storage localstorage privacidade lgpd pci">Segurança</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><a href="php.html" class="ativo" aria-current="page" data-busca="php helpers resposta entrada validador consulta csrf paginação ordenação lista branca sql joomla 3 php 7 pdo">Helpers PHP</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Helpers PHP</h1>
+<p class="lead">Um arquivo PHP sem dependências (PHP 7.0 a 8.x, inclusive Joomla 3) que tira a repetição do backend: respostas no contrato do AlpineForm, leitura do corpo em qualquer codificação, validação com mensagens em português e parâmetros de listagem seguros para o x-lista.</p>
+<div id="nesta-pagina"></div>
+<h2 id="instalacao" data-titulo="Instalação">Instalação</h2>
+<p>Copie <code>php/alpine-form.php</code> para o projeto (ou use direto de <code>node_modules/alpine-form/php/alpine-form.php</code>) e inclua:</p>
+<div class="codigo"><pre><code data-lang="php">&lt;?php
+require_once __DIR__ . '/lib/alpine-form.php';
+
+use AlpineForm\Helpers\Resposta;
+use AlpineForm\Helpers\Entrada;
+use AlpineForm\Helpers\Validador;
+use AlpineForm\Helpers\Consulta;
+use AlpineForm\Helpers\Csrf;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Classe</th><th>Para quê</th></tr></thead><tbody>
+<tr><td><code>Resposta</code></td><td>JSON de sucesso, erro de validação (422), erro geral e processamento posterior (202).</td></tr>
+<tr><td><code>Entrada</code></td><td>Lê o que o formulário mandou — JSON, urlencoded ou multipart — com nomes aninhados.</td></tr>
+<tr><td><code>Validador</code></td><td>Regras comuns (obrigatório, tamanho, e-mail, CPF, CNPJ, CEP, telefone, decimal, data…) e erros com a chave certa para cada campo.</td></tr>
+<tr><td><code>Consulta</code></td><td>Página, tamanho, ordenação (lista branca) e filtros de uma listagem; resposta no formato do <a href="lista.html">x-lista</a>.</td></tr>
+<tr><td><code>Csrf</code></td><td>Token por sessão para PHP puro (no Joomla e no Laravel use o do framework).</td></tr>
+</tbody></table></div>
+
+<h2 id="cadastro" data-titulo="Cadastro completo">Cadastro completo (PHP puro)</h2>
+<div class="codigo"><div class="titulo-codigo">cliente-salvar.php</div><pre><code data-lang="php">&lt;?php
+require_once __DIR__ . '/lib/alpine-form.php';
+use AlpineForm\Helpers\{Resposta, Entrada, Validador, Csrf};   // PHP 7.0+: use agrupado
+
+if (!Csrf::valido()) {
+    Resposta::enviar(Resposta::erro('Sessão expirada. Recarregue a página.', 419));
+}
+
+$entrada = Entrada::ler();                       // funciona com data-form-encoding json, urlencoded ou multipart
+$v = new Validador($entrada);
+$v-&gt;obrigatorio('nome')-&gt;tamanho('nome', 3, 80)
+  -&gt;obrigatorio('email')-&gt;email('email')
+  -&gt;obrigatorio('cpf')-&gt;cpf('cpf')
+  -&gt;obrigatorio('uf')-&gt;em('uf', ['SP', 'RJ', 'MG'])
+  -&gt;decimal('limite', 2, '0', '50000.00')        // opcional: só valida se veio preenchido
+  -&gt;data('nascimento', 'Y-m-d', null, 'hoje');
+
+if (!$v-&gt;temErro('email') &amp;&amp; emailJaCadastrado($entrada-&gt;texto('email'))) {
+    $v-&gt;erro('email', 'Este e-mail já está cadastrado.');
+}
+if ($v-&gt;falhou()) {
+    Resposta::enviar(Resposta::invalido($v-&gt;erros()));   // 422 { success:false, message, errors:{campo:[...]} }
+}
+
+$id = salvarCliente($entrada-&gt;texto('nome'), $entrada-&gt;digitos('cpf'));
+Resposta::enviar(Resposta::sucesso(['id' =&gt; $id], 'Cliente cadastrado.'));</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Página com o formulário</div><pre><code data-lang="html">&lt;?php require_once __DIR__ . '/lib/alpine-form.php'; use AlpineForm\Helpers\Csrf; ?&gt;
+&lt;meta name=&quot;csrf-token&quot; content=&quot;&lt;?= htmlspecialchars(Csrf::token()) ?&gt;&quot;&gt;
+
+&lt;form x-data x-form action=&quot;/cliente-salvar.php&quot; method=&quot;post&quot; data-form-lista=&quot;clientes&quot; novalidate&gt;
+    &lt;input name=&quot;nome&quot; data-form-v=&quot;required|min:3|max:80&quot;&gt;
+    &lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;&gt;
+    &lt;input name=&quot;cpf&quot; data-form-mask=&quot;cpf&quot; data-form-v=&quot;required|cpf&quot;&gt;
+    &lt;select name=&quot;uf&quot; data-form-v=&quot;required&quot;&gt;&lt;option value=&quot;&quot;&gt;--&lt;/option&gt;&lt;option&gt;SP&lt;/option&gt;&lt;option&gt;RJ&lt;/option&gt;&lt;option&gt;MG&lt;/option&gt;&lt;/select&gt;
+    &lt;button type=&quot;submit&quot;&gt;Salvar&lt;/button&gt;
+    &lt;p data-form-status&gt;&lt;/p&gt;
+&lt;/form&gt;</code></pre></div>
+<p>As mesmas regras no navegador (para o usuário) e no servidor (para valer). Os erros do servidor aparecem embaixo de cada campo; o que não tiver campo vai para o resumo.</p>
+
+<h2 id="resposta" data-titulo="Resposta">Resposta</h2>
+<div class="tabela"><table><thead><tr><th>Método</th><th>Gera</th></tr></thead><tbody>
+<tr><td><code>Resposta::sucesso($dados, $mensagem, $status = 200)</code></td><td><code>{ "success": true, "message": "…", "data": … }</code></td></tr>
+<tr><td><code>Resposta::invalido($erros, $mensagem)</code></td><td>HTTP 422 <code>{ "success": false, "message": "Confira os campos destacados.", "errors": { "campo": ["…"] } }</code> — aceita mensagem única ou lista; chave <code>""</code> ou <code>"_"</code> vai para o resumo geral.</td></tr>
+<tr><td><code>Resposta::erro($mensagem, $status = 400, $dados = null)</code></td><td>Erro sem campo (regra de negócio, 403, 409…). Não coloque detalhes internos (SQL, caminhos) na mensagem.</td></tr>
+<tr><td><code>Resposta::aceito($jobId, $statusUrl, $cancelUrl)</code></td><td>HTTP 202 com <code>job</code> — o formulário acompanha o <a href="processamento.html">processamento</a>.</td></tr>
+<tr><td><code>Resposta::enviar([$status, $corpo])</code></td><td>Envia com <code>Content-Type: application/json; charset=utf-8</code>, <code>X-Content-Type-Options: nosniff</code>, <code>Cache-Control: no-store</code> e encerra (<code>Resposta::$semExit = true</code> para não encerrar).</td></tr>
+<tr><td><code>Resposta::json($corpo)</code></td><td>Só o texto JSON (acentos preservados; UTF-8 inválido não gera resposta vazia).</td></tr>
+</tbody></table></div>
+<p>Os métodos devolvem <code>[status, corpo]</code> sem enviar nada: dá para testar, registrar ou adaptar (ex.: <code>return response()->json($corpo, $status)</code> no Laravel).</p>
+
+<h2 id="entrada" data-titulo="Entrada">Entrada</h2>
+<div class="codigo"><pre><code data-lang="php">$e = Entrada::ler();
+$e-&gt;texto('nome');               // aparado; '' se ausente
+$e-&gt;texto('cliente[nome]');      // nomes do HTML...
+$e-&gt;get('cliente.nome');         // ...ou com ponto
+$e-&gt;get('itens.0.qtd');          // linhas de listas dinâmicas
+$e-&gt;digitos('cpf');              // &quot;123.456.789-09&quot; → &quot;12345678909&quot; (com ou sem máscara)
+$e-&gt;lista('interesses');         // checkbox[] / select múltiplo → sempre array
+$e-&gt;todos();                     // array completo</code></pre></div>
+
+<h2 id="validador" data-titulo="Validador">Validador</h2>
+<p>Encadeie as regras. Todas, exceto <code>obrigatorio</code>, ignoram campo vazio (campo opcional). Depois do primeiro erro de um campo, as demais regras desse campo não acrescentam mensagens — o usuário vê um problema por vez, como no navegador.</p>
+<div class="tabela"><table><thead><tr><th>Regra</th><th>Equivalente no HTML</th><th>Mensagem padrão</th></tr></thead><tbody>
+<tr><td><code>obrigatorio($campo)</code></td><td><code>required</code></td><td>Preencha este campo.</td></tr>
+<tr><td><code>tamanho($campo, $min, $max)</code></td><td><code>min:3|max:80</code></td><td>Use pelo menos :min / no máximo :max caracteres. (conta caracteres, não bytes)</td></tr>
+<tr><td><code>email</code>, <code>cpf</code>, <code>cnpj</code>, <code>cpfOuCnpj</code>, <code>cep</code>, <code>telefone</code>, <code>url</code></td><td><code>email</code>, <code>cpf</code>, <code>cnpj</code>, <code>cpf_cnpj</code>…</td><td>Informe um e-mail válido. / CPF inválido. … (<code>url</code> só aceita http e https)</td></tr>
+<tr><td><code>inteiro($campo, $min, $max)</code></td><td><code>integer</code></td><td>Informe um número inteiro.</td></tr>
+<tr><td><code>decimal($campo, $casas, $min, $max)</code></td><td><code>decimal:2</code> (máscara moeda envia <code>"1234.50"</code>)</td><td>Comparação exata em texto, nunca <code>float</code>: passe limites como texto (<code>'0.01'</code>).</td></tr>
+<tr><td><code>em($campo, $opcoes)</code></td><td><code>in:</code> / select</td><td>Escolha uma opção válida. (vale também para listas)</td></tr>
+<tr><td><code>data($campo, $formato, $min, $max)</code></td><td><code>date</code>, <code>after</code>, <code>before</code></td><td>Formato padrão <code>Y-m-d</code> (input date); limites no mesmo formato ou <code>'hoje'</code>. 30/02 é rejeitado.</td></tr>
+<tr><td><code>igual($campo, $outro)</code></td><td><code>same:senha</code></td><td>Os valores não conferem.</td></tr>
+<tr><td><code>regex($campo, $padrao)</code>, <code>regra($campo, $msg, $nome, fn)</code></td><td>regra própria</td><td>Formato inválido.</td></tr>
+<tr><td><code>erro($campo, $mensagem)</code></td><td>—</td><td>Erro seu (duplicidade, regra de negócio).</td></tr>
+</tbody></table></div>
+<p>Toda regra aceita uma mensagem própria como último argumento: <code>$v->obrigatorio('nome', 'Informe o nome completo.')</code>. Para mudar o padrão de todo o sistema: <code>Validador::$mensagens['obrigatorio'] = 'Campo obrigatório.'</code>.</p>
+<div class="codigo"><div class="titulo-codigo">Itens de uma lista dinâmica (itens[0][produto], itens[1][produto]...)</div><pre><code data-lang="php">$v-&gt;cadaItem('itens', function (Validador $item, $indice) {
+    $item-&gt;obrigatorio('produto')-&gt;inteiro('qtd', 1, 999)-&gt;decimal('preco', 2, '0.01');
+});
+// erros: { &quot;itens.1.produto&quot;: [&quot;Preencha este campo.&quot;] } → aparece no campo da linha 2</code></pre></div>
+<p>Nomes com colchetes viram ponto nos erros (<code>jform[nome]</code> → <code>jform.nome</code>), formato que o AlpineForm associa ao campo.</p>
+
+<h2 id="consulta" data-titulo="Consulta (listagens)">Consulta (listagens)</h2>
+<p>Lê <code>page</code>, <code>per_page</code>, <code>sort</code>, <code>direction</code> e os filtros do <a href="lista.html">x-lista</a> sem confiar em nada: página e tamanho com limites, ordenação só pelas colunas permitidas, filtros com tipo.</p>
+<div class="codigo"><div class="titulo-codigo">api/clientes.php (PDO)</div><pre><code data-lang="php">&lt;?php
+require_once __DIR__ . '/../lib/alpine-form.php';
+use AlpineForm\Helpers\{Consulta, Resposta};
+
+$c = Consulta::ler($_GET, [
+    'ordenaveis' =&gt; ['nome' =&gt; 'c.nome', 'cadastro' =&gt; 'c.criado_em', 'saldo' =&gt; 'c.saldo'],   // parâmetro =&gt; coluna
+    'ordem' =&gt; 'nome',
+    'por_pagina' =&gt; 20,
+    'por_pagina_max' =&gt; 100,
+]);
+
+$where = ['1 = 1'];
+$params = [];
+if ($busca = $c-&gt;like('busca')) {                                   // % e _ digitados viram literais
+    $where[] = &quot;(c.nome LIKE ? ESCAPE '\\\\' OR c.email LIKE ? ESCAPE '\\\\')&quot;;
+    array_push($params, &quot;%$busca%&quot;, &quot;%$busca%&quot;);
+}
+if ($uf = $c-&gt;opcao('uf', ['SP', 'RJ', 'MG'])) { $where[] = 'c.uf = ?'; $params[] = $uf; }
+if ($status = $c-&gt;opcoes('status', ['ativo', 'inativo', 'pendente'])) {
+    $where[] = 'c.status IN (' . implode(',', array_fill(0, count($status), '?')) . ')';
+    $params = array_merge($params, $status);
+}
+if ($de = $c-&gt;data('de')) { $where[] = 'c.criado_em &gt;= ?'; $params[] = $de; }
+
+$filtro = implode(' AND ', $where);
+$total = $pdo-&gt;prepare(&quot;SELECT COUNT(*) FROM clientes c WHERE $filtro&quot;);
+$total-&gt;execute($params);
+
+$linhas = $pdo-&gt;prepare(&quot;SELECT c.id, c.nome, c.email, c.uf, c.status FROM clientes c
+                         WHERE $filtro ORDER BY {$c-&gt;sqlOrdem('c.id')} {$c-&gt;sqlLimite()}&quot;);
+$linhas-&gt;execute($params);
+
+Resposta::enviar([200, $c-&gt;resposta($linhas-&gt;fetchAll(PDO::FETCH_ASSOC), (int) $total-&gt;fetchColumn())]);</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Método</th><th>Devolve</th></tr></thead><tbody>
+<tr><td><code>pagina()</code>, <code>porPagina()</code>, <code>offset()</code></td><td>Inteiros já limitados (página 1 a 10000; tamanho 1 a <code>por_pagina_max</code>).</td></tr>
+<tr><td><code>ordem()</code>, <code>direcao()</code>, <code>coluna()</code></td><td>Nome público aceito, <code>asc</code>/<code>desc</code> e a coluna SQL da lista branca.</td></tr>
+<tr><td><code>sqlOrdem($desempate)</code>, <code>sqlLimite()</code></td><td><code>c.nome ASC, c.id ASC</code> e <code>LIMIT 20 OFFSET 40</code> — seguros para concatenar. Use um desempate único (id) para a paginação não repetir nem pular linhas.</td></tr>
+<tr><td><code>texto($nome, $max)</code>, <code>like($nome)</code></td><td>Texto aparado, espaços colapsados, limitado; <code>like</code> com <code>%</code> e <code>_</code> escapados. Vazio → <code>null</code>.</td></tr>
+<tr><td><code>inteiro($nome, $min, $max)</code>, <code>opcao($nome, $permitidas)</code>, <code>opcoes($nome, $permitidas)</code>, <code>data($nome)</code>, <code>booleano($nome)</code></td><td>Valor validado ou <code>null</code>/<code>[]</code>. Valores fora da lista são descartados.</td></tr>
+<tr><td><code>resposta($itens, $total)</code></td><td><code>{ data, meta: { current_page, last_page, per_page, total, from, to } }</code> — lido pelo x-lista sem configuração.</td></tr>
+<tr><td><code>limiteMaisUm()</code> + <code>respostaSemTotal($linhas)</code></td><td>Tabelas enormes sem <code>COUNT(*)</code>: busque uma linha a mais; a sobra indica que há próxima página.</td></tr>
+<tr><td><code>ordenarArray($linhas)</code>, <code>paginarArray($linhas)</code></td><td>Para dados já em memória (planilha, API externa, cache).</td></tr>
+</tbody></table></div>
+<p>Opções: <code>ordenaveis</code>, <code>ordem</code>, <code>direcao</code>, <code>por_pagina</code>, <code>por_pagina_max</code>, <code>pagina_max</code>, <code>param_pagina</code>, <code>param_por_pagina</code>, <code>param_ordem</code>, <code>param_direcao</code>. Opção desconhecida, ordem padrão fora da lista branca ou coluna com caracteres estranhos lançam <code>InvalidArgumentException</code> — erro de programação aparece na hora, não em produção.</p>
+
+<h3 id="joomla" data-titulo="Joomla 3">Joomla 3 (PHP 7.0)</h3>
+<div class="codigo"><div class="titulo-codigo">Controller — task=clientes.listar</div><pre><code data-lang="php">require_once JPATH_COMPONENT . '/lib/alpine-form.php';
+use AlpineForm\Helpers\Consulta;
+
+class LojaControllerClientes extends JControllerLegacy
+{
+    public function listar()
+    {
+        $app = JFactory::getApplication();
+        $db = JFactory::getDbo();
+        $c = Consulta::ler($app-&gt;input-&gt;get-&gt;getArray(), [
+            'ordenaveis' =&gt; ['nome' =&gt; 'a.nome', 'cadastro' =&gt; 'a.created'],
+            'ordem' =&gt; 'nome',
+        ]);
+
+        $q = $db-&gt;getQuery(true)-&gt;from('#__loja_clientes AS a')-&gt;where('a.state = 1');
+        if ($busca = $c-&gt;like('busca')) {
+            $q-&gt;where('a.nome LIKE ' . $db-&gt;quote('%' . $busca . '%'));
+        }
+        if ($uf = $c-&gt;opcao('uf', ['SP', 'RJ', 'MG'])) {
+            $q-&gt;where('a.uf = ' . $db-&gt;quote($uf));
+        }
+
+        $total = (int) $db-&gt;setQuery((clone $q)-&gt;select('COUNT(*)'))-&gt;loadResult();
+        $q-&gt;select('a.id, a.nome, a.uf')-&gt;order($c-&gt;sqlOrdem('a.id'));
+        $itens = $db-&gt;setQuery($q, $c-&gt;offset(), $c-&gt;porPagina())-&gt;loadAssocList();
+
+        $app-&gt;setHeader('Content-Type', 'application/json; charset=utf-8', true);
+        $app-&gt;sendHeaders();
+        echo json_encode($c-&gt;resposta($itens, $total), JSON_UNESCAPED_UNICODE);
+        $app-&gt;close();
+    }
+}</code></pre></div>
+<p>No Joomla, deixe o token do <code>JHtml::_('form.token')</code> e o <code>JResponseJson</code> nos cadastros (<a href="backend.html#joomla">Backend</a>); <code>Validador</code> funciona do mesmo jeito com <code>$app-&gt;input-&gt;get('jform', [], 'array')</code>.</p>
+
+<h3 id="laravel" data-titulo="Laravel">Laravel</h3>
+<p>No Laravel, prefira <code>$request-&gt;validate()</code> e <code>paginate()</code> (o x-lista já lê o formato). <code>Consulta</code> continua útil para a lista branca de ordenação: <code>$c = Consulta::ler($request-&gt;query(), [...]); $query-&gt;orderBy($c-&gt;coluna(), $c-&gt;direcao())-&gt;paginate($c-&gt;porPagina())</code>.</p>
+
+<h2 id="csrf" data-titulo="CSRF">CSRF (PHP puro)</h2>
+<div class="codigo"><pre><code data-lang="php">// no layout (a sessão é iniciada se ainda não estiver)
+&lt;meta name=&quot;csrf-token&quot; content=&quot;&lt;?= htmlspecialchars(Csrf::token()) ?&gt;&quot;&gt;
+
+// no endpoint
+if (!Csrf::valido()) {
+    Resposta::enviar(Resposta::erro('Sessão expirada. Recarregue a página.', 419));
+}</code></pre></div>
+<p>O AlpineForm envia o token no cabeçalho <code>X-CSRF-TOKEN</code> (só para a mesma origem). <code>Csrf::valido()</code> também aceita o campo <code>_token</code>, para formulários que funcionam sem JavaScript. A comparação usa <code>hash_equals</code>.</p>
+
+<h2 id="compatibilidade" data-titulo="Compatibilidade e testes">Compatibilidade e testes</h2>
+<ul>
+    <li>PHP 7.0 a 8.5, sem extensões obrigatórias (usa <code>mbstring</code> quando existe). Sem <code>declare(strict_types)</code>, para conviver com código legado.</li>
+    <li>Testes: <code>php php/tests/run.php</code> (também em <code>npm run test:php</code>), executados em PHP 7.1, 7.4, 8.4 e 8.5.</li>
+    <li>A listagem de demonstração (<code>/api/demo/clientes</code>, usada em <code>examples/lista.php</code> e nos testes E2E) usa <code>Consulta</code>.</li>
+</ul>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="backend.html"><small>← Anterior</small>Backend (PHP, Joomla, Laravel)</a><a class="proxima" href="receitas.html"><small>Próxima →</small>Receitas</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

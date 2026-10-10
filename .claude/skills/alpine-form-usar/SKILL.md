@@ -63,6 +63,7 @@ Checklist: `x-data` (no form ou ancestral) + `x-form` + `novalidate` + `name` em
 | Bootstrap 5 | módulo bootstrap + `data-form-ui="bootstrap"` |
 | Não perder o que foi digitado (rascunho) | módulo rascunho + `<form id="x" data-form-rascunho>`; `data-form-rascunho-sessao` para sumir ao fechar a aba; `data-form-rascunho-ignorar` no campo. Senha/sensível/arquivo nunca são guardados. Evite em dados pessoais/financeiros (ver `rascunho.html`) |
 | Tabela/lista paginada vinda da API | módulo lista + `<section id="x" x-data x-lista data-lista-url="/api/...">` com `x-for="item in $lista.itens"`, `data-lista-filtros`, `data-lista-ordenar`, `<nav data-lista-paginacao>`, `data-lista-url-sincronizar`. Servidor: `page`/`per_page`/`sort`/`direction`, ordenação por lista branca (ver `lista.html`) |
+| Backend PHP sem framework (ou Joomla 3) | `php/alpine-form.php`: `Resposta::sucesso/invalido/erro`, `Entrada::ler()`, `Validador` (mesmas regras do HTML), `Consulta::ler($_GET, ['ordenaveis' => [...]])` para listagens; ver `php.html` |
 | Atualizar listas depois de cadastrar/excluir | `data-form-lista="idDaLista grupo"` no `<form>`; `data-lista-destacar` na lista para realçar `data.id` |
 
 Para o formulário completo de um caso comum, comece pelas receitas: `docs-src/pages/receitas.html` (cadastro PF/PJ, CEP, login, senha, pedido com itens, wizard, avatar, importação CSV, modal, busca).

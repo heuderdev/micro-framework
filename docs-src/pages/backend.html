@@ -3,6 +3,8 @@ lead: Como escrever o lado do servidor que responde ao AlpineForm: PHP puro, con
 ---
 <div class="nota aviso"><p>O servidor sempre valida de novo. Tudo que o navegador conferiu pode ter sido burlado.</p></div>
 
+<div class="nota"><p>Para não reescrever as funções de resposta, validação e paginação em cada projeto, use os <a href="php.html">Helpers PHP</a> (um arquivo, PHP 7.0+).</p></div>
+
 <h2 id="contrato" data-titulo="O contrato em uma linha">O contrato em uma linha</h2>
 <p>Responda JSON <code>{ "success": bool, "message": "…", "errors": { "campo": ["…"] }, "data": … }</code>, com HTTP 200 no sucesso e 422 (ou 200 com <code>success: false</code>) na falha. Detalhes em <a href="respostas-e-erros.html">Respostas e erros</a>.</p>
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace AlpineForm\Server;
 
+use AlpineForm\Helpers\Consulta;
+
 /**
  * Endpoints de REFERÊNCIA usados pelos exemplos e testes E2E.
  * Contrato de resposta: { success, message, errors: {campo: [..]}, data, request_id }.
@@ -438,33 +440,21 @@ final class Api
                 $clientes[] = $extra;
             }
         }
-        $busca = mb_strtolower(trim((string) ($query['busca'] ?? '')));
+        // parâmetros lidos pelos helpers PHP (php/alpine-form.php): lista branca de ordenação, limites e filtros tipados
+        $consulta = Consulta::ler($query, ['ordenaveis' => ['id', 'nome', 'uf', 'status', 'saldo', 'criado_em'], 'ordem' => 'id']);
+        $busca = mb_strtolower((string) $consulta->texto('busca'));
         if ($busca !== '') {
             $clientes = array_values(array_filter($clientes, static fn (array $c): bool => str_contains(mb_strtolower($c['nome']), $busca) || str_contains($c['email'], $busca)));
         }
-        $uf = strtoupper((string) ($query['uf'] ?? ''));
-        if ($uf !== '') {
+        $uf = $consulta->opcao('uf', $ufs);
+        if ($uf !== null) {
             $clientes = array_values(array_filter($clientes, static fn (array $c): bool => $c['uf'] === $uf));
         }
-        $statusFiltro = array_values(array_filter((array) ($query['status'] ?? []), 'is_string'));
+        $statusFiltro = $consulta->opcoes('status', $status);
         if ($statusFiltro) {
             $clientes = array_values(array_filter($clientes, static fn (array $c): bool => in_array($c['status'], $statusFiltro, true)));
         }
-        $ordenaveis = ['id', 'nome', 'uf', 'status', 'saldo', 'criado_em'];
-        $ordem = in_array($query['sort'] ?? '', $ordenaveis, true) ? (string) $query['sort'] : 'id';
-        $direcao = strtolower((string) ($query['direction'] ?? 'asc')) === 'desc' ? -1 : 1;
-        usort($clientes, static function (array $a, array $b) use ($ordem, $direcao): int {
-            $cmp = $ordem === 'saldo' ? ((float) $a['saldo'] <=> (float) $b['saldo']) : strcmp((string) $a[$ordem], (string) $b[$ordem]);
-            return ($cmp ?: $a['id'] <=> $b['id']) * ($cmp ? $direcao : 1);
-        });
-        $porPagina = max(1, min(100, (int) ($query['per_page'] ?? 20)));
-        $total = count($clientes);
-        $ultima = max(1, (int) ceil($total / $porPagina));
-        $pagina = max(1, (int) ($query['page'] ?? 1));
-        return [
-            'data' => array_slice($clientes, ($pagina - 1) * $porPagina, $porPagina),
-            'meta' => ['current_page' => $pagina, 'last_page' => $ultima, 'per_page' => $porPagina, 'total' => $total],
-        ];
+        return $consulta->paginarArray($consulta->ordenarArray($clientes));
     }
 
     /** Cadastro de demonstração: guarda o cliente na sessão para aparecer em /api/demo/clientes. */

@@ -50,6 +50,7 @@ const PAGES = [
     { arquivo: 'extensoes', menu: 'Extensões', busca: 'validador próprio normalizador componente transporte adaptador plugin' },
     { arquivo: 'seguranca', menu: 'Segurança', busca: 'csp unsafe-eval trusted types banco regulado log console storage localstorage privacidade lgpd pci' },
     { arquivo: 'backend', menu: 'Backend (PHP, Joomla, Laravel)', busca: 'controller php joomla jresponsejson laravel resposta contrato csrf token servidor' },
+    { arquivo: 'php', menu: 'Helpers PHP', busca: 'php helpers resposta entrada validador consulta csrf paginação ordenação lista branca sql joomla 3 php 7 pdo' },
     { grupo: 'Consulta' },
     { arquivo: 'receitas', menu: 'Receitas', busca: 'exemplos prontos completos cadastro login endereço pedido importação' },
     { arquivo: 'referencia-rapida', menu: 'Referência rápida', busca: 'todos atributos regras métodos lista cheat sheet' },
