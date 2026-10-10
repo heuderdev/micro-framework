@@ -149,6 +149,17 @@ O build gera as páginas a partir de `docs-src/` (Node) e serve com nginx (`dock
 
 cadastro com validação ao vivo, senha e confirmação · campos condicionais · validação remota · radios/checkboxes/select múltiplo · linhas repetidas · arquivo único · múltiplos arquivos com remoção · imagem e preview · CSV por amostragem · edição com arquivos existentes · upload grande com progresso e cancelamento · chunks com pausa/retomada · processamento após upload · erros Joomla/Laravel · máscaras CPF/CNPJ/telefone/CEP/moeda/padrão · Bootstrap · extensões · ESM.
 
+## Para assistentes de IA
+
+| Arquivo | Lido por |
+|---|---|
+| `AGENTS.md` | Fonte única: mapa do código, comandos, invariantes, fluxo de mudança, armadilhas. Lido por Codex, Cursor, Copilot, Jules, Aider e outros |
+| `CLAUDE.md` | Claude Code (importa o `AGENTS.md`) |
+| `GEMINI.md` | Gemini CLI (importa o `AGENTS.md`) |
+| `.github/copilot-instructions.md` | GitHub Copilot |
+| `.claude/skills/alpine-form-{usar,desenvolver,documentar,seguranca}/SKILL.md` | Skills do Claude Code; Markdown comum, citado no `AGENTS.md` para as demais IAs |
+| `.claude/agents/alpine-form-{integrador,revisor,testador,documentador}.md` | Subagentes do Claude Code |
+
 ## Licença
 
 MIT.
