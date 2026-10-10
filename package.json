@@ -12,6 +12,7 @@
     "./chunks": "./dist/alpine-form-chunks.esm.js",
     "./inspectors": "./dist/alpine-form-inspectors.esm.js",
     "./bootstrap": "./dist/alpine-form-bootstrap.esm.js",
+    "./rascunho": "./dist/alpine-form-rascunho.esm.js",
     "./css": "./css/alpine-form.css",
     "./src/*": "./src/*"
   },

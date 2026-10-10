@@ -262,7 +262,7 @@ footer.end { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <p>O pacote não está publicado em registro público neste repositório; ele é construído localmente:</p>
 <pre><code>npm install
 npm run build        # gera dist/ (ESM, IIFE e IIFE minificado) via build.mjs (esbuild)</code></pre>
-<p>Arquivos gerados por módulo (<code>build.mjs</code>): <code>dist/&lt;nome&gt;.esm.js</code>, <code>dist/&lt;nome&gt;.js</code> e <code>dist/&lt;nome&gt;.min.js</code>, para <code>alpine-form</code>, <code>alpine-form-masks</code>, <code>alpine-form-chunks</code>, <code>alpine-form-inspectors</code> e <code>alpine-form-bootstrap</code>. CSS opcional em <code>css/alpine-form.css</code>.</p>
+<p>Arquivos gerados por módulo (<code>build.mjs</code>): <code>dist/&lt;nome&gt;.esm.js</code>, <code>dist/&lt;nome&gt;.js</code> e <code>dist/&lt;nome&gt;.min.js</code>, para <code>alpine-form</code>, <code>alpine-form-masks</code>, <code>alpine-form-chunks</code>, <code>alpine-form-inspectors</code>, <code>alpine-form-bootstrap</code> e <code>alpine-form-rascunho</code>. CSS opcional em <code>css/alpine-form.css</code>.</p>
 
 <h3 id="ordem-carregamento">Ordem de carregamento</h3>
 <p>Com <code>&lt;script&gt;</code> clássico, a ordem é obrigatória: núcleo → módulos opcionais → Alpine com <code>defer</code>. O motivo está em <code>src/cdn.js</code>: o núcleo define <code>window.AlpineForm</code> e registra o plugin no evento <code>alpine:init</code>; os módulos opcionais usam <code>window.AlpineForm</code>; o Alpine dispara <code>alpine:init</code> ao iniciar.</p>
@@ -354,7 +354,7 @@ php server/bin/worker.php     # outro terminal, apenas para o exemplo de process
 </g>
 <path class="svg-line" d="M450 180 V205 M10 205 H800 M100 205 V228 M275 205 V228 M450 205 V228 M625 205 V228 M800 205 V228"/>
 <path class="svg-line" d="M10 205 V300 H800 M100 300 V318 M275 300 V318 M450 300 V318 M625 300 V318 M800 300 V318"/>
-<text class="svg-small" x="450" y="405" text-anchor="middle">Módulos opcionais (masks, chunks, inspectors, bootstrap) usam apenas a API pública: AlpineForm.use(plugin) → registry / formHook</text>
+<text class="svg-small" x="450" y="405" text-anchor="middle">Módulos opcionais (masks, chunks, inspectors, bootstrap, rascunho) usam apenas a API pública: AlpineForm.use(plugin) → registry / formHook</text>
 </svg>
 <figcaption>Figura 1 — Componentes e dependências.</figcaption>
 </figure>
@@ -390,6 +390,7 @@ php server/bin/worker.php     # outro terminal, apenas para o exemplo de process
 <tr><td><code>src/masks/</code></td><td><code>masksPlugin</code>, <code>attachMask</code>, motores de padrão e numérico</td><td>Módulo opcional de máscaras</td></tr>
 <tr><td><code>src/chunks/</code></td><td><code>chunksPlugin</code>, <code>ChunkExtension</code>, <code>ChunkUpload</code></td><td>Módulo opcional de upload em partes</td></tr>
 <tr><td><code>src/inspectors/</code></td><td><code>inspectorsPlugin</code>, <code>inspectCsv</code>, <code>inspectJson</code>…</td><td>Módulo opcional de inspeção de arquivos</td></tr>
+<tr><td><code>src/rascunho/</code></td><td><code>rascunhoPlugin</code>, <code>RascunhoExtension</code></td><td>Módulo opcional de rascunho: <code>formHook</code> que salva os campos (exceto senha, sensíveis, arquivos e <code>data-form-rascunho-ignorar</code>) após <code>form:change</code>, restaura em <code>form:ready</code> com <code>setValue(…, { silent: true })</code>, apaga em <code>form:success</code>/<code>form:reset</code>; respeita <code>storageAllowed</code></td></tr>
 </tbody></table></div>
 
 <h3 id="estado-global">Estado global versus estado por formulário</h3>
@@ -1358,11 +1359,11 @@ AlpineForm.messages.placa = 'Informe uma placa no padrão antigo (ABC-1234) ou M
 <section id="testes" aria-labelledby="testes-h">
 <h2 id="testes-h">32. Testes e verificação <a class="anchor" href="#testes" aria-label="Link para esta seção">#</a></h2>
 <div class="table-wrap"><table>
-<thead><tr><th>Suíte</th><th>Ferramentas</th><th>Comando</th><th>Real ou simulado</th><th>Resultado em 2026-10-09</th></tr></thead>
+<thead><tr><th>Suíte</th><th>Ferramentas</th><th>Comando</th><th>Real ou simulado</th><th>Resultado em 2026-10-10</th></tr></thead>
 <tbody>
-<tr><td>Unitária/integração</td><td>Vitest 3.2.4 + jsdom 26.1 + Alpine 3.14.9 real</td><td><code>npm test</code></td><td>Rede <strong>simulada</strong> por transportes registrados (<code>fakeTransport</code>); polyfills de teste para <code>Blob.arrayBuffer</code>, <code>CSS.escape</code>, <code>scrollIntoView</code> (<code>tests/unit/setup.js</code>)</td><td>177/177 em 11 arquivos</td></tr>
+<tr><td>Unitária/integração</td><td>Vitest 3.2.4 + jsdom 26.1 + Alpine 3.14.9 real</td><td><code>npm test</code></td><td>Rede <strong>simulada</strong> por transportes registrados (<code>fakeTransport</code>); polyfills de teste para <code>Blob.arrayBuffer</code>, <code>CSS.escape</code>, <code>scrollIntoView</code> (<code>tests/unit/setup.js</code>)</td><td>186/186 em 12 arquivos</td></tr>
 <tr><td>Backend</td><td>Runner próprio (<code>server/tests/run.php</code>)</td><td><code>npm run test:php</code></td><td>Real (sistema de arquivos, processos concorrentes reais), sem HTTP</td><td>28/28 (PHP 8.4.2)</td></tr>
-<tr><td>E2E</td><td>Playwright 1.64 com Chrome instalado (<code>channel: 'chrome'</code>)</td><td><code>npm run test:e2e</code></td><td><strong>Tudo real</strong>: navegador, servidor PHP embutido, worker de jobs; inclui página com CSP estrita e Trusted Types</td><td>47/47</td></tr>
+<tr><td>E2E</td><td>Playwright 1.64 com Chrome instalado (<code>channel: 'chrome'</code>)</td><td><code>npm run test:e2e</code></td><td><strong>Tudo real</strong>: navegador, servidor PHP embutido, worker de jobs; inclui página com CSP estrita e Trusted Types</td><td>50/50</td></tr>
 </tbody></table></div>
 <p><code>npm run test:all</code> executa build + as três suítes. Durante a preparação desta versão, a suíte E2E revelou dois defeitos, ambos corrigidos com teste de regressão: (1) um ciclo de re-renderização da lista de arquivos provocado por mutações de atributos em conteúdo gerado; (2) uma parte de chunk que ainda calculava o hash podia ser enviada depois da pausa.</p>
 <h3 id="matriz">Matriz funcionalidade → implementação → teste</h3>

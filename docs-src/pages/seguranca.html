@@ -75,7 +75,7 @@ document.addEventListener('alpine:init', () => {
 <tr><td>Arquivos com código</td><td>Preview só de imagens raster (SVG nunca); object URLs revogados.</td></tr>
 <tr><td>Configuração errada</td><td>Regra/atributo desconhecido bloqueia o envio (nunca envia "sem validar").</td></tr>
 <tr><td>Dados de cliente no console</td><td>O trecho de respostas HTML inesperadas nunca vai para o console (fica só em <code>$form.error.diagnostic</code>); com <code>log: 'none'</code>, nada é escrito.</td></tr>
-<tr><td>Dados no navegador</td><td>Valores de campos nunca são gravados. Com <code>storage: 'none'</code>, nem metadados (nome de arquivo, id de job).</td></tr>
+<tr><td>Dados no navegador</td><td>O núcleo nunca grava valores de campos. O módulo opcional de <a href="rascunho.html">rascunho</a> grava (exceto senhas, sensíveis e arquivos) só nos formulários com <code>data-form-rascunho</code>. Com <code>storage: 'none'</code>, nada é gravado: nem rascunho, nem metadados (nome de arquivo, id de job).</td></tr>
 <tr><td>Cadeia de dependências</td><td>Nenhuma dependência em tempo de execução além do Alpine.</td></tr>
 </tbody></table></div>
 

@@ -28,5 +28,11 @@
     "min": 1593,
     "gzip": 812,
     "esm": 2317
+  },
+  {
+    "module": "alpine-form-rascunho",
+    "min": 3572,
+    "gzip": 1502,
+    "esm": 5769
   }
 ]

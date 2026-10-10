@@ -23,6 +23,7 @@ layout_start('Exemplos', 'Exemplos executáveis do AlpineForm usando o backend P
     <li><a href="bootstrap.php">Adaptador Bootstrap 5</a></li>
     <li><a href="extensao.php">Extensões: validador síncrono/assíncrono, normalizador e componente externo</a></li>
     <li><a href="esm.php">Uso por importação ESM (sem bundler)</a></li>
+    <li><a href="rascunho.php">Rascunho automático (módulo alpine-form-rascunho): recarregue e os campos voltam</a></li>
     <li><a href="csp.php">CSP estrita (sem unsafe-eval) com a versão CSP do Alpine</a> · <a href="csp.php?tt=1">com Trusted Types</a></li>
 </ol>
 <?php layout_end(); ?>

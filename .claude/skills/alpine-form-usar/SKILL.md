@@ -15,6 +15,7 @@ Referência completa com exemplos testados: `docs-src/pages/*.html` (ou `docs/in
 <script src="/js/alpine-form/alpine-form-chunks.min.js"></script>     <!-- só se usar data-form-chunked -->
 <script src="/js/alpine-form/alpine-form-inspectors.min.js"></script> <!-- só se usar csv/json/pdf_signature/... -->
 <script src="/js/alpine-form/alpine-form-bootstrap.min.js"></script>  <!-- só com data-form-ui="bootstrap" -->
+<script src="/js/alpine-form/alpine-form-rascunho.min.js"></script>   <!-- só se usar data-form-rascunho -->
 <script src="/js/app.js"></script>                                    <!-- extensões, configure(), Alpine.data() -->
 <script defer src="/js/alpine.min.js"></script>                       <!-- SEMPRE por último, com defer -->
 ```
@@ -59,6 +60,7 @@ Checklist: `x-data` (no form ou ancestral) + `x-form` + `novalidate` + `name` em
 | Evitar pedido duplicado | `data-form-idempotency` + servidor idempotente |
 | Reagir a sucesso | `@form:success="..."` ou `form.addEventListener('form:success', ...)` |
 | Bootstrap 5 | módulo bootstrap + `data-form-ui="bootstrap"` |
+| Não perder o que foi digitado (rascunho) | módulo rascunho + `<form id="x" data-form-rascunho>`; `data-form-rascunho-sessao` para sumir ao fechar a aba; `data-form-rascunho-ignorar` no campo. Senha/sensível/arquivo nunca são guardados. Evite em dados pessoais/financeiros (ver `rascunho.html`) |
 
 Para o formulário completo de um caso comum, comece pelas receitas: `docs-src/pages/receitas.html` (cadastro PF/PJ, CEP, login, senha, pedido com itens, wizard, avatar, importação CSV, modal, busca).
 

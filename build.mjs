@@ -19,6 +19,7 @@ const modules = [
     { name: 'alpine-form-chunks', esm: 'src/chunks/index.js', iife: 'src/chunks/cdn.js' },
     { name: 'alpine-form-inspectors', esm: 'src/inspectors/index.js', iife: 'src/inspectors/cdn.js' },
     { name: 'alpine-form-bootstrap', esm: 'src/ui/bootstrap.js', iife: 'src/ui/bootstrap-cdn.js' },
+    { name: 'alpine-form-rascunho', esm: 'src/rascunho/index.js', iife: 'src/rascunho/cdn.js' },
 ]
 
 rmSync('dist', { recursive: true, force: true })

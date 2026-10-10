@@ -22,6 +22,8 @@ const { parseRules } = await import(new URL('src/core/rule-parser.js', ROOT))
 const { BUILTIN_MASKS } = await import(new URL('src/masks/definitions.js', ROOT))
 const inspectors = await import(new URL('src/inspectors/index.js', ROOT))
 AlpineForm.use(inspectors.default)
+const rascunho = await import(new URL('src/rascunho/index.js', ROOT))
+AlpineForm.use(rascunho.default)
 
 function walk(dir) {
     return readdirSync(new URL(dir, ROOT), { withFileTypes: true }).flatMap(entry => {

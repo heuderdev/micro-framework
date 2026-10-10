@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rascunho automático · AlpineForm</title>
+<meta name="description" content="Guardar o que a pessoa digitou no navegador e devolver ao reabrir a página — para formulários longos, quedas de conexão e abas fechadas sem querer. Requer alpine-form-rascunho.">
+<link rel="stylesheet" href="assets/docs.css">
+<script>try{var t=localStorage.getItem('alpineform-docs-tema');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
+<script src="assets/docs.js" defer></script>
+</head>
+<body>
+<header class="topo">
+<button type="button" class="botao-menu" id="alternar-menu" aria-label="Abrir menu">☰ Menu</button>
+<a class="marca" href="index.html">AlpineForm <span>· documentação</span></a>
+<span class="trilha"><a href="index.html">Documentação</a> › Formulários › Rascunho automático</span>
+<span class="acoes"><button type="button" id="alternar-tema" aria-label="Alternar tema claro/escuro">◐ Tema</button></span>
+</header>
+<div class="layout">
+<nav class="nav" aria-label="Páginas da documentação"><input id="filtro-menu" type="search" placeholder="Filtrar páginas…" aria-label="Filtrar páginas"><div class="grupo">Começando</div><a href="index.html" data-busca="visão geral introdução o que é">Início</a><a href="instalacao.html" data-busca="dist scripts ordem carregamento alpine esm vite joomla laravel cdn">Instalação</a><a href="primeiros-passos.html" data-busca="primeiro formulário passo a passo começar">Primeiros passos</a><a href="conceitos.html" data-busca="campo chave fase estado precedência configuração representação raw canonical">Conceitos</a><div class="grupo">Formulários</div><a href="validacao.html" data-busca="live blur submit debounce mensagens label errors first all show valid">Validação</a><a href="regras.html" data-busca="required min max email cpf cnpj data same between numeric decimal arquivo">Regras</a><a href="tipos-de-campo.html" data-busca="text select radio checkbox multiple hidden textarea date number disabled readonly sensitive senha componente">Tipos de campo</a><a href="condicionais.html" data-busca="required_if x-show x-if hidden skip dependente confirmação senha same">Condicionais e dependências</a><a href="validacao-remota.html" data-busca="remote servidor e-mail disponível cache inconclusivo debounce">Validação remota</a><a href="mascaras.html" data-busca="cpf cnpj telefone cep moeda dinheiro percentual data hora cartão padrão raw formatted canonical">Máscaras</a><a href="rascunho.html" class="ativo" aria-current="page" data-busca="rascunho localstorage sessionstorage salvar recuperar restaurar perder dados recarregar">Rascunho automático</a><a href="listas-dinamicas.html" data-busca="x-for linhas itens repetidos múltiplos formulários data-form-for form= refresh">Listas e DOM dinâmico</a><div class="grupo">Envio</div><a href="envio.html" data-busca="submit json multipart urlencoded get csrf headers idempotência redirect reset native fetch">Envio</a><a href="respostas-e-erros.html" data-busca="success errors 422 204 html laravel joomla resumo request_id seterrors">Respostas e erros</a><a href="progresso.html" data-busca="barra percentual velocidade eta status cancelar timeout aguardando">Progresso e cancelamento</a><div class="grupo">Arquivos</div><a href="arquivos.html" data-busca="upload file múltiplos remover duplicados dropzone arrastar preview imagem existentes edição addfiles">Arquivos</a><a href="inspetores.html" data-busca="csv json pdf xlsx mídia duração cabeçalho amostra">Inspetores de arquivo</a><a href="chunks.html" data-busca="chunks grande pausar retomar token sha256 sessão">Upload em partes</a><a href="processamento.html" data-busca="202 job polling worker fila importação status">Processamento (jobs)</a><div class="grupo">Integração</div><a href="interface.html" data-busca="css classes bootstrap resumo erro posição aria acessibilidade">Interface e Bootstrap</a><a href="api.html" data-busca="métodos setvalue getvalue validate submit reset destroy alpineform get">API $form</a><a href="eventos.html" data-busca="form:success form:error form:change before-submit hooks reveal">Eventos e hooks</a><a href="extensoes.html" data-busca="validador próprio normalizador componente transporte adaptador plugin">Extensões</a><a href="seguranca.html" data-busca="csp unsafe-eval trusted types banco regulado log console storage localstorage privacidade lgpd pci">Segurança</a><a href="backend.html" data-busca="controller php joomla jresponsejson laravel resposta contrato csrf token servidor">Backend (PHP, Joomla, Laravel)</a><div class="grupo">Consulta</div><a href="receitas.html" data-busca="exemplos prontos completos cadastro login endereço pedido importação">Receitas</a><a href="referencia-rapida.html" data-busca="todos atributos regras métodos lista cheat sheet">Referência rápida</a><a href="erros-e-solucoes.html" data-busca="erro mensagem configuração problema faq não funciona">Erros e soluções</a><div class="vazio">Nenhuma página encontrada.</div></nav>
+<main class="conteudo">
+<h1>Rascunho automático</h1>
+<p class="lead">Guardar o que a pessoa digitou no navegador e devolver ao reabrir a página — para formulários longos, quedas de conexão e abas fechadas sem querer. Requer alpine-form-rascunho.</p>
+<div id="nesta-pagina"></div>
+<h2 id="instalacao" data-titulo="Instalação">Instalação</h2>
+<div class="codigo"><div class="titulo-codigo">Com &amp;lt;script&amp;gt;</div><pre><code data-lang="html">&lt;script src=&quot;/js/alpine-form/alpine-form.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-rascunho.min.js&quot;&gt;&lt;/script&gt;   &lt;!-- depois do núcleo --&gt;
+&lt;script defer src=&quot;/js/alpine.min.js&quot;&gt;&lt;/script&gt;                       &lt;!-- Alpine por último --&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Com bundler (ESM)</div><pre><code data-lang="js">import AlpineFormPlugin, { AlpineForm } from 'alpine-form'
+import rascunho from 'alpine-form/rascunho'
+
+AlpineForm.use(rascunho)
+Alpine.plugin(AlpineFormPlugin)</code></pre></div>
+<p>Arquivos gerados no build: <code>dist/alpine-form-rascunho.min.js</code> (3,5 KiB; 1,5 KiB com gzip), <code>.js</code> (legível) e <code>.esm.js</code>.</p>
+
+<h2 id="uso" data-titulo="Uso básico">Uso básico</h2>
+<p>Marque o formulário com <code>data-form-rascunho</code>. Ele precisa de <code>id</code> — é o id que identifica o rascunho no navegador.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;form id=&quot;cadastro&quot; x-data x-form action=&quot;/api/clientes&quot; method=&quot;post&quot; data-form-rascunho novalidate&gt;
+    &lt;input name=&quot;nome&quot; data-form-v=&quot;required|min:3&quot;&gt;
+    &lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot;&gt;
+    &lt;input name=&quot;cpf&quot; data-form-mask=&quot;cpf&quot; data-form-v=&quot;required|cpf&quot;&gt;
+    &lt;textarea name=&quot;mensagem&quot;&gt;&lt;/textarea&gt;
+    &lt;input name=&quot;senha&quot; type=&quot;password&quot; data-form-v=&quot;required|min:8&quot;&gt;
+    &lt;button type=&quot;submit&quot;&gt;Enviar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<ol class="passos">
+    <li>A pessoa digita; 400 ms depois que ela para, os campos são gravados em <code>localStorage</code> com a chave <code>alpineform:rascunho:cadastro</code>.</li>
+    <li>Ela fecha a aba, a internet cai ou o navegador trava.</li>
+    <li>Ao reabrir a página, os campos voltam preenchidos — sem disparar validação, sem marcar erros.</li>
+    <li>Quando o envio dá certo (ou ela clica em "Limpar"/reset), o rascunho é apagado. Se o envio falhar, o rascunho continua.</li>
+</ol>
+<p>Funciona com texto, textarea, select, select múltiplo, radio, checkbox, grupos de checkbox, campos com máscara (voltam formatados) e componentes próprios. Exemplo executável: <code>examples/rascunho.php</code>.</p>
+
+<h2 id="nunca-guardado" data-titulo="O que nunca é guardado">O que nunca é guardado</h2>
+<div class="tabela"><table><thead><tr><th>Campo</th><th>Por quê</th></tr></thead><tbody>
+<tr><td><code>type="password"</code></td><td>Senha não pode ficar no navegador.</td></tr>
+<tr><td><code>data-form-sensitive</code></td><td>Você marcou como sensível (CVV, token, código…).</td></tr>
+<tr><td><code>type="file"</code></td><td>O navegador não permite guardar nem devolver arquivos.</td></tr>
+<tr><td><code>data-form-rascunho-ignorar</code></td><td>Você escolheu deixar de fora.</td></tr>
+<tr><td>Campos desabilitados</td><td>Não fazem parte do envio.</td></tr>
+</tbody></table></div>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cartao_cvv&quot; data-form-sensitive data-form-v=&quot;required|digits:3&quot;&gt;
+&lt;input name=&quot;observacao_interna&quot; data-form-rascunho-ignorar&gt;</code></pre></div>
+<p>Se o navegador tiver um rascunho antigo com um desses campos (ou com campos que não existem mais na página), eles são ignorados na restauração.</p>
+
+<h2 id="opcoes" data-titulo="Opções">Opções</h2>
+<div class="tabela"><table><thead><tr><th>Atributo</th><th>Onde</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-rascunho</code></td><td><code>&lt;form&gt;</code></td><td>Liga o rascunho, válido por <strong>7 dias</strong>.</td></tr>
+<tr><td><code>data-form-rascunho="2"</code></td><td><code>&lt;form&gt;</code></td><td>Validade em dias (1 a 365). Rascunho vencido é apagado ao abrir a página.</td></tr>
+<tr><td><code>data-form-rascunho-sessao</code></td><td><code>&lt;form&gt;</code></td><td>Usa <code>sessionStorage</code>: o rascunho sobrevive a recarregar a página, mas some ao fechar a aba.</td></tr>
+<tr><td><code>data-form-rascunho-ignorar</code></td><td>campo</td><td>Deixa o campo de fora.</td></tr>
+<tr><td><code>data-form-storage="none"</code></td><td><code>&lt;form&gt;</code></td><td>Desliga o rascunho por completo (nem lê, nem grava).</td></tr>
+</tbody></table></div>
+<div class="codigo"><div class="titulo-codigo">Rascunho só enquanto a aba estiver aberta, por 1 dia</div><pre><code data-lang="html">&lt;form id=&quot;pedido&quot; x-data x-form action=&quot;/api/pedidos&quot; method=&quot;post&quot; data-form-rascunho=&quot;1&quot; data-form-rascunho-sessao novalidate&gt;</code></pre></div>
+<div class="nota"><p>O <code>id</code> é a chave: dois formulários com o mesmo id (em páginas diferentes) compartilham o rascunho. Use ids únicos, por exemplo incluindo o registro em edição: <code>id="cliente-42"</code>.</p></div>
+
+<h2 id="aviso" data-titulo="Avisar que o rascunho foi recuperado">Avisar que o rascunho foi recuperado</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;form id=&quot;contato&quot; x-data=&quot;{ recuperado: false, quando: '' }&quot; x-form action=&quot;/api/contato&quot; method=&quot;post&quot; data-form-rascunho
+      @form:rascunho-restaurado=&quot;recuperado = true; quando = new Date($event.detail.salvoEm).toLocaleString('pt-BR')&quot;
+      @form:rascunho-apagado=&quot;recuperado = false&quot; novalidate&gt;
+
+    &lt;p x-show=&quot;recuperado&quot; role=&quot;status&quot;&gt;
+        Recuperamos o que você tinha preenchido em &lt;span x-text=&quot;quando&quot;&gt;&lt;/span&gt;.
+        &lt;button type=&quot;button&quot; @click=&quot;$form.reset()&quot;&gt;Começar do zero&lt;/button&gt;
+    &lt;/p&gt;
+
+    &lt;input name=&quot;nome&quot; data-form-v=&quot;required&quot;&gt;
+    &lt;textarea name=&quot;mensagem&quot; data-form-v=&quot;required&quot;&gt;&lt;/textarea&gt;
+    &lt;button type=&quot;submit&quot;&gt;Enviar&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+<div class="tabela"><table><thead><tr><th>Evento</th><th>Quando</th><th><code>detail</code></th></tr></thead><tbody>
+<tr><td><code>form:rascunho-restaurado</code></td><td>Campos foram preenchidos a partir do rascunho (ao abrir a página)</td><td><code>{ salvoEm, campos }</code> — data em milissegundos e nomes restaurados</td></tr>
+<tr><td><code>form:rascunho-salvo</code></td><td>Rascunho gravado</td><td><code>{ campos }</code></td></tr>
+<tr><td><code>form:rascunho-apagado</code></td><td>Rascunho removido (sucesso, reset ou pelo código)</td><td><code>{}</code></td></tr>
+</tbody></table></div>
+
+<h2 id="codigo" data-titulo="Pelo código">Pelo código</h2>
+<div class="codigo"><pre><code data-lang="js">AlpineForm.rascunho.salvar('cadastro')       // grava agora, sem esperar
+AlpineForm.rascunho.ler('cadastro')          // { salvoEm, valores } ou null
+AlpineForm.rascunho.descartar('cadastro')    // apaga (aceita o id ou o elemento &lt;form&gt;)</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">Botão &quot;Descartar rascunho&quot;</div><pre><code data-lang="html">&lt;button type=&quot;button&quot; @click=&quot;AlpineForm.rascunho.descartar($root)&quot;&gt;Descartar rascunho&lt;/button&gt;</code></pre></div>
+
+<h2 id="dinamicos" data-titulo="Linhas dinâmicas">Linhas dinâmicas (x-for)</h2>
+<p>A restauração preenche os campos que existem quando a página abre. Linhas criadas depois (por "Adicionar item") não recebem valores. Se o número de linhas também precisa voltar, guarde-o você mesmo e recrie as linhas antes de o formulário iniciar — ou use o rascunho só nos campos fixos e <code>data-form-rascunho-ignorar</code> nas linhas.</p>
+
+<h2 id="seguranca" data-titulo="Segurança e privacidade">Segurança e privacidade</h2>
+<div class="nota aviso"><strong class="rotulo">Atenção em dados pessoais e financeiros</strong><p>O armazenamento do navegador não é cifrado: qualquer script da página consegue ler, e em computador compartilhado a próxima pessoa veria o que ficou guardado (pesa também na LGPD). Em páginas de banco ou com dados de clientes:</p>
+<ul>
+    <li>prefira <strong>não usar</strong>; se usar, ative <code>data-form-rascunho-sessao</code> (some ao fechar a aba) e um prazo curto (<code>data-form-rascunho="1"</code>);</li>
+    <li>marque com <code>data-form-rascunho-ignorar</code> tudo que identifica o cliente (CPF, conta, valores);</li>
+    <li>para proibir em todo o site: <code>AlpineForm.configure({ storage: 'none' })</code> — o módulo não lê nem grava nada, mesmo com <code>data-form-rascunho</code>.</li>
+</ul></div>
+<p>O que o módulo já garante: senhas, campos sensíveis e arquivos nunca são gravados; o rascunho é apagado no sucesso e no reset; com <code>storage: 'none'</code> ele fica inerte. Ver também <a href="seguranca.html">Segurança</a>.</p>
+
+<h2 id="problemas" data-titulo="Problemas comuns">Problemas comuns</h2>
+<div class="tabela"><table><thead><tr><th>Sintoma</th><th>Causa e solução</th></tr></thead><tbody>
+<tr><td>Formulário não inicializa: "data-form-rascunho exige um id no &lt;form&gt;"</td><td>Dê um <code>id</code> ao form.</td></tr>
+<tr><td>"data-form-rascunho="…" inválido"</td><td>Use o atributo sem valor ou um número de dias entre 1 e 365.</td></tr>
+<tr><td>"Atributo desconhecido "data-form-rascunho-ignorar""</td><td>O módulo <code>alpine-form-rascunho</code> não foi carregado (ou foi carregado depois do Alpine).</td></tr>
+<tr><td>Nada é guardado</td><td>Módulo não carregado (sem ele, <code>data-form-rascunho</code> no form não tem efeito); <code>storage: 'none'</code> ativo; navegador em modo que bloqueia armazenamento.</td></tr>
+<tr><td>Um campo não volta</td><td>É senha, sensível, arquivo, ignorado, estava desabilitado, ou foi criado depois do carregamento (linha dinâmica).</td></tr>
+<tr><td>O rascunho volta depois de enviar</td><td>O envio falhou (o rascunho só some no sucesso). Confira <code>$form.phase</code>.</td></tr>
+</tbody></table></div>
+<nav class="navegacao-paginas" aria-label="Navegação entre páginas"><a href="mascaras.html"><small>← Anterior</small>Máscaras</a><a class="proxima" href="listas-dinamicas.html"><small>Próxima →</small>Listas e DOM dinâmico</a></nav>
+<p class="rodape">Documentação do AlpineForm 1.0.0. Exemplos executáveis em <code>examples/</code> (<code>npm run serve</code>).</p>
+</main>
+</div>
+</body>
+</html>

@@ -78,7 +78,9 @@ Opções sem atributo (somente `configure()`/`x-form`): `headers`, `csrf` (`{ me
 | `data-form-preview` | habilita/desabilita preview de imagem |
 | `data-form-existing-remove-name` | nome do campo de remoção de arquivos existentes |
 
-Atributos de módulos (exigem o módulo carregado): `data-form-mask*`, `data-form-chunked`/`data-form-chunk-*`, `data-form-csv-*`, `data-form-json-max`.
+Atributos de módulos (exigem o módulo carregado): `data-form-mask*`, `data-form-chunked`/`data-form-chunk-*`, `data-form-csv-*`, `data-form-json-max`, `data-form-rascunho-ignorar` (campo).
+
+No `<form>`, com o módulo `alpine-form-rascunho`: `data-form-rascunho` (validade em dias, padrão 7; exige `id` no form) e `data-form-rascunho-sessao` (usa `sessionStorage`). Eventos: `form:rascunho-restaurado` (`{ salvoEm, campos }`), `form:rascunho-salvo` (`{ campos }`), `form:rascunho-apagado`. API: `AlpineForm.rascunho.salvar|ler|descartar(formOuId)`.
 
 ### Elementos auxiliares (dentro do form ou em contêiner com `data-form-for="idDoForm"`)
 
