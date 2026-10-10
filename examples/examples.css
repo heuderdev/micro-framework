@@ -220,3 +220,7 @@ dl.metrics dt {
 .grade-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: .6rem; }
 .mini-card { border: 1px solid var(--border, #d0d5dd); border-radius: 6px; padding: .6rem; display: grid; gap: .2rem; }
 .tabela-lista tr.linha-nova td { background: color-mix(in srgb, #16a34a 18%, transparent); transition: background 1s; }
+
+/* CRUD: botões de ação na linha */
+.acoes { white-space: nowrap; }
+.acoes form { display: inline; margin: 0; padding: 0; border: 0; box-shadow: none; background: none; }

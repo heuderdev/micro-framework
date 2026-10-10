@@ -23,6 +23,7 @@ layout_start('Exemplos', 'Exemplos executáveis do AlpineForm usando o backend P
     <li><a href="bootstrap.php">Adaptador Bootstrap 5</a></li>
     <li><a href="extensao.php">Extensões: validador síncrono/assíncrono, normalizador e componente externo</a></li>
     <li><a href="esm.php">Uso por importação ESM (sem bundler)</a></li>
+    <li><a href="crud.php"><strong>CRUD completo</strong> com um único script: listagem, cadastro, edição, exclusão com confirmação, CEP e avisos</a></li>
     <li><a href="lista.php">Listagens: paginação, ordenação, filtros, URL, seleção, carregar mais e atualização por formulário</a></li>
     <li><a href="opcoes.php">Selects dependentes e opções remotas: UF → cidade → bairro, edição, linhas repetidas</a></li>
     <li><a href="preencher.php">Autopreenchimento: CEP → endereço (inclusive UF/cidade em selects dependentes) e CNPJ → empresa</a></li>

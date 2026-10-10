@@ -24,6 +24,58 @@
 <div id="nesta-pagina"></div>
 <p>Todas as receitas assumem os scripts carregados como em <a href="instalacao.html">Instalação</a> (núcleo + máscaras, e os módulos citados). Os endpoints são exemplos: troque pelos seus.</p>
 
+<h2 id="crud" data-titulo="CRUD completo (listar, cadastrar, editar, excluir)">CRUD completo (listar, cadastrar, editar, excluir)</h2>
+<p>Tabela paginada com filtros, formulário que cadastra e edita, exclusão com confirmação, avisos e atualização automática da tabela — juntando <a href="lista.html">listagens</a>, <a href="avisos.html">avisos</a>, <a href="opcoes.html">selects dependentes</a> e <a href="preencher.html">autopreenchimento</a>. Versão executável com backend: <code>examples/crud.php</code>.</p>
+<div class="codigo"><pre><code data-lang="html">&lt;div x-data=&quot;{
+        editar(item) {
+            const f = AlpineForm.get('cliente-form')
+            f.reset()
+            for (const campo of ['id', 'nome', 'email', 'uf']) f.setValue(campo, item[campo] == null ? '' : String(item[campo]))
+            AlpineForm.opcoes.selecionar('cliente-form', 'cidade', item.cidade || '')
+        }
+     }&quot;&gt;
+
+    &lt;form id=&quot;cliente-form&quot; x-data x-form action=&quot;/api/clientes/salvar&quot; method=&quot;post&quot;
+          data-form-avisos data-form-lista=&quot;clientes&quot; data-form-reset-on-success novalidate&gt;
+        &lt;h2 x-text=&quot;$form.fields.id &amp;&amp; $form.fields.id.value ? 'Editar cliente' : 'Novo cliente'&quot;&gt;&lt;/h2&gt;
+        &lt;input type=&quot;hidden&quot; name=&quot;id&quot;&gt;
+        &lt;input name=&quot;nome&quot; data-form-v=&quot;required|min:3&quot; aria-label=&quot;Nome&quot;&gt;
+        &lt;input name=&quot;email&quot; type=&quot;email&quot; data-form-v=&quot;required|email&quot; aria-label=&quot;E-mail&quot;&gt;
+        &lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;cep&quot; aria-label=&quot;CEP&quot;
+               data-form-preencher=&quot;/api/cep/{cep}&quot; data-form-preencher-minimo=&quot;8&quot; data-form-preencher-campos=&quot;uf, ibge:cidade&quot;&gt;
+        &lt;select name=&quot;uf&quot; data-form-opcoes=&quot;/api/ufs&quot; data-form-v=&quot;required&quot; aria-label=&quot;UF&quot;&gt;&lt;option value=&quot;&quot;&gt;UF&lt;/option&gt;&lt;/select&gt;
+        &lt;select name=&quot;cidade&quot; data-form-opcoes=&quot;/api/cidades?uf={uf}&quot; aria-label=&quot;Cidade&quot;&gt;&lt;option value=&quot;&quot;&gt;Cidade&lt;/option&gt;&lt;/select&gt;
+        &lt;button type=&quot;submit&quot;&gt;Salvar&lt;/button&gt;
+        &lt;button type=&quot;button&quot; x-show=&quot;$form.fields.id &amp;&amp; $form.fields.id.value&quot; @click=&quot;$form.reset()&quot;&gt;Cancelar edição&lt;/button&gt;
+    &lt;/form&gt;
+
+    &lt;section id=&quot;clientes&quot; x-data x-lista data-lista-url=&quot;/api/clientes&quot; data-lista-ordem=&quot;nome&quot; data-lista-destacar&gt;
+        &lt;input name=&quot;busca&quot; type=&quot;search&quot; data-lista-filtro data-lista-minimo=&quot;2&quot; aria-label=&quot;Buscar&quot;&gt;
+        &lt;table&gt;
+            &lt;tbody&gt;
+                &lt;template x-for=&quot;item in $lista.itens&quot; :key=&quot;item.id&quot;&gt;
+                    &lt;tr :class=&quot;{ 'novo': $lista.destaque === String(item.id) }&quot;&gt;
+                        &lt;td x-text=&quot;item.nome&quot;&gt;&lt;/td&gt;
+                        &lt;td&gt;
+                            &lt;button type=&quot;button&quot; @click=&quot;editar(item)&quot;&gt;Editar&lt;/button&gt;
+                            &lt;form x-data x-form action=&quot;/api/clientes/excluir&quot; method=&quot;post&quot; data-form-lista=&quot;clientes&quot; data-form-avisos novalidate&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;id&quot; :value=&quot;item.id&quot;&gt;
+                                &lt;button type=&quot;submit&quot; :data-form-confirmar=&quot;'Excluir ' + item.nome + '?'&quot; data-form-confirmar-perigo&gt;Excluir&lt;/button&gt;
+                            &lt;/form&gt;
+                        &lt;/td&gt;
+                    &lt;/tr&gt;
+                &lt;/template&gt;
+            &lt;/tbody&gt;
+        &lt;/table&gt;
+        &lt;nav data-lista-paginacao&gt;&lt;/nav&gt;
+    &lt;/section&gt;
+&lt;/div&gt;</code></pre></div>
+<ul>
+    <li>Um script só: <a href="instalacao.html#completo"><code>alpine-form-completo.min.js</code></a>.</li>
+    <li>O mesmo formulário cadastra (sem <code>id</code>) e edita (com <code>id</code>); o <code>reset</code> limpa o <code>id</code> (inclusive o hidden posto por script).</li>
+    <li>Servidor: listagem com <a href="php.html#consulta"><code>Consulta</code></a>, salvar e excluir respondendo <code>{ success, message, data: { id } }</code> (<a href="php.html#resposta"><code>Resposta</code></a>); a mensagem vira o aviso e o <code>id</code> destaca a linha.</li>
+</ul>
+
 <h2 id="cadastro" data-titulo="Cadastro PF/PJ com endereço">Cadastro PF/PJ com endereço</h2>
 <div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;{ tipo: 'pf' }&quot; x-form action=&quot;/api/clientes&quot; method=&quot;post&quot;
       data-form-idempotency data-form-reset-on-success novalidate&gt;
@@ -72,7 +124,14 @@
 &lt;/form&gt;</code></pre></div>
 
 <h2 id="cep" data-titulo="Preencher endereço pelo CEP">Preencher endereço pelo CEP</h2>
-<p>Acrescente ao cadastro acima: quando o CEP for válido, consulta o ViaCEP e preenche os campos (sem bloquear se o serviço falhar).</p>
+<p>Com o módulo <a href="preencher.html">alpine-form-preencher</a> é só um atributo (não apaga o que a pessoa digitou, cancela buscas antigas, mostra "CEP não encontrado" no campo):</p>
+<div class="codigo"><pre><code data-lang="html">&lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|cep&quot;
+       data-form-preencher=&quot;viacep&quot; data-form-preencher-campos=&quot;logradouro:rua, bairro, localidade:cidade, uf&quot;&gt;
+&lt;input name=&quot;rua&quot; data-form-v=&quot;required&quot;&gt;
+&lt;input name=&quot;bairro&quot;&gt;
+&lt;input name=&quot;cidade&quot; data-form-v=&quot;required&quot;&gt;
+&lt;input name=&quot;uf&quot; data-form-v=&quot;required|length:2&quot;&gt;</code></pre></div>
+<p>Sem o módulo, à mão (quando o CEP for válido, consulta o ViaCEP e preenche os campos, sem bloquear se o serviço falhar):</p>
 <div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;enderecoForm()&quot; x-form action=&quot;/api/clientes&quot; method=&quot;post&quot;
       @form:validated=&quot;$event.detail.field === 'cep' &amp;&amp; $event.detail.valid &amp;&amp; buscarCep()&quot; novalidate&gt;
     &lt;input name=&quot;cep&quot; data-form-mask=&quot;cep&quot; data-form-v=&quot;required|cep&quot;&gt;
@@ -265,6 +324,7 @@ function wizard() {
 <p>Com <code>x-if</code>, o formulário é criado limpo a cada abertura e destruído (com todos os recursos liberados) ao fechar.</p>
 
 <h2 id="busca" data-titulo="Filtro de busca (GET)">Filtro de busca (GET)</h2>
+<p>Para tabelas com paginação, ordenação e filtros, prefira o <a href="lista.html">x-lista</a>. Para uma busca simples com o próprio formulário:</p>
 <div class="codigo"><pre><code data-lang="html">&lt;form x-data=&quot;{ resultados: [] }&quot; x-form action=&quot;/api/produtos&quot; method=&quot;get&quot; data-form-transport=&quot;fetch&quot;
       @form:success=&quot;resultados = $event.detail.result.data&quot; novalidate&gt;
     &lt;input name=&quot;q&quot; type=&quot;search&quot; data-form-v=&quot;min:2&quot; placeholder=&quot;Buscar…&quot;&gt;

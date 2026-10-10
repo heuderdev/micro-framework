@@ -37,6 +37,7 @@ Sem bundler (IIFE): o núcleo primeiro, depois os módulos opcionais, e **o Alpi
 <script src="/dist/alpine-form-preencher.min.js"></script> <!-- opcional -->
 <script src="/dist/alpine-form-avisos.min.js"></script>    <!-- opcional -->
 <script src="/dist/alpine-form-autocompletar.min.js"></script><!-- opcional -->
+<!-- ou, no lugar do núcleo e de todos os módulos: <script src="/dist/alpine-form-completo.min.js"></script> -->
 <script defer src="/caminho/alpine.min.js"></script>
 <link rel="stylesheet" href="/css/alpine-form.css">        <!-- opcional -->
 ```
@@ -112,6 +113,7 @@ src/
   opcoes/                     módulo opcional de selects dependentes (opções da API, cadeias UF → cidade)
   preencher/                  módulo opcional de autopreenchimento (CEP → endereço, CNPJ → empresa)
   avisos/                     módulo opcional de avisos (toasts) e confirmação
+  completo/                   pacote único: núcleo + todos os módulos (alpine-form-completo)
   autocompletar/              módulo opcional de autocompletar (combobox acessível com sugestões da API)
   lista/                      módulo opcional de listagens (x-lista: paginação, filtros, ordenação, seleção)
   lib/                        utilidades (decimal exato, datas, tamanhos, caminhos, DOM, cartões, BR)
@@ -137,19 +139,19 @@ php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 
 | Comando | O que executa | Tipo |
 |---|---|---|
-| `npm test` | 250 testes Vitest/jsdom com Alpine real | integração; **rede simulada** por transportes registrados |
+| `npm test` | 251 testes Vitest/jsdom com Alpine real | integração; **rede simulada** por transportes registrados |
 | `npm run test:php` | 28 testes do backend (chunks, concorrência com processos reais, fila, idempotência, validação) + 15 dos helpers PHP | backend real, sem HTTP |
-| `npm run test:e2e` | 66 testes Playwright (inclui CSP estrita e Trusted Types) no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
+| `npm run test:e2e` | 68 testes Playwright (inclui CSP estrita e Trusted Types) no Chrome instalado, servidor PHP embutido e worker real | **tudo real** (rede, navegador, backend) |
 | `npm run test:all` | build + os três acima | |
 | `npm run docs:check` | gera `docs/*.html` a partir de `docs-src/` e confere atributos, regras, máscaras, métodos e links de todos os exemplos contra a biblioteca | estático |
 | `npm run docs:serve` | gera e serve a documentação em `http://localhost:1900` (técnica em `/tecnica`); no Windows também `docs-servidor.bat` | servidor |
 | `npm run docs:browser` | carrega cada exemplo HTML da documentação no Chrome (servidor em 127.0.0.1:8099) | navegador real |
 
-Último resultado executado (2026-10-10): unitários 250/250, PHP 28/28 + helpers 15/15 (PHP 8.4.2; helpers também em 7.1 e 8.5), E2E 66/66 (Chrome).
+Último resultado executado (2026-10-10): unitários 251/251, PHP 28/28 + helpers 15/15 (PHP 8.4.2; helpers também em 7.1 e 8.5), E2E 68/68 (Chrome).
 
 O Playwright usa `channel: 'chrome'` (Chrome instalado). Para usar o Chromium do Playwright: `npx playwright install chromium` e `PW_CHANNEL= npm run test:e2e`.
 
-Tamanho (minificado / gzip): núcleo 144,8 / 45,1 KiB; máscaras 21,8 / 7,8; chunks 19,7 / 6,8; inspetores 9,1 / 3,7; Bootstrap 1,6 / 0,8; rascunho 3,5 / 1,5; listagens 27,3 / 8,5; opções 11,6 / 4,2; autopreenchimento 10,9 / 3,9; avisos 6,6 / 2,5; autocompletar 14,2 / 4,9.
+Tamanho (minificado / gzip): núcleo 144,8 / 45,1 KiB; máscaras 21,8 / 7,8; chunks 19,7 / 6,8; inspetores 9,1 / 3,7; Bootstrap 1,6 / 0,8; rascunho 3,5 / 1,5; listagens 27,3 / 8,5; opções 11,6 / 4,2; autopreenchimento 10,9 / 3,9; avisos 6,6 / 2,5; autocompletar 14,2 / 4,9; pacote completo (núcleo + todos) 255,5 / 77,2.
 
 ## Documentação em Docker (porta 1900)
 

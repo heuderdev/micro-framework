@@ -64,8 +64,9 @@ for (const [index, block] of blocks.entries()) {
     page.on('console', m => {
         if ((m.type() === 'error' || m.type() === 'warning') && !/Failed to load resource/.test(m.text())) problems.push(`${m.type()}: ${m.text()}`)
     })
-    // endpoints fictícios usados nos exemplos de selects dependentes (opcoes.html): respondem lista vazia
-    await page.route(/\/api\/(ufs|cidades|bairros|categorias|produtos|empresas|filiais|turmas|bancos)(\?|$)/, route => route.fulfill({ contentType: 'application/json', body: '[]' }))
+    // endpoints fictícios de leitura usados nos exemplos (selects dependentes, listagens): GET responde lista vazia
+    await page.route(/\/api\/(ufs|cidades|bairros|categorias|produtos|empresas|filiais|turmas|bancos|clientes)(\?|$)/, route =>
+        route.request().method() === 'GET' ? route.fulfill({ contentType: 'application/json', body: '[]' }) : route.continue())
     await page.route(`${BASE}/__snippet`, route => route.fulfill({ contentType: 'text/html', body: html }))
     await page.goto(`${BASE}/__snippet`)
     await page.waitForTimeout(250)

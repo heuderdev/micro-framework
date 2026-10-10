@@ -25,6 +25,7 @@ const modules = [
     { name: 'alpine-form-preencher', esm: 'src/preencher/index.js', iife: 'src/preencher/cdn.js' },
     { name: 'alpine-form-avisos', esm: 'src/avisos/index.js', iife: 'src/avisos/cdn.js' },
     { name: 'alpine-form-autocompletar', esm: 'src/autocompletar/index.js', iife: 'src/autocompletar/cdn.js' },
+    { name: 'alpine-form-completo', esm: 'src/completo/index.js', iife: 'src/completo/cdn.js' },
 ]
 
 rmSync('dist', { recursive: true, force: true })

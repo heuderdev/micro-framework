@@ -18,6 +18,7 @@
     "./preencher": "./dist/alpine-form-preencher.esm.js",
     "./avisos": "./dist/alpine-form-avisos.esm.js",
     "./autocompletar": "./dist/alpine-form-autocompletar.esm.js",
+    "./completo": "./dist/alpine-form-completo.esm.js",
     "./css": "./css/alpine-form.css",
     "./src/*": "./src/*"
   },

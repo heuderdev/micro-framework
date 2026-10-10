@@ -26,6 +26,7 @@
 <p>Gere os arquivos com <code>npm install</code> e <code>npm run build</code> (ou use os que já estão em <code>dist/</code>) e copie para a pasta pública do seu projeto só o que for usar:</p>
 <div class="tabela"><table><thead><tr><th>Arquivo</th><th>Quando carregar</th></tr></thead><tbody>
 <tr><td><code>dist/alpine-form.min.js</code></td><td><strong>Sempre</strong>. Núcleo.</td></tr>
+<tr><td><code>dist/alpine-form-completo.min.js</code></td><td><strong>Ou</strong>, no lugar do núcleo e de todos os módulos abaixo: <a href="#completo">pacote completo</a> num script só.</td></tr>
 <tr><td><code>dist/alpine-form-masks.min.js</code></td><td>Se usar <code>data-form-mask</code>.</td></tr>
 <tr><td><code>dist/alpine-form-chunks.min.js</code></td><td>Se usar <code>data-form-chunked</code> (upload em partes).</td></tr>
 <tr><td><code>dist/alpine-form-inspectors.min.js</code></td><td>Se usar as regras <code>csv</code>, <code>csv_headers</code>, <code>json</code>, <code>pdf_signature</code>, <code>xlsx_signature</code>, <code>media_duration_*</code>.</td></tr>
@@ -40,6 +41,16 @@
 <tr><td>Alpine.js 3</td><td><strong>Sempre</strong>. Não vem junto: use <code>node_modules/alpinejs/dist/cdn.min.js</code> ou a cópia que seu projeto já tem.</td></tr>
 </tbody></table></div>
 <p>Cada módulo existe em três versões: <code>.min.js</code> (produção), <code>.js</code> (mesmo código legível, para depurar) e <code>.esm.js</code> (para <code>import</code>).</p>
+
+<h2 id="completo" data-titulo="Pacote completo (um script só)">Pacote completo (um script só)</h2>
+<div class="codigo"><pre><code data-lang="html">&lt;link rel=&quot;stylesheet&quot; href=&quot;/css/alpine-form.css&quot;&gt;
+&lt;script src=&quot;/js/alpine-form/alpine-form-completo.min.js&quot;&gt;&lt;/script&gt;   &lt;!-- núcleo + todos os módulos --&gt;
+&lt;script defer src=&quot;/js/alpine.min.js&quot;&gt;&lt;/script&gt;</code></pre></div>
+<div class="codigo"><div class="titulo-codigo">ESM</div><pre><code data-lang="js">import Alpine from 'alpinejs'
+import AlpineFormPlugin from 'alpine-form/completo'
+Alpine.plugin(AlpineFormPlugin)
+Alpine.start()</code></pre></div>
+<p>Prático para começar um projeto ou para sistemas internos: máscaras, chunks, inspetores, Bootstrap, rascunho, listagens, selects dependentes, autopreenchimento, avisos e autocompletar já carregados (255 KiB minificado, 77 KiB com gzip). Nenhum módulo muda o comportamento sozinho: cada um só age onde o atributo dele aparece. Em páginas públicas, carregar só o núcleo e os módulos usados deixa a página mais leve. Exemplo: <code>examples/crud.php</code>.</p>
 
 <h2 id="ordem" data-titulo="Ordem de carregamento">Ordem de carregamento</h2>
 <ol class="passos">

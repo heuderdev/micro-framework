@@ -3,6 +3,60 @@ lead: Formulários completos para copiar e adaptar: cadastro PF/PJ com endereço
 ---
 <p>Todas as receitas assumem os scripts carregados como em <a href="instalacao.html">Instalação</a> (núcleo + máscaras, e os módulos citados). Os endpoints são exemplos: troque pelos seus.</p>
 
+<h2 id="crud" data-titulo="CRUD completo (listar, cadastrar, editar, excluir)">CRUD completo (listar, cadastrar, editar, excluir)</h2>
+<p>Tabela paginada com filtros, formulário que cadastra e edita, exclusão com confirmação, avisos e atualização automática da tabela — juntando <a href="lista.html">listagens</a>, <a href="avisos.html">avisos</a>, <a href="opcoes.html">selects dependentes</a> e <a href="preencher.html">autopreenchimento</a>. Versão executável com backend: <code>examples/crud.php</code>.</p>
+@@@html
+<div x-data="{
+        editar(item) {
+            const f = AlpineForm.get('cliente-form')
+            f.reset()
+            for (const campo of ['id', 'nome', 'email', 'uf']) f.setValue(campo, item[campo] == null ? '' : String(item[campo]))
+            AlpineForm.opcoes.selecionar('cliente-form', 'cidade', item.cidade || '')
+        }
+     }">
+
+    <form id="cliente-form" x-data x-form action="/api/clientes/salvar" method="post"
+          data-form-avisos data-form-lista="clientes" data-form-reset-on-success novalidate>
+        <h2 x-text="$form.fields.id && $form.fields.id.value ? 'Editar cliente' : 'Novo cliente'"></h2>
+        <input type="hidden" name="id">
+        <input name="nome" data-form-v="required|min:3" aria-label="Nome">
+        <input name="email" type="email" data-form-v="required|email" aria-label="E-mail">
+        <input name="cep" data-form-mask="cep" data-form-v="cep" aria-label="CEP"
+               data-form-preencher="/api/cep/{cep}" data-form-preencher-minimo="8" data-form-preencher-campos="uf, ibge:cidade">
+        <select name="uf" data-form-opcoes="/api/ufs" data-form-v="required" aria-label="UF"><option value="">UF</option></select>
+        <select name="cidade" data-form-opcoes="/api/cidades?uf={uf}" aria-label="Cidade"><option value="">Cidade</option></select>
+        <button type="submit">Salvar</button>
+        <button type="button" x-show="$form.fields.id && $form.fields.id.value" @click="$form.reset()">Cancelar edição</button>
+    </form>
+
+    <section id="clientes" x-data x-lista data-lista-url="/api/clientes" data-lista-ordem="nome" data-lista-destacar>
+        <input name="busca" type="search" data-lista-filtro data-lista-minimo="2" aria-label="Buscar">
+        <table>
+            <tbody>
+                <template x-for="item in $lista.itens" :key="item.id">
+                    <tr :class="{ 'novo': $lista.destaque === String(item.id) }">
+                        <td x-text="item.nome"></td>
+                        <td>
+                            <button type="button" @click="editar(item)">Editar</button>
+                            <form x-data x-form action="/api/clientes/excluir" method="post" data-form-lista="clientes" data-form-avisos novalidate>
+                                <input type="hidden" name="id" :value="item.id">
+                                <button type="submit" :data-form-confirmar="'Excluir ' + item.nome + '?'" data-form-confirmar-perigo>Excluir</button>
+                            </form>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+        <nav data-lista-paginacao></nav>
+    </section>
+</div>
+@@@
+<ul>
+    <li>Um script só: <a href="instalacao.html#completo"><code>alpine-form-completo.min.js</code></a>.</li>
+    <li>O mesmo formulário cadastra (sem <code>id</code>) e edita (com <code>id</code>); o <code>reset</code> limpa o <code>id</code> (inclusive o hidden posto por script).</li>
+    <li>Servidor: listagem com <a href="php.html#consulta"><code>Consulta</code></a>, salvar e excluir respondendo <code>{ success, message, data: { id } }</code> (<a href="php.html#resposta"><code>Resposta</code></a>); a mensagem vira o aviso e o <code>id</code> destaca a linha.</li>
+</ul>
+
 <h2 id="cadastro" data-titulo="Cadastro PF/PJ com endereço">Cadastro PF/PJ com endereço</h2>
 @@@html
 <form x-data="{ tipo: 'pf' }" x-form action="/api/clientes" method="post"
@@ -53,7 +107,16 @@ lead: Formulários completos para copiar e adaptar: cadastro PF/PJ com endereço
 @@@
 
 <h2 id="cep" data-titulo="Preencher endereço pelo CEP">Preencher endereço pelo CEP</h2>
-<p>Acrescente ao cadastro acima: quando o CEP for válido, consulta o ViaCEP e preenche os campos (sem bloquear se o serviço falhar).</p>
+<p>Com o módulo <a href="preencher.html">alpine-form-preencher</a> é só um atributo (não apaga o que a pessoa digitou, cancela buscas antigas, mostra "CEP não encontrado" no campo):</p>
+@@@html
+<input name="cep" data-form-mask="cep" data-form-v="required|cep"
+       data-form-preencher="viacep" data-form-preencher-campos="logradouro:rua, bairro, localidade:cidade, uf">
+<input name="rua" data-form-v="required">
+<input name="bairro">
+<input name="cidade" data-form-v="required">
+<input name="uf" data-form-v="required|length:2">
+@@@
+<p>Sem o módulo, à mão (quando o CEP for válido, consulta o ViaCEP e preenche os campos, sem bloquear se o serviço falhar):</p>
 @@@html
 <form x-data="enderecoForm()" x-form action="/api/clientes" method="post"
       @form:validated="$event.detail.field === 'cep' && $event.detail.valid && buscarCep()" novalidate>
@@ -264,6 +327,7 @@ function wizard() {
 <p>Com <code>x-if</code>, o formulário é criado limpo a cada abertura e destruído (com todos os recursos liberados) ao fechar.</p>
 
 <h2 id="busca" data-titulo="Filtro de busca (GET)">Filtro de busca (GET)</h2>
+<p>Para tabelas com paginação, ordenação e filtros, prefira o <a href="lista.html">x-lista</a>. Para uma busca simples com o próprio formulário:</p>
 @@@html
 <form x-data="{ resultados: [] }" x-form action="/api/produtos" method="get" data-form-transport="fetch"
       @form:success="resultados = $event.detail.result.data" novalidate>

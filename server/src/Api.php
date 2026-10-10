@@ -413,7 +413,7 @@ final class Api
      * @param array<string, mixed> $query
      * @return array<string, mixed>
      */
-    public static function listarClientes(array $query, array $extras = []): array
+    public static function listarClientes(array $query, array $extras = [], array $ajustes = []): array
     {
         if (($query['falhar'] ?? '') === '1') {
             throw new HttpError(500, 'Falha simulada ao listar clientes.');
@@ -439,6 +439,15 @@ final class Api
         foreach ($extras as $extra) {
             if (is_array($extra) && isset($extra['id'], $extra['nome'])) {
                 $clientes[] = $extra;
+            }
+        }
+        // edições e exclusões feitas na demonstração de CRUD (guardadas na sessão)
+        $editados = (array) ($ajustes['editados'] ?? []);
+        $excluidos = array_map('intval', (array) ($ajustes['excluidos'] ?? []));
+        $clientes = array_values(array_filter($clientes, static fn (array $c): bool => !in_array((int) $c['id'], $excluidos, true)));
+        foreach ($clientes as $i => $c) {
+            if (isset($editados[$c['id']]) && is_array($editados[$c['id']])) {
+                $clientes[$i] = array_merge($c, array_intersect_key($editados[$c['id']], array_flip(['nome', 'email', 'uf', 'cidade'])));
             }
         }
         // parâmetros lidos pelos helpers PHP (php/alpine-form.php): lista branca de ordenação, limites e filtros tipados
@@ -522,9 +531,9 @@ final class Api
     }
 
     /** Cadastro de demonstração: guarda o cliente na sessão para aparecer em /api/demo/clientes. */
-    private function cadastrarClienteDemo(Request $request): array
+    /** @param array<string, mixed> $data */
+    private static function validarClienteDemo(array $data): Validator
     {
-        $data = $request->data();
         $v = new Validator($data);
         if ($v->required('nome', 'Informe o nome.')) {
             $v->length('nome', 3, 80, 'O nome deve ter entre 3 e 80 caracteres.');
@@ -532,19 +541,27 @@ final class Api
         if ($v->required('email', 'Informe o e-mail.')) {
             $v->email('email', 'E-mail inválido.');
         }
-        $uf = strtoupper((string) ($data['uf'] ?? ''));
-        if (!in_array($uf, ['SP', 'RJ', 'MG', 'RS', 'BA', 'PR'], true)) {
+        if (!in_array(strtoupper((string) ($data['uf'] ?? '')), ['SP', 'RJ', 'MG', 'RS', 'BA', 'PR', 'AC'], true)) {
             $v->add('uf', 'Escolha a UF.');
         }
+        return $v;
+    }
+
+    private function cadastrarClienteDemo(Request $request): array
+    {
+        $data = $request->data();
+        $v = self::validarClienteDemo($data);
         if ($v->fails()) {
             return $this->invalid($v->errors());
         }
+        $uf = strtoupper((string) $data['uf']);
         $extras = (array) Session::get('clientes_extra', []);
         $cliente = [
             'id' => 1000 + count($extras) + 1,
             'nome' => trim((string) $data['nome']),
             'email' => strtolower(trim((string) $data['email'])),
             'uf' => $uf,
+            'cidade' => trim((string) ($data['cidade'] ?? '')),
             'status' => 'pendente',
             'saldo' => '0.00',
             'criado_em' => date('Y-m-d'),
@@ -553,6 +570,44 @@ final class Api
         Session::set('clientes_extra', array_slice($extras, -50));
         Session::release();
         return $this->ok($cliente, 'Cliente cadastrado.');
+    }
+
+    /** CRUD de demonstração: sem id cadastra; com id guarda a edição na sessão. */
+    private function salvarClienteDemo(Request $request): array
+    {
+        $data = $request->data();
+        $id = (int) ($data['id'] ?? 0);
+        if ($id <= 0) {
+            return $this->cadastrarClienteDemo($request);
+        }
+        $v = self::validarClienteDemo($data);
+        if ($v->fails()) {
+            return $this->invalid($v->errors());
+        }
+        $ajustes = (array) Session::get('clientes_ajustes', []);
+        $dados = [
+            'nome' => trim((string) $data['nome']),
+            'email' => strtolower(trim((string) $data['email'])),
+            'uf' => strtoupper((string) $data['uf']),
+            'cidade' => trim((string) ($data['cidade'] ?? '')),
+        ];
+        $ajustes['editados'][$id] = $dados;
+        Session::set('clientes_ajustes', $ajustes);
+        Session::release();
+        return $this->ok(['id' => $id] + $dados, 'Cliente atualizado.');
+    }
+
+    private function excluirClienteDemo(Request $request): array
+    {
+        $id = (int) ($request->data()['id'] ?? 0);
+        if ($id <= 0) {
+            return [422, ['success' => false, 'message' => 'Cliente não informado.'], []];
+        }
+        $ajustes = (array) Session::get('clientes_ajustes', []);
+        $ajustes['excluidos'][] = $id;
+        Session::set('clientes_ajustes', $ajustes);
+        Session::release();
+        return $this->ok(['id' => $id], 'Cliente excluído.');
     }
 
     private function demo(string $scenario, Request $request): array
@@ -581,7 +636,11 @@ final class Api
             case 'limite':
                 return [429, ['success' => false, 'message' => 'Muitas requisições.'], ['Retry-After' => '30']];
             case 'clientes':
-                return [200, self::listarClientes($request->query, (array) Session::get('clientes_extra', [])), []];
+                return [200, self::listarClientes($request->query, (array) Session::get('clientes_extra', []), (array) Session::get('clientes_ajustes', [])), []];
+            case 'clientes-salvar':
+                return $this->salvarClienteDemo($request);
+            case 'clientes-excluir':
+                return $this->excluirClienteDemo($request);
             case 'clientes-novo':
                 return $this->cadastrarClienteDemo($request);
             case 'ufs':

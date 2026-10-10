@@ -24,6 +24,7 @@ Este arquivo é a fonte única de instruções para qualquer IA (Claude, Codex, 
 | `src/transport/*.js` | XHR (progresso real), fetch, adaptadores de resposta (default/laravel/joomla), progresso, retry |
 | `src/files/`, `src/jobs/`, `src/ui/` | Arquivos e previews, polling de jobs (HTTP 202), adaptador de UI padrão/Bootstrap e `ProgressUi` |
 | `src/masks/`, `src/chunks/`, `src/inspectors/`, `src/rascunho/`, `src/lista/`, `src/opcoes/`, `src/preencher/`, `src/avisos/`, `src/autocompletar/` | Módulos opcionais (empacotados separadamente) |
+| `src/completo/` | Pacote único `alpine-form-completo` (núcleo + todos os módulos); novo módulo deve ser incluído aqui |
 | `dist/` | Saída do build (**gerada**; commitada; não editar à mão) |
 | `css/alpine-form.css` | CSS opcional |
 | `php/alpine-form.php` | Helpers PHP para projetos (PHP **7.0+**, sem `strict_types`, sem sintaxe 7.1+): `Resposta`, `Entrada`, `Validador`, `Consulta`, `Csrf`; testes em `php/tests/run.php` |
@@ -52,7 +53,7 @@ npm run serve          # exemplos em http://127.0.0.1:8080/examples/
 npm run docs:serve     # documentação em http://localhost:1900
 ```
 
-Estado esperado: unitários 250/250, PHP 28/28 + helpers 15/15, E2E 66/66, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
+Estado esperado: unitários 251/251, PHP 28/28 + helpers 15/15, E2E 68/68, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
 
 ## Qual guia ler para cada tarefa
 

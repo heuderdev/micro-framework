@@ -10,6 +10,7 @@ Referência completa com exemplos testados: `docs-src/pages/*.html` (ou `docs/in
 ## 1. Carregamento (ordem obrigatória)
 
 ```html
+<!-- atalho: alpine-form-completo.min.js substitui o núcleo e TODOS os módulos abaixo (255 KiB) -->
 <script src="/js/alpine-form/alpine-form.min.js"></script>            <!-- sempre -->
 <script src="/js/alpine-form/alpine-form-masks.min.js"></script>      <!-- só se usar data-form-mask -->
 <script src="/js/alpine-form/alpine-form-chunks.min.js"></script>     <!-- só se usar data-form-chunked -->
