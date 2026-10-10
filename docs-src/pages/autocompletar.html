@@ -1,0 +1,120 @@
+titulo: Autocompletar
+lead: Campo de busca com sugestões da API — cliente, produto, município, CID — acessível por teclado e leitor de tela, que envia o id do item escolhido e pode copiar dados dele para outros campos. Requer alpine-form-autocompletar e o CSS opcional.
+---
+<h2 id="instalacao" data-titulo="Instalação">Instalação</h2>
+@@@html
+<link rel="stylesheet" href="/css/alpine-form.css">                        <!-- posição e aparência da lista -->
+<script src="/js/alpine-form/alpine-form.min.js"></script>
+<script src="/js/alpine-form/alpine-form-autocompletar.min.js"></script>   <!-- depois do núcleo -->
+<script defer src="/js/alpine.min.js"></script>
+@@@
+@@@js ESM
+import autocompletar from 'alpine-form/autocompletar'
+AlpineForm.use(autocompletar)
+@@@
+<p>Exemplo executável: <code>examples/autocompletar.php</code>.</p>
+
+<h2 id="uso" data-titulo="Uso">Uso</h2>
+@@@html
+<form x-data x-form action="/api/pedidos" method="post" novalidate>
+    <label for="cliente">Cliente</label>
+    <div data-form-component="autocompletar" data-form-name="cliente_id" data-form-label="Cliente" data-form-v="required"
+         data-form-autocompletar="/api/clientes?busca={termo}"
+         data-form-autocompletar-texto="nome"
+         data-form-autocompletar-descricao="email">
+        <input type="text" id="cliente" placeholder="Digite o nome">
+    </div>
+    <button type="submit">Criar pedido</button>
+</form>
+@@@
+<ol class="passos">
+    <li>O <code>&lt;div data-form-component="autocompletar"&gt;</code> é o campo: o nome enviado vem de <code>data-form-name</code>, as regras de <code>data-form-v</code>. O <code>&lt;input&gt;</code> de dentro é só para digitar — <strong>sem</strong> <code>name</code>.</li>
+    <li>Com 2+ caracteres (<code>data-form-autocompletar-minimo</code>), depois de 250 ms parado, faz <code>GET /api/clientes?busca=ana</code>. Digitou mais: a busca anterior é cancelada; resposta antiga nunca aparece.</li>
+    <li>Mostra até 10 sugestões (<code>-limite</code>) com o texto e, abaixo, a descrição.</li>
+    <li>Escolheu: o input mostra o texto e o campo passa a valer o id do item (<code>cliente_id=17</code>).</li>
+    <li>Digitou de novo depois de escolher: a escolha deixa de valer (valor vazio) — com <code>required</code>, a pessoa não consegue enviar um nome digitado que não corresponde a um cliente.</li>
+</ol>
+
+<h2 id="servidor" data-titulo="O que o servidor responde">O que o servidor responde</h2>
+<p>Lista de itens em qualquer um destes formatos: <code>[...]</code>, <code>{ "data": [...] }</code> (Laravel, inclusive <code>paginate()</code>), <code>{ "success": true, "data": [...] }</code> ou <code>{ "itens"|"items"|"results": [...] }</code>. Valor e texto são lidos como nos <a href="opcoes.html#servidor">selects dependentes</a> (<code>id</code>, <code>value</code>…; <code>nome</code>, <code>label</code>…) ou pelos atributos <code>-valor</code>, <code>-texto</code> e <code>-descricao</code> (aceitam caminho com ponto: <code>empresa.nome</code>).</p>
+@@@php PHP (Helpers PHP)
+<?php
+require_once __DIR__ . '/../lib/alpine-form.php';
+use AlpineForm\Helpers\{Consulta, Resposta};
+
+$c = Consulta::ler($_GET, ['ordenaveis' => ['nome'], 'ordem' => 'nome', 'por_pagina' => 10]);
+$busca = $c->like('busca');
+$st = $pdo->prepare("SELECT id, nome, email FROM clientes WHERE nome LIKE ? ESCAPE '\\\\' ORDER BY nome LIMIT 10");
+$st->execute(["%$busca%"]);
+Resposta::enviar([200, ['data' => $st->fetchAll(PDO::FETCH_ASSOC)]]);
+@@@
+@@@php Laravel
+Route::get('/api/clientes', fn (Request $r) =>
+    Cliente::where('nome', 'like', '%' . addcslashes((string) $r->input('busca'), '%_\\') . '%')
+        ->orderBy('nome')->limit(10)->get(['id', 'nome', 'email'])
+);
+@@@
+<div class="nota aviso"><p>Limite o tamanho da resposta no servidor (10–20 itens) e devolva só as colunas exibidas. No salvamento, confira que o id enviado existe e que a pessoa pode usá-lo (ex.: cliente da mesma empresa).</p></div>
+
+<h2 id="teclado" data-titulo="Teclado e acessibilidade">Teclado e acessibilidade</h2>
+<div class="tabela"><table><thead><tr><th>Tecla</th><th>Efeito</th></tr></thead><tbody>
+<tr><td>↓ / ↑</td><td>Marca a próxima/anterior sugestão (circular).</td></tr>
+<tr><td>Enter</td><td>Escolhe a marcada (não envia o formulário). Com a lista fechada, Enter envia normalmente.</td></tr>
+<tr><td>Esc</td><td>Fecha a lista; com a lista fechada, limpa o campo.</td></tr>
+<tr><td>Tab</td><td>Fecha a lista e segue para o próximo campo (sem escolher).</td></tr>
+</tbody></table></div>
+<ul>
+    <li>Padrão WAI-ARIA 1.2: o input recebe <code>role="combobox"</code>, <code>aria-autocomplete="list"</code>, <code>aria-expanded</code>, <code>aria-controls</code> e <code>aria-activedescendant</code>; a lista é <code>role="listbox"</code> com <code>role="option"</code> e <code>aria-selected</code>.</li>
+    <li>Uma região viva escondida anuncia "Buscando…", "3 resultado(s). Use as setas para escolher.", "Nenhum resultado encontrado." e o item escolhido.</li>
+    <li>Erros de validação (<code>aria-invalid</code>, <code>aria-describedby</code>) são repassados ao input; ao levar a pessoa ao erro, o foco vai para o input.</li>
+    <li>Texto do servidor vira texto (<code>textContent</code>), nunca HTML.</li>
+</ul>
+
+<h2 id="campos" data-titulo="Copiar dados do item escolhido">Copiar dados do item escolhido</h2>
+@@@html
+<div data-form-component="autocompletar" data-form-name="produto_id" data-form-v="required"
+     data-form-autocompletar="/api/produtos?busca={termo}" data-form-autocompletar-texto="descricao"
+     data-form-autocompletar-campos="preco:preco_unitario, unidade, estoque.disponivel:disponivel">
+    <input type="text" aria-label="Produto">
+</div>
+<input name="preco_unitario" data-form-mask="currency">
+<input name="unidade">
+<input name="disponivel" readonly>
+@@@
+<p>Mesma regra do <a href="preencher.html#digitado">autopreenchimento</a>: só preenche campos vazios ou que ainda têm o valor que ele colocou — o que a pessoa digitou fica. Para reagir de outro jeito, use o evento:</p>
+@@@html
+<form x-data="{ limite: null }" x-form @form:autocompletar-selecionado="limite = $event.detail.item && $event.detail.item.limite_credito" novalidate>
+    <div data-form-component="autocompletar" data-form-name="cliente_id" data-form-autocompletar="/api/clientes?busca={termo}"><input type="text" aria-label="Cliente"></div>
+    <p x-show="limite">Limite de crédito: <span x-text="limite"></span></p>
+</form>
+@@@
+
+<h2 id="edicao" data-titulo="Edição, reset e texto livre">Edição, reset e texto livre</h2>
+@@@html Edição: valor salvo + texto
+<div data-form-component="autocompletar" data-form-name="cliente_id" data-form-autocompletar="/api/clientes?busca={termo}"
+     data-form-autocompletar-inicial="17">
+    <input type="text" value="Ana Almeida" aria-label="Cliente">
+</div>
+@@@
+<p><code>$form.reset()</code> (ou o reset do formulário) volta ao valor inicial e ao texto do <code>value</code>.</p>
+@@@html Texto livre (sugestões, mas aceita qualquer valor)
+<div data-form-component="autocompletar" data-form-name="cidade" data-form-autocompletar="/api/cidades?busca={termo}" data-form-autocompletar-livre>
+    <input type="text" aria-label="Cidade">
+</div>
+@@@
+<p>Com <code>-livre</code>, o valor é o texto digitado; escolher uma sugestão usa o valor dela.</p>
+
+<h2 id="referencia" data-titulo="Referência">Referência</h2>
+<div class="tabela"><table><thead><tr><th>Atributo (no elemento com data-form-component="autocompletar")</th><th>Padrão</th><th>Efeito</th></tr></thead><tbody>
+<tr><td><code>data-form-autocompletar</code></td><td>obrigatório</td><td>URL da mesma origem com <code>{termo}</code>.</td></tr>
+<tr><td><code>data-form-autocompletar-valor</code> · <code>-texto</code> · <code>-descricao</code></td><td>automático · automático · —</td><td>Campos do item (aceitam caminho com ponto).</td></tr>
+<tr><td><code>data-form-autocompletar-minimo</code></td><td>2</td><td>Caracteres para buscar (0 a 50).</td></tr>
+<tr><td><code>data-form-autocompletar-debounce</code></td><td>250ms</td><td>Espera depois da digitação.</td></tr>
+<tr><td><code>data-form-autocompletar-limite</code></td><td>10</td><td>Máximo de sugestões exibidas (1 a 100).</td></tr>
+<tr><td><code>data-form-autocompletar-campos</code></td><td>—</td><td><code>chave:campo</code> copiados ao escolher.</td></tr>
+<tr><td><code>data-form-autocompletar-inicial</code></td><td>—</td><td>Valor salvo (edição); o texto vem do <code>value</code> do input.</td></tr>
+<tr><td><code>data-form-autocompletar-livre</code></td><td>false</td><td>Aceita o texto digitado como valor.</td></tr>
+<tr><td><code>data-form-autocompletar-vazio</code></td><td>"Nenhum resultado encontrado."</td><td>Texto quando a busca não traz nada.</td></tr>
+</tbody></table></div>
+<p>Eventos (no elemento, sobem até o form): <code>form:autocompletar-selecionado</code> (<code>{ name, valor, texto, item }</code>) e <code>form:autocompletar-erro</code> (<code>{ name, status }</code>). API: <code>AlpineForm.autocompletar.limparCache()</code>. Mensagens: <code>autocompletar.carregando</code>, <code>.resultados</code>, <code>.vazio</code>, <code>.erro</code>, <code>.escolhido</code> em <code>AlpineForm.messages</code>. Classes: <code>af-autocompletar-lista</code>, <code>-opcao</code>, <code>-ativo</code>, <code>-texto</code>, <code>-descricao</code>, <code>-vazio</code>.</p>
+<p>Erros de configuração (sem <code>{termo}</code>, outra origem, input com <code>name</code>, sem input, número inválido) bloqueiam o envio e aparecem no console.</p>

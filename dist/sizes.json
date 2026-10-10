@@ -58,5 +58,11 @@
     "min": 6763,
     "gzip": 2526,
     "esm": 10524
+  },
+  {
+    "module": "alpine-form-autocompletar",
+    "min": 14493,
+    "gzip": 5000,
+    "esm": 21526
   }
 ]

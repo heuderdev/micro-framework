@@ -32,6 +32,8 @@ const preencher = await import(new URL('src/preencher/index.js', ROOT))
 AlpineForm.use(preencher.default)
 const avisos = await import(new URL('src/avisos/index.js', ROOT))
 AlpineForm.use(avisos.default)
+const autocompletar = await import(new URL('src/autocompletar/index.js', ROOT))
+AlpineForm.use(autocompletar.default)
 
 function walk(dir) {
     return readdirSync(new URL(dir, ROOT), { withFileTypes: true }).flatMap(entry => {

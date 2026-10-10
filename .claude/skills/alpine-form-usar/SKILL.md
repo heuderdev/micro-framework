@@ -20,6 +20,7 @@ Referência completa com exemplos testados: `docs-src/pages/*.html` (ou `docs/in
 <script src="/js/alpine-form/alpine-form-opcoes.min.js"></script>     <!-- só se usar data-form-opcoes -->
 <script src="/js/alpine-form/alpine-form-preencher.min.js"></script>  <!-- só se usar data-form-preencher -->
 <script src="/js/alpine-form/alpine-form-avisos.min.js"></script>     <!-- só se usar data-form-avisos / data-form-confirmar -->
+<script src="/js/alpine-form/alpine-form-autocompletar.min.js"></script> <!-- só se usar data-form-component="autocompletar" -->
 <script src="/js/app.js"></script>                                    <!-- extensões, configure(), Alpine.data() -->
 <script defer src="/js/alpine.min.js"></script>                       <!-- SEMPRE por último, com defer -->
 ```
@@ -68,6 +69,7 @@ Checklist: `x-data` (no form ou ancestral) + `x-form` + `novalidate` + `name` em
 | Select que depende de outro (UF → cidade) / opções da API | módulo opcoes + `<select name="cidade" data-form-opcoes="/api/cidades?uf={uf}"><option value="">…</option></select>`; edição: `<option selected>` do servidor ou `data-form-opcoes-selecionado`; ver `opcoes.html` |
 | Preencher endereço pelo CEP / empresa pelo CNPJ | módulo preencher + `<input name="cep" data-form-mask="cep" data-form-v="cep" data-form-preencher="/api/cep/{cep}" data-form-preencher-minimo="8" data-form-preencher-campos="logradouro, bairro, localidade:cidade, uf">`; endpoint próprio responde `{ success, data: {...} }` ou 404; ver `preencher.html` |
 | Aviso "Salvo com sucesso" / perguntar antes de excluir | módulo avisos + `data-form-avisos` no form; `data-form-confirmar="Excluir?" data-form-confirmar-perigo` no form ou no botão submit; no Alpine `$avisos.sucesso(...)`, `await $confirmar(...)`; ver `avisos.html` |
+| Escolher cliente/produto digitando (autocomplete) | módulo autocompletar + `<div data-form-component="autocompletar" data-form-name="cliente_id" data-form-v="required" data-form-autocompletar="/api/clientes?busca={termo}" data-form-autocompletar-texto="nome"><input type="text" aria-label="Cliente"></div>` (input sem name); edição com `-inicial` + value; ver `autocompletar.html` |
 | Tabela/lista paginada vinda da API | módulo lista + `<section id="x" x-data x-lista data-lista-url="/api/...">` com `x-for="item in $lista.itens"`, `data-lista-filtros`, `data-lista-ordenar`, `<nav data-lista-paginacao>`, `data-lista-url-sincronizar`. Servidor: `page`/`per_page`/`sort`/`direction`, ordenação por lista branca (ver `lista.html`) |
 | Backend PHP sem framework (ou Joomla 3) | `php/alpine-form.php`: `Resposta::sucesso/invalido/erro`, `Entrada::ler()`, `Validador` (mesmas regras do HTML), `Consulta::ler($_GET, ['ordenaveis' => [...]])` para listagens; ver `php.html` |
 | Atualizar listas depois de cadastrar/excluir | `data-form-lista="idDaLista grupo"` no `<form>`; `data-lista-destacar` na lista para realçar `data.id` |

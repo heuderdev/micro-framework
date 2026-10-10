@@ -23,7 +23,7 @@ Este arquivo é a fonte única de instruções para qualquer IA (Claude, Codex, 
 | `src/validators/*.js` | Regras embutidas |
 | `src/transport/*.js` | XHR (progresso real), fetch, adaptadores de resposta (default/laravel/joomla), progresso, retry |
 | `src/files/`, `src/jobs/`, `src/ui/` | Arquivos e previews, polling de jobs (HTTP 202), adaptador de UI padrão/Bootstrap e `ProgressUi` |
-| `src/masks/`, `src/chunks/`, `src/inspectors/`, `src/rascunho/`, `src/lista/`, `src/opcoes/`, `src/preencher/`, `src/avisos/` | Módulos opcionais (empacotados separadamente) |
+| `src/masks/`, `src/chunks/`, `src/inspectors/`, `src/rascunho/`, `src/lista/`, `src/opcoes/`, `src/preencher/`, `src/avisos/`, `src/autocompletar/` | Módulos opcionais (empacotados separadamente) |
 | `dist/` | Saída do build (**gerada**; commitada; não editar à mão) |
 | `css/alpine-form.css` | CSS opcional |
 | `php/alpine-form.php` | Helpers PHP para projetos (PHP **7.0+**, sem `strict_types`, sem sintaxe 7.1+): `Resposta`, `Entrada`, `Validador`, `Consulta`, `Csrf`; testes em `php/tests/run.php` |
@@ -52,7 +52,7 @@ npm run serve          # exemplos em http://127.0.0.1:8080/examples/
 npm run docs:serve     # documentação em http://localhost:1900
 ```
 
-Estado esperado: unitários 241/241, PHP 28/28 + helpers 15/15, E2E 62/62, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
+Estado esperado: unitários 250/250, PHP 28/28 + helpers 15/15, E2E 66/66, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**
 
 ## Qual guia ler para cada tarefa
 
@@ -80,7 +80,7 @@ O guia humano completo está em `docs-src/pages/` (ou `docs/index.html`): é a r
 9. **Todo elemento criado pela biblioteca leva `data-form-generated`**, e atributos observados (`disabled`, `type`…) só são escritos quando mudam. Sem isso o `MutationObserver` entra em ciclo de re-renderização (bug real já corrigido; teste em `tests/unit/dynamic.test.js`).
 10. **Respostas antigas nunca são aplicadas:** toda validação assíncrona usa `field.runToken` + `AbortController`; compare o valor antes de aplicar resultado remoto.
 11. **Decimais são strings** (`"1234.50"`), nunca `Number`; compare com `compareDecimal`.
-12. **Módulos opcionais** (`masks`, `chunks`, `inspectors`, `bootstrap`, `rascunho`, `lista`, `opcoes`, `preencher`, `avisos`) acessam registro e controlador só pela API recebida no plugin (`AlpineForm`, `AlpineForm.internals`); não importam `core/registry`, `core/controller` nem `core/services`. Não use `instanceof` com classes de erro entre módulos: use `isAbort()`, `isConfigError()` ou `error.kind`.
+12. **Módulos opcionais** (`masks`, `chunks`, `inspectors`, `bootstrap`, `rascunho`, `lista`, `opcoes`, `preencher`, `avisos`, `autocompletar`) acessam registro e controlador só pela API recebida no plugin (`AlpineForm`, `AlpineForm.internals`); não importam `core/registry`, `core/controller` nem `core/services`. Não use `instanceof` com classes de erro entre módulos: use `isAbort()`, `isConfigError()` ou `error.kind`.
 13. **Tudo que a biblioteca cria é liberado no `destroy()`:** listeners, observers, object URLs, elementos gerados, atributos ARIA (restaurados ao original).
 14. **`dist/` e `docs/*.html` são gerados.** Edite `src/` e `docs-src/` e rode `npm run build` / `npm run docs`.
 

@@ -12,6 +12,7 @@ lead: Quais arquivos copiar, em que ordem carregar e como fazer isso numa págin
 <tr><td><code>dist/alpine-form-opcoes.min.js</code></td><td>Se usar <code>data-form-opcoes</code> (<a href="opcoes.html">selects dependentes</a>).</td></tr>
 <tr><td><code>dist/alpine-form-preencher.min.js</code></td><td>Se usar <code>data-form-preencher</code> (<a href="preencher.html">autopreenchimento</a>: CEP, CNPJ).</td></tr>
 <tr><td><code>dist/alpine-form-avisos.min.js</code></td><td>Se usar <code>data-form-avisos</code>, <code>data-form-confirmar</code>, <code>$avisos</code> ou <code>$confirmar</code> (<a href="avisos.html">avisos e confirmação</a>).</td></tr>
+<tr><td><code>dist/alpine-form-autocompletar.min.js</code></td><td>Se usar <code>data-form-component="autocompletar"</code> (<a href="autocompletar.html">autocompletar</a>).</td></tr>
 <tr><td><code>dist/alpine-form-lista.min.js</code></td><td>Se usar <code>x-lista</code> ou <code>data-form-lista</code> (<a href="lista.html">listagens</a>).</td></tr>
 <tr><td><code>dist/alpine-form-bootstrap.min.js</code></td><td>Se a página usa Bootstrap 5 e você quer <code>data-form-ui="bootstrap"</code>.</td></tr>
 <tr><td><code>css/alpine-form.css</code></td><td>Opcional: estilo mínimo para erros, resumo, lista de arquivos e barra de progresso (dispensável com Bootstrap).</td></tr>
@@ -97,9 +98,10 @@ import lista from 'alpine-form/lista'
 import opcoes from 'alpine-form/opcoes'
 import preencher from 'alpine-form/preencher'
 import avisos from 'alpine-form/avisos'
+import autocompletar from 'alpine-form/autocompletar'
 import 'alpine-form/css'
 
-AlpineForm.use(masks).use(chunks).use(inspectors).use(bootstrap).use(rascunho).use(lista).use(opcoes).use(preencher).use(avisos)
+AlpineForm.use(masks).use(chunks).use(inspectors).use(bootstrap).use(rascunho).use(lista).use(opcoes).use(preencher).use(avisos).use(autocompletar)
 AlpineForm.configure({ validation: 'live' })
 
 Alpine.plugin(AlpineFormPlugin)

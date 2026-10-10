@@ -27,6 +27,7 @@ layout_start('Exemplos', 'Exemplos executáveis do AlpineForm usando o backend P
     <li><a href="opcoes.php">Selects dependentes e opções remotas: UF → cidade → bairro, edição, linhas repetidas</a></li>
     <li><a href="preencher.php">Autopreenchimento: CEP → endereço (inclusive UF/cidade em selects dependentes) e CNPJ → empresa</a></li>
     <li><a href="avisos.php">Avisos (toasts) e confirmação antes de enviar ou excluir</a></li>
+    <li><a href="autocompletar.php">Autocompletar acessível: buscar cliente na API, teclado, edição e preenchimento de outros campos</a></li>
     <li><a href="rascunho.php">Rascunho automático (módulo alpine-form-rascunho): recarregue e os campos voltam</a></li>
     <li><a href="csp.php">CSP estrita (sem unsafe-eval) com a versão CSP do Alpine</a> · <a href="csp.php?tt=1">com Trusted Types</a></li>
 </ol>
