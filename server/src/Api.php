@@ -401,6 +401,106 @@ final class Api
     }
 
     /** Cenários de resposta para testar o cliente (HTTP x sucesso lógico, HTML, 204, timeouts...). */
+    /**
+     * Listagem de demonstração (137 clientes fictícios, determinísticos) no formato Laravel API Resource:
+     * { data: [...], meta: { current_page, last_page, per_page, total } }.
+     * Filtros: busca (nome/e-mail), uf, status[] (lista); ordenação só por colunas permitidas.
+     * ?ms=… atrasa a resposta (para ver o estado "carregando"); ?falhar=1 responde 500.
+     *
+     * @param array<string, mixed> $query
+     * @return array<string, mixed>
+     */
+    public static function listarClientes(array $query, array $extras = []): array
+    {
+        if (($query['falhar'] ?? '') === '1') {
+            throw new HttpError(500, 'Falha simulada ao listar clientes.');
+        }
+        usleep(max(0, min(5000, (int) ($query['ms'] ?? 0))) * 1000);
+        $nomes = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Fábio', 'Gabriela', 'Heitor', 'Isabela', 'João', 'Karina', 'Lucas', 'Mariana', 'Nícolas', 'Olívia', 'Paulo', 'Quésia'];
+        $sobrenomes = ['Silva', 'Souza', 'Oliveira', 'Santos', 'Lima', 'Costa', 'Pereira', 'Almeida'];
+        $ufs = ['SP', 'RJ', 'MG', 'RS', 'BA', 'PR'];
+        $status = ['ativo', 'inativo', 'pendente'];
+        $clientes = [];
+        for ($i = 1; $i <= 137; $i++) {
+            $nome = $nomes[$i % count($nomes)] . ' ' . $sobrenomes[($i * 7) % count($sobrenomes)];
+            $clientes[] = [
+                'id' => $i,
+                'nome' => $nome,
+                'email' => strtolower(str_replace(['á', 'é', 'í', 'ó', 'ú', ' '], ['a', 'e', 'i', 'o', 'u', '.'], $nome)) . $i . '@exemplo.com',
+                'uf' => $ufs[($i * 5) % count($ufs)],
+                'status' => $status[($i + intdiv($i, 5)) % count($status)],
+                'saldo' => number_format((($i * 7919) % 100000) / 100, 2, '.', ''),
+                'criado_em' => date('Y-m-d', 1735700000 + $i * 86400 * 2),
+            ];
+        }
+        foreach ($extras as $extra) {
+            if (is_array($extra) && isset($extra['id'], $extra['nome'])) {
+                $clientes[] = $extra;
+            }
+        }
+        $busca = mb_strtolower(trim((string) ($query['busca'] ?? '')));
+        if ($busca !== '') {
+            $clientes = array_values(array_filter($clientes, static fn (array $c): bool => str_contains(mb_strtolower($c['nome']), $busca) || str_contains($c['email'], $busca)));
+        }
+        $uf = strtoupper((string) ($query['uf'] ?? ''));
+        if ($uf !== '') {
+            $clientes = array_values(array_filter($clientes, static fn (array $c): bool => $c['uf'] === $uf));
+        }
+        $statusFiltro = array_values(array_filter((array) ($query['status'] ?? []), 'is_string'));
+        if ($statusFiltro) {
+            $clientes = array_values(array_filter($clientes, static fn (array $c): bool => in_array($c['status'], $statusFiltro, true)));
+        }
+        $ordenaveis = ['id', 'nome', 'uf', 'status', 'saldo', 'criado_em'];
+        $ordem = in_array($query['sort'] ?? '', $ordenaveis, true) ? (string) $query['sort'] : 'id';
+        $direcao = strtolower((string) ($query['direction'] ?? 'asc')) === 'desc' ? -1 : 1;
+        usort($clientes, static function (array $a, array $b) use ($ordem, $direcao): int {
+            $cmp = $ordem === 'saldo' ? ((float) $a['saldo'] <=> (float) $b['saldo']) : strcmp((string) $a[$ordem], (string) $b[$ordem]);
+            return ($cmp ?: $a['id'] <=> $b['id']) * ($cmp ? $direcao : 1);
+        });
+        $porPagina = max(1, min(100, (int) ($query['per_page'] ?? 20)));
+        $total = count($clientes);
+        $ultima = max(1, (int) ceil($total / $porPagina));
+        $pagina = max(1, (int) ($query['page'] ?? 1));
+        return [
+            'data' => array_slice($clientes, ($pagina - 1) * $porPagina, $porPagina),
+            'meta' => ['current_page' => $pagina, 'last_page' => $ultima, 'per_page' => $porPagina, 'total' => $total],
+        ];
+    }
+
+    /** Cadastro de demonstração: guarda o cliente na sessão para aparecer em /api/demo/clientes. */
+    private function cadastrarClienteDemo(Request $request): array
+    {
+        $data = $request->data();
+        $v = new Validator($data);
+        if ($v->required('nome', 'Informe o nome.')) {
+            $v->length('nome', 3, 80, 'O nome deve ter entre 3 e 80 caracteres.');
+        }
+        if ($v->required('email', 'Informe o e-mail.')) {
+            $v->email('email', 'E-mail inválido.');
+        }
+        $uf = strtoupper((string) ($data['uf'] ?? ''));
+        if (!in_array($uf, ['SP', 'RJ', 'MG', 'RS', 'BA', 'PR'], true)) {
+            $v->add('uf', 'Escolha a UF.');
+        }
+        if ($v->fails()) {
+            return $this->invalid($v->errors());
+        }
+        $extras = (array) Session::get('clientes_extra', []);
+        $cliente = [
+            'id' => 1000 + count($extras) + 1,
+            'nome' => trim((string) $data['nome']),
+            'email' => strtolower(trim((string) $data['email'])),
+            'uf' => $uf,
+            'status' => 'pendente',
+            'saldo' => '0.00',
+            'criado_em' => date('Y-m-d'),
+        ];
+        $extras[] = $cliente;
+        Session::set('clientes_extra', array_slice($extras, -50));
+        Session::release();
+        return $this->ok($cliente, 'Cliente cadastrado.');
+    }
+
     private function demo(string $scenario, Request $request): array
     {
         switch ($scenario) {
@@ -426,6 +526,10 @@ final class Api
                 return [413, '<html><body>413 Request Entity Too Large</body></html>', ['Content-Type' => 'text/html']];
             case 'limite':
                 return [429, ['success' => false, 'message' => 'Muitas requisições.'], ['Retry-After' => '30']];
+            case 'clientes':
+                return [200, self::listarClientes($request->query, (array) Session::get('clientes_extra', [])), []];
+            case 'clientes-novo':
+                return $this->cadastrarClienteDemo($request);
             case 'lento':
                 usleep(max(0, min(10000, (int) ($request->query['ms'] ?? 2500))) * 1000);
                 return $this->ok(['recebido' => count($request->post)], 'Processado após espera.');

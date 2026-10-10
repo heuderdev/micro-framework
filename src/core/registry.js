@@ -124,6 +124,18 @@ export function getFormHooks() {
     return formHooks.slice()
 }
 
+/** Funções (Alpine) => void que módulos usam para registrar diretivas/mágicas próprias (ex.: x-lista). */
+const alpineSetups = []
+
+export function registerAlpineSetup(setup) {
+    if (typeof setup !== 'function') throw new ConfigError('AlpineForm.alpine() espera uma função (Alpine) => void.')
+    if (!alpineSetups.includes(setup)) alpineSetups.push(setup)
+}
+
+export function getAlpineSetups() {
+    return alpineSetups.slice()
+}
+
 export function usePlugin(plugin, api) {
     if (typeof plugin !== 'function') throw new ConfigError('AlpineForm.use() espera uma função (AlpineForm) => void.')
     if (plugins.has(plugin)) return

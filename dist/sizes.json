@@ -1,9 +1,9 @@
 [
   {
     "module": "alpine-form",
-    "min": 147991,
-    "gzip": 46146,
-    "esm": 238717
+    "min": 148264,
+    "gzip": 46226,
+    "esm": 239331
   },
   {
     "module": "alpine-form-masks",
@@ -34,5 +34,11 @@
     "min": 3572,
     "gzip": 1502,
     "esm": 5769
+  },
+  {
+    "module": "alpine-form-lista",
+    "min": 27955,
+    "gzip": 8720,
+    "esm": 43790
   }
 ]

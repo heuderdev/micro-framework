@@ -155,6 +155,14 @@ function registerFormHook(hook) {
 function getFormHooks() {
   return formHooks.slice();
 }
+var alpineSetups = [];
+function registerAlpineSetup(setup) {
+  if (typeof setup !== "function") throw new ConfigError("AlpineForm.alpine() espera uma fun\xE7\xE3o (Alpine) => void.");
+  if (!alpineSetups.includes(setup)) alpineSetups.push(setup);
+}
+function getAlpineSetups() {
+  return alpineSetups.slice();
+}
 function usePlugin(plugin, api) {
   if (typeof plugin !== "function") throw new ConfigError("AlpineForm.use() espera uma fun\xE7\xE3o (AlpineForm) => void.");
   if (plugins.has(plugin)) return;
@@ -5537,6 +5545,7 @@ function AlpineFormPlugin(Alpine) {
     }
   });
   Alpine.magic("form", (el) => controllerForElement(el)?.state ?? null);
+  for (const setup of getAlpineSetups()) setup(Alpine);
   if (typeof document !== "undefined") document.addEventListener("alpine:initialized", diagnoseUninitialized, { once: true });
 }
 var AlpineForm = {
@@ -5556,6 +5565,12 @@ var AlpineForm = {
   component: registerComponent,
   fieldAttributes: registerFieldAttributes,
   formHook: registerFormHook,
+  /** Módulos registram diretivas/mágicas do Alpine; roda na hora se o Alpine já estiver instalado. */
+  alpine(setup) {
+    registerAlpineSetup(setup);
+    if (services.Alpine) setup(services.Alpine);
+    return AlpineForm;
+  },
   registry: { get, has, names, unregister },
   use(plugin) {
     usePlugin(plugin, AlpineForm);
@@ -5574,7 +5589,7 @@ var AlpineForm = {
     return controller.state;
   },
   diagnose: diagnoseUninitialized,
-  internals: { setMaskProvider, setChunkService, services, getController, parseRules, tokenize, parseBody, normalizeErrors, withRetry, backoffDelay, DefaultUiAdapter, DEFAULT_CLASSES },
+  internals: { setMaskProvider, setChunkService, services, getController, parseRules, tokenize, parseBody, normalizeErrors, withRetry, backoffDelay, DefaultUiAdapter, DEFAULT_CLASSES, globalOption },
   utils: { parseSize, formatBytes, compareDecimal, toFixedScale },
   events: EVENTS,
   messages: DEFAULT_MESSAGES,

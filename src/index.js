@@ -77,6 +77,7 @@ export function AlpineFormPlugin(Alpine) {
         }
     })
     Alpine.magic('form', el => controllerForElement(el)?.state ?? null)
+    for (const setup of registry.getAlpineSetups()) setup(Alpine)
     if (typeof document !== 'undefined') document.addEventListener('alpine:initialized', diagnoseUninitialized, { once: true })
 }
 
@@ -97,6 +98,12 @@ export const AlpineForm = {
     component: registry.registerComponent,
     fieldAttributes: registry.registerFieldAttributes,
     formHook: registry.registerFormHook,
+    /** Módulos registram diretivas/mágicas do Alpine; roda na hora se o Alpine já estiver instalado. */
+    alpine(setup) {
+        registry.registerAlpineSetup(setup)
+        if (services.Alpine) setup(services.Alpine)
+        return AlpineForm
+    },
     registry: { get: registry.get, has: registry.has, names: registry.names, unregister: registry.unregister },
     use(plugin) {
         registry.usePlugin(plugin, AlpineForm)
@@ -115,7 +122,7 @@ export const AlpineForm = {
         return controller.state
     },
     diagnose: diagnoseUninitialized,
-    internals: { setMaskProvider, setChunkService, services, getController, parseRules, tokenize, parseBody, normalizeErrors, withRetry, backoffDelay, DefaultUiAdapter, DEFAULT_CLASSES },
+    internals: { setMaskProvider, setChunkService, services, getController, parseRules, tokenize, parseBody, normalizeErrors, withRetry, backoffDelay, DefaultUiAdapter, DEFAULT_CLASSES, globalOption },
     utils: { parseSize, formatBytes, compareDecimal, toFixedScale },
     events: EVENTS,
     messages: DEFAULT_MESSAGES,

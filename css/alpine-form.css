@@ -162,3 +162,46 @@
 form[aria-busy="true"] [type="submit"] {
     cursor: progress;
 }
+
+/* Listagens (módulo alpine-form-lista): navegação gerada em [data-lista-paginacao] */
+.af-paginacao {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    list-style: none;
+    margin: 0.75rem 0;
+    padding: 0;
+    align-items: center;
+}
+
+.af-paginacao button {
+    min-width: 2.25rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--af-border);
+    border-radius: var(--af-radius);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.af-paginacao button[aria-current="page"] {
+    background: var(--af-accent);
+    border-color: var(--af-accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+.af-paginacao button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.af-paginacao__reticencias {
+    padding: 0 0.25rem;
+    color: var(--af-muted);
+}
+
+[x-lista][aria-busy="true"] [data-lista-status] {
+    color: var(--af-muted);
+}
