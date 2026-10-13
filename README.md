@@ -134,6 +134,7 @@ Requisitos: Node ≥ 18, PHP ≥ 8.1 (extensões padrão; `fileinfo` recomendada
 npm install
 npm run build          # gera dist/ (ESM, IIFE, IIFE minificado) e dist/sizes.json
 npm run serve          # http://127.0.0.1:8080/examples/
+npm run pacote         # build + pacote/alpine-form-<versão>.zip (js, esm, css, php, Alpine, LEIAME) para levar aos projetos
 php server/bin/worker.php   # em outro terminal, para o exemplo de processamento
 ```
 

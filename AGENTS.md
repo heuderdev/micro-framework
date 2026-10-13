@@ -51,6 +51,7 @@ npm run docs:check     # gera docs/ e confere atributos/regras/máscaras/método
 npm run docs:browser   # carrega cada exemplo HTML da doc no Chrome (precisa do servidor em 8099)
 npm run serve          # exemplos em http://127.0.0.1:8080/examples/
 npm run docs:serve     # documentação em http://localhost:1900
+npm run pacote         # build + pacote/alpine-form-<versão>.zip com o necessário para usar em outros projetos
 ```
 
 Estado esperado: unitários 263/263, PHP 34/34 + helpers 25/25, E2E 71/71, `docs:check` OK, `docs:browser` 0 problemas. **Nunca declare que os testes passaram sem executá-los.**

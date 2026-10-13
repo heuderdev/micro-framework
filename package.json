@@ -46,6 +46,7 @@
     "docs": "node scripts/build-docs.mjs",
     "docs:check": "node scripts/build-docs.mjs && node scripts/check-docs.mjs",
     "docs:browser": "node scripts/check-docs-browser.mjs",
+    "pacote": "node scripts/pacote.mjs",
     "docs:serve": "node scripts/build-docs.mjs && php -S 0.0.0.0:1900 scripts/docs-server.php"
   },
   "devDependencies": {
